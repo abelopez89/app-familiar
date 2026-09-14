@@ -29,7 +29,10 @@ export async function login(_prevState: ActionState, formData: FormData): Promis
     return { error: "Email o contraseña incorrectos." };
   }
 
-  await supabase.rpc("ensure_family_membership");
+  const { error: rpcError } = await supabase.rpc("ensure_family_membership");
+  if (rpcError) {
+    console.error("[login] ensure_family_membership falló:", rpcError);
+  }
 
   const redirectTo = formData.get("redirect");
   redirect(typeof redirectTo === "string" && redirectTo ? redirectTo : "/");
@@ -55,7 +58,10 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
   // Red de seguridad: si por algún motivo el trigger de alta no corrió
   // (por ejemplo, confirmación de email pendiente en otro flujo), esto
   // deja la cuenta vinculada igual la primera vez que hay sesión.
-  await supabase.rpc("ensure_family_membership");
+  const { error: rpcError } = await supabase.rpc("ensure_family_membership");
+  if (rpcError) {
+    console.error("[signup] ensure_family_membership falló:", rpcError);
+  }
 
   redirect("/");
 }

@@ -9,10 +9,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!context) {
     // Hay sesión pero ningún miembro activo vinculado (el trigger de alta
-    // no corrió o falló). Cerramos la sesión antes de redirigir: si no,
-    // el middleware ve "hay usuario" en /login y rebota de nuevo a "/",
-    // generando un loop infinito de redirects.
+    // no corrió o falló, o ensure_family_membership también falló).
+    // Cerramos la sesión antes de redirigir: si no, el middleware ve
+    // "hay usuario" en /login y rebota de nuevo a "/", generando un loop
+    // infinito de redirects.
     const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    console.error(
+      "[app-layout] sesión sin family_member vinculado:",
+      user?.id,
+      user?.email,
+    );
     await supabase.auth.signOut();
     redirect("/login?error=sin-familia");
   }

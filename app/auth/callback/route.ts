@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
       // Si el email ya tenía cuenta en otra de las apps que comparten
       // este proyecto de Supabase, auth.users no es una fila nueva y el
       // trigger de alta no se disparó. Esto vincula la familia igual.
-      await supabase.rpc("ensure_family_membership");
+      const { error: rpcError } = await supabase.rpc("ensure_family_membership");
+      if (rpcError) {
+        console.error("[auth/callback] ensure_family_membership falló:", rpcError);
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
