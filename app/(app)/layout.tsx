@@ -2,15 +2,19 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-shell/header";
 import { BottomNav } from "@/components/app-shell/bottom-nav";
 import { getCurrentFamilyContext } from "@/lib/family";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const context = await getCurrentFamilyContext();
 
   if (!context) {
-    // El middleware ya garantiza que hay sesión; si no hay miembro
-    // vinculado todavía (el trigger de alta no corrió o falló), no hay
-    // familia para mostrar.
-    redirect("/login");
+    // Hay sesión pero ningún miembro activo vinculado (el trigger de alta
+    // no corrió o falló). Cerramos la sesión antes de redirigir: si no,
+    // el middleware ve "hay usuario" en /login y rebota de nuevo a "/",
+    // generando un loop infinito de redirects.
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+    redirect("/login?error=sin-familia");
   }
 
   return (

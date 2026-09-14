@@ -20,8 +20,13 @@ function LoginForm() {
   );
 
   useEffect(() => {
-    if (searchParams.get("error") === "google") {
+    const error = searchParams.get("error");
+    if (error === "google") {
       toast.error("No se pudo iniciar sesión con Google.");
+    } else if (error === "sin-familia") {
+      toast.error(
+        "Tu cuenta no está vinculada a ninguna familia todavía. Pedile a un adulto de tu familia que te dé de alta desde Configuración → Miembros con este mismo email.",
+      );
     }
   }, [searchParams]);
 
