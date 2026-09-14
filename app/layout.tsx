@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { RegisterServiceWorker } from "@/components/register-service-worker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,6 +23,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "App Familiar",
   },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -41,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-muted/30">
         {children}
         <Toaster position="top-center" richColors />
+        <RegisterServiceWorker />
       </body>
     </html>
   );
