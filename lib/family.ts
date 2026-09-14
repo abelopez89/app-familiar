@@ -22,12 +22,7 @@ export async function getCurrentFamilyContext(): Promise<CurrentFamilyContext | 
 
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
-
-  if (userError) {
-    console.error("[getCurrentFamilyContext] getUser falló:", userError);
-  }
 
   if (!user) return null;
 
@@ -44,13 +39,6 @@ export async function getCurrentFamilyContext(): Promise<CurrentFamilyContext | 
       user.id,
       ":",
       memberError,
-    );
-  } else {
-    console.error(
-      "[getCurrentFamilyContext] query family_members para user_id",
-      user.id,
-      "devolvió:",
-      member ? `member ${member.id} (family ${member.family_id})` : "null",
     );
   }
 

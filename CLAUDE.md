@@ -112,6 +112,17 @@ Estas reglas no son opcionales:
    reemplazándolo por un join a `template_items` / `product_categories`.
 9. `unit_price` existe en el modelo pero **no se expone en ninguna
    pantalla** (ver Fase 1 más abajo). Es para uso futuro.
+10. RLS no alcanza por sí sola: Postgres exige que el rol tenga el
+    privilegio de tabla (`GRANT SELECT/INSERT/UPDATE/DELETE`) antes de
+    evaluar las políticas. La migración 005 le da esos privilegios a
+    `authenticated` sobre todas las tablas de `hogar` que existían en
+    ese momento, con un `ALTER DEFAULT PRIVILEGES` que cubre las tablas
+    nuevas de fases futuras automáticamente. Aun así, si algún día una
+    consulta autenticada nueva falla con
+    `permission denied for table X` (42501), es este mismo problema —
+    revisá que la tabla en cuestión efectivamente haya heredado el
+    default privilege (por ejemplo, si se crea con un rol dueño distinto
+    al que corrió la 005).
 
 ## Variables de entorno
 
