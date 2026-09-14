@@ -16,6 +16,10 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Si el email ya tenía cuenta en otra de las apps que comparten
+      // este proyecto de Supabase, auth.users no es una fila nueva y el
+      // trigger de alta no se disparó. Esto vincula la familia igual.
+      await supabase.rpc("ensure_family_membership");
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
