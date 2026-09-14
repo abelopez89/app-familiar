@@ -4,6 +4,7 @@ import type { Database } from "@/lib/supabase/types";
 import { env } from "@/lib/env";
 
 const PUBLIC_PATHS = ["/login", "/registro", "/recuperar"];
+const AUTH_FLOW_PATHS = ["/auth/callback"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -35,6 +36,13 @@ export async function updateSession(request: NextRequest) {
   const isPublicPath = PUBLIC_PATHS.some((path) =>
     request.nextUrl.pathname.startsWith(path),
   );
+  const isAuthFlowPath = AUTH_FLOW_PATHS.some((path) =>
+    request.nextUrl.pathname.startsWith(path),
+  );
+
+  if (isAuthFlowPath) {
+    return response;
+  }
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
