@@ -1,0 +1,158 @@
+# App Familiar
+
+Aplicación web para organizar la vida doméstica de una familia: compras del
+supermercado, eventos, tareas del hogar, documentos y consumo de combustible.
+Pensada para uso en celular, por adultos de una misma familia.
+
+Este documento orienta a cualquier sesión de trabajo (humana o de Claude
+Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
+
+## Estado del proyecto
+
+- **Fase 0 (base) y Fase 1 (compras): implementadas.**
+- Fases siguientes — eventos, tareas, documentos, combustible, bot de
+  Telegram — están diseñadas pero **no implementadas**. No crees sus
+  tablas, rutas ni componentes hasta que se pida explícitamente esa fase.
+  El bottom nav ya tiene placeholders "Próximamente" para ellas.
+
+## Stack
+
+- Next.js 15, App Router, TypeScript
+- Tailwind CSS v4 + shadcn/ui (estilo "new-york", base color "neutral")
+- Supabase (Postgres + Auth), cliente JS v2 vía `@supabase/ssr`
+- Zod para validación
+- date-fns / date-fns-tz con zona horaria `America/Asuncion`
+- Deploy en Vercel
+
+Restricciones deliberadas — no las repliques ni las "mejores":
+
+- **Sin ORM.** Todas las consultas son directas con el cliente de Supabase.
+- Server Components por defecto. Client Components (`"use client"`) solo
+  donde hace falta interactividad real (formularios, drag & drop, modo
+  supermercado, realtime).
+- Mutaciones vía **Server Actions**, no rutas API — excepto webhooks y
+  crons de fases futuras, que no existen todavía.
+- Sin librerías de estado global (Redux, Zustand). Alcanza con Server
+  Components + estado local de React.
+- Sin tests automatizados en esta etapa.
+- Sin caché offline ni sincronización en background (el service worker
+  solo hace la PWA instalable).
+
+## UI e internacionalización
+
+- Toda la interfaz está en **español** (es-PY informal, "vos").
+- Moneda: **guaraníes (PYG)**, siempre **sin decimales**. Formatear con
+  `Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG', maximumFractionDigits: 0 })`
+  o equivalente — ver `lib/format.ts`.
+- Fechas y horas en zona `America/Asuncion` (`lib/dates.ts`).
+
+## Base de datos — reglas críticas
+
+El proyecto de Supabase está **compartido con otras tres aplicaciones**.
+Estas reglas no son opcionales:
+
+1. **Todo el esquema vive en `hogar`**, nunca en `public`. El schema ya
+   está creado y expuesto en la API de Supabase.
+2. El cliente de Supabase se instancia siempre con
+   `{ db: { schema: 'hogar' } }` (ver `lib/supabase/*.ts`).
+3. **Nunca ejecutes comandos de Supabase CLI contra la base remota**:
+   nada de `supabase db push`, `supabase db reset`, `supabase db pull`,
+   ni ninguno que modifique la base compartida. Las migraciones se
+   escriben como archivos `.sql` numerados en `supabase/migrations/` y el
+   dueño del proyecto las aplica a mano desde el SQL Editor. Al agregar
+   una migración nueva, avisale al usuario que tiene que aplicarla antes
+   de seguir con el código que depende de ella.
+4. Todo el SQL debe calificar los objetos con el schema
+   (`hogar.tabla`, `hogar.funcion()`), nunca depender de `search_path`
+   (excepto dentro de funciones `security definer` que ya fijan
+   `search_path = hogar` explícitamente).
+5. **RLS obligatorio en todas las tablas**, sin excepción. Patrón estándar
+   de cuatro políticas por tabla (select/insert/update/delete), todas con
+   la misma condición `family_id = hogar.current_family_id()`. No agregues
+   lógica de roles en las políticas: en este MVP todo adulto autenticado
+   ve todo lo de su familia.
+6. Las funciones helper `hogar.current_family_id()` y
+   `hogar.current_member_id()` son `security definer` a propósito, para
+   evitar recursión infinita en las políticas de `family_members`. No las
+   simplifiques ni las vuelvas `security invoker`.
+7. El trigger `hogar.handle_new_user()` sobre `auth.users` es crítico: si
+   el email ya existe como miembro sin `user_id`, lo vincula; si no, crea
+   una familia nueva. Sin esto, un segundo adulto que se registra termina
+   con su propia familia vacía en lugar de sumarse a la existente. No lo
+   toques sin motivo.
+8. `name` y `category_name` en `shopping_list_items` son una copia
+   (snapshot) de los datos de la plantilla al momento de crear la lista,
+   no un join. Las listas de compras son historial: si una plantilla
+   cambia después, las listas viejas no deben cambiar. No lo optimices
+   reemplazándolo por un join a `template_items` / `product_categories`.
+9. `unit_price` existe en el modelo pero **no se expone en ninguna
+   pantalla** (ver Fase 1 más abajo). Es para uso futuro.
+
+## Variables de entorno
+
+Las variables de entorno se cargan **solo en Vercel** — no hay
+`.env.local` en este proyecto ni se debe crear uno con valores reales.
+En tiempo de ejecución deben existir:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (solo server, nunca en código de cliente)
+
+`lib/env.ts` valida su presencia con un mensaje de error claro si falta
+alguna. No agregues variables nuevas sin documentarlas ahí y en el README.
+
+## Clientes de Supabase
+
+Tres clientes separados, no los mezcles:
+
+- `lib/supabase/client.ts` — browser (Client Components), usa la anon key.
+- `lib/supabase/server.ts` — Server Components y Server Actions, maneja
+  cookies vía `@supabase/ssr`, usa la anon key.
+- `lib/supabase/admin.ts` — service role key. Solo se importa desde código
+  de servidor (Server Actions, route handlers). **Nunca** desde un
+  componente cliente.
+
+## Estructura de rutas
+
+- `(auth)` — `/login`, `/registro`, `/recuperar`. Sin sesión.
+- `(app)` — todo lo que requiere sesión. El middleware (`middleware.ts`)
+  redirige a `/login` si no hay usuario autenticado.
+  - `/` — dashboard "Hoy"
+  - `/compras`, `/compras/nueva`, `/compras/[id]`, `/compras/[id]/comprar`,
+    `/compras/plantillas`, `/compras/plantillas/[id]`
+  - `/config/familia`, `/config/miembros`, `/config/categorias`
+  - `/eventos`, `/tareas`, `/mas` — placeholders "Próximamente" hasta que
+    se implementen esas fases.
+
+## Fase 1 — Módulo de compras: decisiones a respetar
+
+1. **Snapshot, no join.** `shopping_list_items.name` /
+   `category_name` se copian desde `template_items` al crear la lista.
+   Editar una lista (cantidad, borrar, agregar producto suelto) nunca
+   toca la plantilla; la única vía para que una plantilla crezca es el
+   link explícito "agregar también a una plantilla".
+2. **Deduplicación al combinar plantillas**, por nombre normalizado
+   (minúsculas, sin tildes, espacios colapsados), tomando la mayor
+   `default_quantity` cuando el mismo producto aparece en más de una
+   plantilla seleccionada. Ver `lib/normalize.ts`.
+3. **`unit_price` no se muestra en ninguna UI**, ni en modo supermercado
+   ni en edición de lista. Solo se carga `total_amount` (un campo, al
+   cerrar la compra).
+4. **Modo supermercado es la pantalla más importante del proyecto.**
+   Toda la fila es el área táctil (mínimo 56px de alto), update optimista
+   con reversión por toast si falla, agrupado por `sort_order` de
+   categoría, wake lock, realtime de Supabase con cuidado de no pisar el
+   estado optimista local con el propio eco del cambio. Cero campos de
+   texto en esa pantalla.
+
+## Comandos útiles
+
+```bash
+npm run dev       # servidor de desarrollo
+npm run build     # build de producción — debe pasar sin errores de TS
+npm run lint
+```
+
+No ejecutes `vercel` ni ningún comando del CLI de Vercel: el proyecto se
+vincula desde el dashboard. No ejecutes comandos del Supabase CLI contra
+la base remota (ver arriba).
