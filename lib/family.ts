@@ -22,24 +22,54 @@ export async function getCurrentFamilyContext(): Promise<CurrentFamilyContext | 
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
+
+  if (userError) {
+    console.error("[getCurrentFamilyContext] getUser falló:", userError);
+  }
 
   if (!user) return null;
 
-  const { data: member } = await supabase
+  const { data: member, error: memberError } = await supabase
     .from("family_members")
     .select("*")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .maybeSingle();
 
+  if (memberError) {
+    console.error(
+      "[getCurrentFamilyContext] query family_members falló para user_id",
+      user.id,
+      ":",
+      memberError,
+    );
+  } else {
+    console.error(
+      "[getCurrentFamilyContext] query family_members para user_id",
+      user.id,
+      "devolvió:",
+      member ? `member ${member.id} (family ${member.family_id})` : "null",
+    );
+  }
+
   if (!member) return null;
 
-  const { data: family } = await supabase
+  const { data: family, error: familyError } = await supabase
     .from("families")
     .select("*")
     .eq("id", member.family_id)
     .maybeSingle();
+
+  if (familyError) {
+    console.error(
+      "[getCurrentFamilyContext] query families falló para family_id",
+      member.family_id,
+      ":",
+      familyError,
+    );
+  }
 
   if (!family) return null;
 
