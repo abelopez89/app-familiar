@@ -94,6 +94,17 @@ Estas reglas no son opcionales:
    `app/auth/callback/route.ts`). No quites esas llamadas a
    `ensure_family_membership` de los flujos de login/callback: sin ellas,
    un usuario que ya usa otra app queda sin familia en app-familiar.
+
+   **Cualquier función nueva pensada para llamarse vía `supabase.rpc(...)`**
+   (a diferencia de una función usada solo dentro de una política RLS o
+   un trigger) necesita privilegios explícitos además de existir: sin
+   `grant execute on function hogar.mi_funcion() to authenticated;` (y
+   `grant usage on schema hogar to authenticated;` si es la primera vez),
+   PostgREST devuelve `permission denied for schema hogar` (42501). Ver
+   `supabase/migrations/004_grants_funciones.sql`, que además deja un
+   `alter default privileges` para que las funciones futuras no repitan
+   este problema — pero si creás una función y la extraés a un schema u
+   objeto distinto, revisá igual que tenga los grants que necesita.
 8. `name` y `category_name` en `shopping_list_items` son una copia
    (snapshot) de los datos de la plantilla al momento de crear la lista,
    no un join. Las listas de compras son historial: si una plantilla
