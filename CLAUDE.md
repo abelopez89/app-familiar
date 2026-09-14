@@ -30,8 +30,10 @@ Restricciones deliberadas — no las repliques ni las "mejores":
 - Server Components por defecto. Client Components (`"use client"`) solo
   donde hace falta interactividad real (formularios, drag & drop, modo
   supermercado, realtime).
-- Mutaciones vía **Server Actions**, no rutas API — excepto webhooks y
-  crons de fases futuras, que no existen todavía.
+- Mutaciones vía **Server Actions**, no rutas API — excepto webhooks,
+  crons de fases futuras (todavía no existen) y el callback de OAuth
+  (`app/auth/callback/route.ts`), que por protocolo tiene que ser un
+  Route Handler GET.
 - Sin librerías de estado global (Redux, Zustand). Alcanza con Server
   Components + estado local de React.
 - Sin tests automatizados en esta etapa.
@@ -114,7 +116,13 @@ Tres clientes separados, no los mezcles:
 
 ## Estructura de rutas
 
-- `(auth)` — `/login`, `/registro`, `/recuperar`. Sin sesión.
+- `(auth)` — `/login`, `/registro`, `/recuperar`. Sin sesión. Ambas
+  pantallas ofrecen email/password y "Continuar con Google" (OAuth) como
+  métodos alternativos, no excluyentes.
+- `/auth/callback` — Route Handler que recibe el `code` del redirect de
+  Google y llama `exchangeCodeForSession`. No requiere sesión (el
+  middleware lo deja pasar explícitamente). Fuera de los grupos `(auth)`
+  y `(app)` a propósito.
 - `(app)` — todo lo que requiere sesión. El middleware (`middleware.ts`)
   redirige a `/login` si no hay usuario autenticado.
   - `/` — dashboard "Hoy"

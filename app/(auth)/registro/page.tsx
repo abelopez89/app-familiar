@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { signup, type ActionState } from "../actions";
+import { GoogleSignInButton } from "../google-sign-in-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +25,7 @@ export default function RegistroPage() {
           automáticamente. Si no, se crea una familia nueva.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
         <form action={formAction} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>
@@ -52,6 +53,14 @@ export default function RegistroPage() {
             </Link>
           </p>
         </form>
+
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="h-px flex-1 bg-border" />
+          O
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <GoogleSignInButton />
       </CardContent>
     </Card>
   );
