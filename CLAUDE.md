@@ -82,6 +82,18 @@ Estas reglas no son opcionales:
    una familia nueva. Sin esto, un segundo adulto que se registra termina
    con su propia familia vacía en lugar de sumarse a la existente. No lo
    toques sin motivo.
+
+   El trigger solo cubre altas realmente nuevas en `auth.users`
+   (`AFTER INSERT`). Como esa tabla es compartida con las otras 3 apps del
+   proyecto, alguien que ya tenía cuenta en otra app (mismo email o misma
+   cuenta de Google) nunca dispara el trigger al entrar por primera vez a
+   app-familiar. Por eso existe también `hogar.ensure_family_membership()`
+   (migración 003): misma lógica de vinculación, pero idempotente y
+   basada en `auth.uid()`, pensada para llamarse por RPC en cada login
+   exitoso (ver `login()` y `signup()` en `app/(auth)/actions.ts`, y
+   `app/auth/callback/route.ts`). No quites esas llamadas a
+   `ensure_family_membership` de los flujos de login/callback: sin ellas,
+   un usuario que ya usa otra app queda sin familia en app-familiar.
 8. `name` y `category_name` en `shopping_list_items` son una copia
    (snapshot) de los datos de la plantilla al momento de crear la lista,
    no un join. Las listas de compras son historial: si una plantilla

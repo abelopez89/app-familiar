@@ -29,6 +29,8 @@ export async function login(_prevState: ActionState, formData: FormData): Promis
     return { error: "Email o contraseña incorrectos." };
   }
 
+  await supabase.rpc("ensure_family_membership");
+
   const redirectTo = formData.get("redirect");
   redirect(typeof redirectTo === "string" && redirectTo ? redirectTo : "/");
 }
@@ -49,6 +51,11 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
   if (error) {
     return { error: "No se pudo crear la cuenta. " + error.message };
   }
+
+  // Red de seguridad: si por algún motivo el trigger de alta no corrió
+  // (por ejemplo, confirmación de email pendiente en otro flujo), esto
+  // deja la cuenta vinculada igual la primera vez que hay sesión.
+  await supabase.rpc("ensure_family_membership");
 
   redirect("/");
 }
