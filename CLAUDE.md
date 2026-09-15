@@ -9,11 +9,28 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
 
 ## Estado del proyecto
 
-- **Fase 0 (base) y Fase 1 (compras): implementadas.**
-- Fases siguientes — eventos, tareas, documentos, combustible, bot de
-  Telegram — están diseñadas pero **no implementadas**. No crees sus
-  tablas, rutas ni componentes hasta que se pida explícitamente esa fase.
-  El bottom nav ya tiene placeholders "Próximamente" para ellas.
+- **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
+  producción** (Vercel + Supabase), incluyendo registro, login con
+  Google, generación de listas con deduplicación y el modo supermercado
+  probado desde celular.
+- Migraciones `001` a `005` aplicadas en la base compartida. Antes de
+  escribir la migración `006`, mirá `supabase/migrations/` para confirmar
+  el próximo número — no lo asumas.
+- **Próximo hito: Fase 2.** Sus módulos — eventos, tareas, documentos,
+  combustible, bot de Telegram — están mencionados en el diseño original
+  pero **este repo no tiene el detalle de esa fase** (el prompt con el
+  que se armó Fase 0 + Fase 1 solo especificaba esas dos). Si arrancás
+  una sesión para Fase 2 sin que el usuario haya pegado el spec de esa
+  fase en el prompt, pedíselo antes de crear tablas, rutas o componentes
+  — no los inventes a partir del nombre del módulo. El bottom nav ya
+  tiene placeholders "Próximamente" para `/eventos` y `/tareas`;
+  "Documentos" y "Combustible" hoy solo aparecen listados (sin ruta) en
+  `/mas`.
+- **Lecciones de la puesta en producción** (relevantes para cualquier
+  módulo nuevo, no solo compras): ver la regla 10 de la sección
+  siguiente sobre grants de tabla, y la nota de la regla 7 sobre
+  `ensure_family_membership`. Ambas costaron varias rondas de debugging
+  real con logs de Vercel — no son hipotéticas.
 
 ## Stack
 
@@ -124,6 +141,22 @@ Estas reglas no son opcionales:
     default privilege (por ejemplo, si se crea con un rol dueño distinto
     al que corrió la 005).
 
+### Migraciones aplicadas (referencia rápida)
+
+Todas corridas a mano en Supabase y confirmadas funcionando en producción:
+
+| Archivo | Contenido |
+| --- | --- |
+| `001_nucleo.sql` | `families`, `family_members`, funciones helper, trigger de alta, RLS. |
+| `002_compras.sql` | Tablas de compras (categorías, plantillas, listas, items) + RLS + realtime. |
+| `003_ensure_family_membership.sql` | Vinculación idempotente por RPC (ver regla 7). |
+| `004_grants_funciones.sql` | `GRANT EXECUTE` para funciones llamadas por RPC (ver regla 7). |
+| `005_grants_tablas.sql` | `GRANT SELECT/INSERT/UPDATE/DELETE` base sobre tablas (ver regla 10). |
+
+La próxima migración de cualquier fase nueva es `006_*.sql`. Confirmá el
+número real mirando la carpeta antes de crearla, por si esto queda
+desactualizado.
+
 ## Variables de entorno
 
 Las variables de entorno se cargan **solo en Vercel** — no hay
@@ -185,7 +218,15 @@ Tres clientes separados, no los mezcles:
    con reversión por toast si falla, agrupado por `sort_order` de
    categoría, wake lock, realtime de Supabase con cuidado de no pisar el
    estado optimista local con el propio eco del cambio. Cero campos de
-   texto en esa pantalla.
+   texto en esa pantalla. Tiene una flecha para volver a `/compras/[id]`
+   sin cerrar la compra (para seguir agregando productos a mitad de
+   camino) — no la saques, resolvió un pedido real de uso.
+5. **Eliminar una lista** (`deleteShoppingList` en
+   `app/(app)/compras/[id]/actions.ts`) está disponible tanto en la
+   edición de lista como en el resumen de lista cerrada, con
+   confirmación previa. Cubre el caso de una ida al súper que no se
+   concretó. El `on delete cascade` de `shopping_list_items.list_id` se
+   encarga de los items, no hace falta borrarlos a mano.
 
 ## Comandos útiles
 
