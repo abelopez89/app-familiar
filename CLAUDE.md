@@ -43,20 +43,35 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   de diseño. **No** incluye: documentos, combustible, ni la tabla
   `vehicles` (queda para la Fase 4 — ver la nota sobre
   `assets.asset_type = 'vehiculo'` en esa sección).
+- **Fase 4 (combustible): código escrito, migración `009` pendiente de
+  aplicar.** `vehicles` y `fuel_logs` todavía no existen en la base
+  compartida — avisá al usuario antes de asumir que las pantallas de
+  `/combustible` funcionan contra datos reales. Cubre: ABM de vehículos
+  (`/combustible/vehiculos`) vinculables a un `asset` de tipo `vehiculo`
+  (existente o creado en el mismo formulario), carga rápida optimizada
+  para la estación (`/combustible/nueva`), cálculo de rendimiento entre
+  tanques llenos con manejo de cargas olvidadas
+  (`lib/fuel/consumption.ts`), alerta de consumo excesivo al guardar, y
+  pantalla de detalle por vehículo (`/combustible/[vehicleId]`) con
+  estadísticas, dos gráficos SVG a mano, historial editable/borrable y
+  las tareas de mantenimiento pendientes del activo vinculado. Ver la
+  sección "Fase 4" más abajo para las decisiones de diseño. **No**
+  incluye: documentos, bot conversacional de Telegram, ni mantenimiento
+  por kilometraje (el service del auto sigue siendo una tarea normal de
+  la Fase 3, con recurrencia temporal — no se agregaron columnas a
+  `task_definitions`).
 - Migraciones `001` a `008` aplicadas en la base compartida y
-  confirmadas funcionando. Antes de escribir la migración `009`, mirá
+  confirmadas funcionando; `009` escrita pero todavía no aplicada (ver
+  punto anterior). Antes de escribir la migración `010`, mirá
   `supabase/migrations/` para confirmar el próximo número — no lo
   asumas.
-- **Próximo hito: Fase 4 (combustible).** Documentos sigue mencionado en
-  el diseño original pero **este repo no tiene el detalle de esas
-  fases**. Si arrancás una sesión para alguna de ellas sin que el
+- **Próximo hito: Fase 5 (documentos).** Este repo **no tiene el detalle
+  de esa fase**. Si arrancás una sesión para documentos sin que el
   usuario haya pegado el spec correspondiente en el prompt, pedíselo
   antes de crear tablas, rutas o componentes — no los inventes a partir
   del nombre del módulo. "Documentos" hoy solo aparece listado (sin
-  ruta) en `/mas`. Para combustible, recordá la nota de la Fase 3: la
-  futura tabla `vehicles` debe llevar un `asset_id` opcional apuntando a
-  `hogar.assets` (`asset_type = 'vehiculo'`) para que el auto no exista
-  dos veces en la base.
+  ruta) en `/mas`. `hogar.assets.document_id` ya existe pensando en esa
+  fase (comentario "la FK recién en Fase 5" en la migración `008`).
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
   siguiente sobre grants de tabla para `authenticated`, la regla 12
@@ -230,8 +245,9 @@ producción.
 | `006_eventos.sql` | `events`, `event_participants`, `event_reminders`, `telegram_link_codes`, `reminder_deliveries` + RLS + grants (ver regla 11). |
 | `007_grants_service_role.sql` | `GRANT` de schema/tablas/funciones/secuencias a `service_role` (ver regla 12). |
 | `008_tareas.sql` | `assets`, `task_definitions`, `task_instances` + RLS + grants (ver sección Fase 3 más abajo). |
+| `009_combustible.sql` | `vehicles`, `fuel_logs` + RLS + grants (ver sección Fase 4 más abajo). **Escrita, todavía no aplicada.** |
 
-La próxima migración de cualquier fase nueva es `009_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `010_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
@@ -305,7 +321,14 @@ Tres clientes separados, no los mezcles:
   - `/tareas/activos`, `/tareas/activos/[id]` — ABM de activos del hogar
     (electrodomésticos, instalaciones, vehículos) + historial de
     mantenimiento, Fase 3. También enlazado desde `/mas`.
-  - `/mas` lista, sin ruta todavía, "Documentos" y "Combustible".
+  - `/combustible` — listado de vehículos con último rendimiento,
+    promedio, costo por km y última carga, Fase 4.
+  - `/combustible/nueva` — carga rápida de combustible, Fase 4.
+  - `/combustible/vehiculos` — ABM de vehículos, Fase 4.
+  - `/combustible/[vehicleId]` — detalle: estadísticas, gráficos,
+    historial editable/borrable y tareas de mantenimiento del activo
+    vinculado, Fase 4. También enlazado desde `/mas`.
+  - `/mas` lista, sin ruta todavía, "Documentos".
 - Rutas públicas sin sesión, **fuera** de `(auth)` y `(app)` a propósito
   (ver la lista comentada en `middleware.ts`, y no tocarla sin motivo —
   es el tipo de cosa que se rompe en silencio si alguien toca el
@@ -454,6 +477,70 @@ Tres clientes separados, no los mezcles:
     definición (`CompleteResult.undo` en `app/(app)/tareas/actions.ts`)
     para poder revertir tanto la instancia como la definición desde el
     toast de "Deshacer" sin volver a consultar la base.
+
+## Fase 4 — Combustible: decisiones a respetar
+
+1. **El rendimiento SOLO se calcula entre tanques llenos.** Una carga
+   suelta no dice nada: no se sabe cuánto combustible había en el tanque
+   antes ni cuánto quedó después. `fuel_logs.is_full_tank` no es un
+   campo de conveniencia, sostiene todo el módulo — ver
+   `lib/fuel/consumption.ts` (`computeFuelIntervals`).
+2. **`resets_calculation` existe por la carga olvidada.** Si alguien
+   carga nafta y no lo registra, el intervalo siguiente suma kilómetros
+   recorridos con litros que no están en la base, y el rendimiento
+   resultante queda absurdamente alto (contaminando el promedio y
+   volviendo inútil la alerta de consumo excesivo). El sistema no puede
+   detectar esto solo — por eso hay un toggle explícito, en lenguaje
+   humano en la UI ("me olvidé de registrar una carga anterior", nunca
+   el nombre técnico), que corta el intervalo que termina en esa carga
+   sin perder el punto de partida del siguiente.
+3. **La cadena se ordena por odómetro, no por `filled_at`.** Insertar
+   retroactivamente una carga olvidada la ubica sola en su lugar
+   correcto de la secuencia y repara los intervalos afectados, aunque su
+   fecha de creación sea posterior. Ordenar por fecha daría una cadena
+   inconsistente. Ver la nota de la migración `009` sobre por qué el
+   índice de `fuel_logs` es `(vehicle_id, odometer)`.
+4. **`unique(vehicle_id, odometer)` protege contra el doble submit** en
+   la estación con mala señal — dos cargas al mismo kilometraje son
+   físicamente imposibles, así que la restricción nunca molesta a nadie
+   en un uso legítimo.
+5. **El cálculo vive en `lib/fuel/consumption.ts` (TypeScript), no en una
+   vista SQL.** Una vista sobre tablas con RLS no hereda las políticas —
+   corre con los privilegios de su dueño salvo `WITH (security_invoker =
+   true)` — y olvidarlo filtraría datos entre familias, la misma clase
+   de problema que ya costó las migraciones 004, 005 y 007. El volumen
+   es chico (unas cientos de filas por vehículo en toda su vida útil),
+   así que no hay ninguna ventaja de rendimiento en resolverlo en la
+   base. Si en algún momento hiciera falta una vista, solo con
+   `security_invoker = true`.
+6. **La alerta de consumo excesivo se muestra una sola vez, al guardar
+   la carga** (`/combustible/nueva`), comparando el rendimiento del
+   último intervalo contra el promedio de hasta los cinco anteriores
+   (`checkConsumptionDrop`). No hay cron ni aviso por Telegram para
+   esto — la persona está parada en la estación con el celular en la
+   mano, que es el mejor momento posible para decírselo.
+7. **El mantenimiento por kilometraje quedó deliberadamente fuera de
+   alcance.** El service del auto se carga como una tarea normal de la
+   Fase 3 vía `task_definitions`, con recurrencia temporal (`recurrence_
+   every`/`recurrence_unit`) — no se agregaron columnas a
+   `task_definitions` para esto, ni se tocó `lib/tasks/schedule.ts`. La
+   carga de nafta y el mantenimiento del vehículo son datos separados
+   que comparten el mismo `asset_id` de `hogar.assets`
+   (`asset_type = 'vehiculo'`) para que el auto no exista dos veces en
+   la base — ver `lib/fuel/queries.ts`
+   (`listPendingTaskDefinitionsForAsset`).
+8. **Los gráficos de rendimiento y precio por litro son SVG a mano, sin
+   librería** (`app/(app)/combustible/[vehicleId]/performance-chart.tsx`
+   y `price-chart.tsx`) — mismo criterio que el calendario (Fase 2) y el
+   modo supermercado (Fase 1): son dos series simples y una librería de
+   charts traería su propio sistema de estilos a pelear con Tailwind v4.
+9. **Editar una carga vieja no repite las advertencias de
+   `/combustible/nueva`.** `updateFuelLog`
+   (`app/(app)/combustible/[vehicleId]/actions.ts`) solo valida lo
+   bloqueante (litros > 0, odómetro único) — quien edita ya está
+   corrigiendo un dato a propósito, no cargando parada en la estación.
+   Las métricas derivadas se recalculan solas en la próxima lectura,
+   porque no hay nada precalculado que actualizar.
 
 ## Comandos útiles
 

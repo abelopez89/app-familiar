@@ -11,12 +11,10 @@ const configLinks = [
   { href: "/config/calendario", label: "Calendario", icon: CalendarDays },
   { href: "/config/telegram", label: "Telegram", icon: Send },
   { href: "/tareas/activos", label: "Activos", icon: Wrench },
+  { href: "/combustible", label: "Combustible", icon: Fuel },
 ];
 
-const proximamente = [
-  { label: "Documentos", icon: FileText },
-  { label: "Combustible", icon: Fuel },
-];
+const proximamente = [{ label: "Documentos", icon: FileText }];
 
 export default function MasPage() {
   return (
