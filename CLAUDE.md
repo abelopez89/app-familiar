@@ -31,31 +31,39 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   conversacional de Telegram (comandos generales, sesiones con estado,
   inline keyboards) — eso sigue siendo diseño sin detalle en este repo,
   igual que antes.
-- **Fase 3 (tareas del hogar): implementada, migración `008` pendiente
-  de aplicar en producción** — confirmá con el usuario que ya la corrió
-  desde el SQL Editor antes de asumir que las tablas existen. Cubre: ABM
-  de activos (`/tareas/activos`) con ficha e historial de mantenimiento,
-  definiciones de tareas con recurrencia y las dos anclas de recálculo
-  (`/tareas/definiciones`), pantalla `/tareas` con vencidas/semana/
-  próximas, completar (con fecha editable, costo y notas) y omitir,
-  bloque de tareas en el dashboard "Hoy", y cron diario
-  (`/api/cron/tareas`) que genera instancias y avisa por Telegram
-  agrupado por destinatario. Ver la sección "Fase 3" más abajo para las
+- **Fase 3 (tareas del hogar): implementada, migración `008` aplicada en
+  producción.** El código quedó mergeado a `main` y la migración corrida
+  a mano desde el SQL Editor — `assets`, `task_definitions` y
+  `task_instances` ya existen en la base compartida. Lo único que
+  todavía no está confirmado de punta a punta es el cron diario: si una
+  sesión nueva toca `/api/cron/tareas`, conviene confirmar con el
+  usuario que ya creó el job en cron-job.org (`GET /api/cron/tareas`,
+  07:00 `America/Asuncion`, mismo `CRON_SECRET`) y que corrió al menos
+  una vez, antes de asumirlo (mismo criterio que con el cron de
+  recordatorios de la Fase 2). Cubre: ABM de activos (`/tareas/activos`)
+  con ficha e historial de mantenimiento, definiciones de tareas con
+  recurrencia y las dos anclas de recálculo (`/tareas/definiciones`),
+  pantalla `/tareas` con vencidas/semana/próximas, completar (con fecha
+  editable, costo y notas) y omitir, bloque de tareas en el dashboard
+  "Hoy", y el cron diario en sí (genera instancias y avisa por Telegram
+  agrupado por destinatario). Ver la sección "Fase 3" más abajo para las
   decisiones de diseño. **No** incluye: documentos, combustible, ni la
   tabla `vehicles` (queda para la Fase 4 — ver la nota sobre
   `assets.asset_type = 'vehiculo'` en esa sección).
-- Migraciones `001` a `008` escritas; `001` a `007` aplicadas en la base
-  compartida y verificadas en producción, `008` (Fase 3) escrita pero
-  todavía no confirmada como aplicada. Antes de escribir la migración
-  `009`, mirá `supabase/migrations/` para confirmar el próximo número —
-  no lo asumas.
+- Migraciones `001` a `008` aplicadas en la base compartida y
+  confirmadas funcionando. Antes de escribir la migración `009`, mirá
+  `supabase/migrations/` para confirmar el próximo número — no lo
+  asumas.
 - **Próximo hito: Fase 4 (combustible).** Documentos sigue mencionado en
   el diseño original pero **este repo no tiene el detalle de esas
   fases**. Si arrancás una sesión para alguna de ellas sin que el
   usuario haya pegado el spec correspondiente en el prompt, pedíselo
   antes de crear tablas, rutas o componentes — no los inventes a partir
   del nombre del módulo. "Documentos" hoy solo aparece listado (sin
-  ruta) en `/mas`.
+  ruta) en `/mas`. Para combustible, recordá la nota de la Fase 3: la
+  futura tabla `vehicles` debe llevar un `asset_id` opcional apuntando a
+  `hogar.assets` (`asset_type = 'vehiculo'`) para que el auto no exista
+  dos veces en la base.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
   siguiente sobre grants de tabla para `authenticated`, la regla 12
@@ -216,10 +224,8 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `007` corridas a mano en Supabase y confirmadas funcionando en
-producción. `008` está escrita pero **todavía no confirmada como
-aplicada** — no asumas que `assets`/`task_definitions`/`task_instances`
-existen en la base sin preguntarle al usuario.
+`001` a `008` corridas a mano en Supabase y confirmadas funcionando en
+producción.
 
 | Archivo | Contenido |
 | --- | --- |
