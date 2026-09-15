@@ -31,17 +31,31 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   conversacional de Telegram (comandos generales, sesiones con estado,
   inline keyboards) — eso sigue siendo diseño sin detalle en este repo,
   igual que antes.
-- Migraciones `001` a `007` aplicadas en la base compartida. Antes de
-  escribir la migración `008`, mirá `supabase/migrations/` para confirmar
-  el próximo número — no lo asumas.
-- **Próximo hito: Fase 3 (tareas del hogar).** Documentos y combustible
-  siguen mencionados en el diseño original pero **este repo no tiene el
-  detalle de esas fases**. Si arrancás una sesión para alguna de ellas
-  sin que el usuario haya pegado el spec correspondiente en el prompt,
-  pedíselo antes de crear tablas, rutas o componentes — no los inventes
-  a partir del nombre del módulo. El bottom nav ya tiene un placeholder
-  "Próximamente" para `/tareas`; "Documentos" y "Combustible" hoy solo
-  aparecen listados (sin ruta) en `/mas`.
+- **Fase 3 (tareas del hogar): implementada, migración `008` pendiente
+  de aplicar en producción** — confirmá con el usuario que ya la corrió
+  desde el SQL Editor antes de asumir que las tablas existen. Cubre: ABM
+  de activos (`/tareas/activos`) con ficha e historial de mantenimiento,
+  definiciones de tareas con recurrencia y las dos anclas de recálculo
+  (`/tareas/definiciones`), pantalla `/tareas` con vencidas/semana/
+  próximas, completar (con fecha editable, costo y notas) y omitir,
+  bloque de tareas en el dashboard "Hoy", y cron diario
+  (`/api/cron/tareas`) que genera instancias y avisa por Telegram
+  agrupado por destinatario. Ver la sección "Fase 3" más abajo para las
+  decisiones de diseño. **No** incluye: documentos, combustible, ni la
+  tabla `vehicles` (queda para la Fase 4 — ver la nota sobre
+  `assets.asset_type = 'vehiculo'` en esa sección).
+- Migraciones `001` a `008` escritas; `001` a `007` aplicadas en la base
+  compartida y verificadas en producción, `008` (Fase 3) escrita pero
+  todavía no confirmada como aplicada. Antes de escribir la migración
+  `009`, mirá `supabase/migrations/` para confirmar el próximo número —
+  no lo asumas.
+- **Próximo hito: Fase 4 (combustible).** Documentos sigue mencionado en
+  el diseño original pero **este repo no tiene el detalle de esas
+  fases**. Si arrancás una sesión para alguna de ellas sin que el
+  usuario haya pegado el spec correspondiente en el prompt, pedíselo
+  antes de crear tablas, rutas o componentes — no los inventes a partir
+  del nombre del módulo. "Documentos" hoy solo aparece listado (sin
+  ruta) en `/mas`.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
   siguiente sobre grants de tabla para `authenticated`, la regla 12
@@ -68,8 +82,9 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   crons y el callback de OAuth, que por protocolo/naturaleza tienen que
   ser Route Handlers: `app/auth/callback/route.ts` (GET, OAuth),
   `app/api/calendar/[token]/route.ts` (GET, feed ICS sin sesión),
-  `app/api/telegram/webhook/route.ts` (POST, lo llama Telegram) y
-  `app/api/cron/recordatorios/route.ts` (GET, lo llama cron-job.org).
+  `app/api/telegram/webhook/route.ts` (POST, lo llama Telegram),
+  `app/api/cron/recordatorios/route.ts` (GET, lo llama cron-job.org) y
+  `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3).
 - Sin librerías de estado global (Redux, Zustand). Alcanza con Server
   Components + estado local de React.
 - Sin tests automatizados en esta etapa.
@@ -199,9 +214,12 @@ Estas reglas no son opcionales:
     código (más allá de `anon`/`authenticated`/`service_role`), hay que
     repetir este mismo grant para ese rol — no es automático.
 
-### Migraciones aplicadas (referencia rápida)
+### Migraciones (referencia rápida)
 
-Todas corridas a mano en Supabase y confirmadas funcionando en producción:
+`001` a `007` corridas a mano en Supabase y confirmadas funcionando en
+producción. `008` está escrita pero **todavía no confirmada como
+aplicada** — no asumas que `assets`/`task_definitions`/`task_instances`
+existen en la base sin preguntarle al usuario.
 
 | Archivo | Contenido |
 | --- | --- |
@@ -212,8 +230,9 @@ Todas corridas a mano en Supabase y confirmadas funcionando en producción:
 | `005_grants_tablas.sql` | `GRANT SELECT/INSERT/UPDATE/DELETE` base sobre tablas (ver regla 10). |
 | `006_eventos.sql` | `events`, `event_participants`, `event_reminders`, `telegram_link_codes`, `reminder_deliveries` + RLS + grants (ver regla 11). |
 | `007_grants_service_role.sql` | `GRANT` de schema/tablas/funciones/secuencias a `service_role` (ver regla 12). |
+| `008_tareas.sql` | `assets`, `task_definitions`, `task_instances` + RLS + grants (ver sección Fase 3 más abajo). |
 
-La próxima migración de cualquier fase nueva es `008_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `009_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
@@ -281,9 +300,13 @@ Tres clientes separados, no los mezcles:
   - `/config/familia`, `/config/miembros`, `/config/categorias`
   - `/config/calendario` — link del feed ICS + rotar token, Fase 2.
   - `/config/telegram` — vinculación de cuenta de Telegram, Fase 2.
-  - `/tareas`, `/mas` — `/tareas` sigue siendo placeholder "Próximamente"
-    hasta la fase de tareas del hogar; `/mas` lista, sin ruta todavía,
-    "Documentos" y "Combustible".
+  - `/tareas` — vencidas/semana/próximas, completar y omitir, Fase 3.
+  - `/tareas/definiciones`, `/tareas/definiciones/[id]` — ABM de
+    definiciones de tareas + historial, Fase 3.
+  - `/tareas/activos`, `/tareas/activos/[id]` — ABM de activos del hogar
+    (electrodomésticos, instalaciones, vehículos) + historial de
+    mantenimiento, Fase 3. También enlazado desde `/mas`.
+  - `/mas` lista, sin ruta todavía, "Documentos" y "Combustible".
 - Rutas públicas sin sesión, **fuera** de `(auth)` y `(app)` a propósito
   (ver la lista comentada en `middleware.ts`, y no tocarla sin motivo —
   es el tipo de cosa que se rompe en silencio si alguien toca el
@@ -364,6 +387,74 @@ Tres clientes separados, no los mezcles:
    tras una caída del cron. Por qué `reminder_deliveries` (y no un
    `sent_at`) hace esto idempotente: ver regla 11 de la sección de base
    de datos.
+
+## Fase 3 — Tareas del hogar: decisiones a respetar
+
+1. **Las tareas de mantenimiento NO recurren como los eventos.** Un
+   evento recurre contra el calendario (la clase de natación es todos
+   los martes, se haya ido o no) y `lib/recurrence.ts` la expande en
+   memoria sin materializar nada. Una tarea de mantenimiento recurre
+   contra el último cumplimiento real: "limpiar el filtro cada 3 meses"
+   significa 3 meses desde que se limpió de verdad, no desde la fecha
+   teórica anterior. Por eso las tareas **sí se materializan** (una fila
+   por vencimiento, en `task_instances`) y la lógica vive aparte, en
+   `lib/tasks/schedule.ts`, con funciones puras. No unifiques los dos
+   módulos — parecen lo mismo y no lo son. No toques `lib/recurrence.ts`
+   ni `lib/ics.ts` por este módulo.
+2. **`recurrence_anchor` decide contra qué se recalcula.** `completion`
+   (default) recalcula desde la fecha real de completado — limpieza,
+   mantenimiento. `schedule` recalcula desde el vencimiento teórico
+   anterior — impuestos, seguros, renovaciones con fecha fija. **Omitir
+   una tarea siempre recalcula con ancla `schedule`**, sin importar el
+   ancla de la definición: saltearse la limpieza del filtro no debe
+   correr el próximo vencimiento 3 meses a partir de hoy como si se
+   hubiera hecho.
+3. **Ancla `schedule` muy atrasada: catch-up en `advanceUntilFuture`.**
+   Si el vencimiento teórico + intervalo sigue en el pasado, se sigue
+   sumando intervalos hasta superar hoy — si no, una tarea de fecha fija
+   muy atrasada generaría instancias vencidas en cadena para siempre.
+4. **Una definición activa tiene como máximo una instancia `pendiente` a
+   la vez** (`shouldGenerateInstance` en `lib/tasks/schedule.ts`). Sin
+   esta regla, una tarea ignorada 6 meses generaría decenas de filas.
+5. **`unique(definition_id, due_date)` en `task_instances`** es la
+   idempotencia del generador — mismo principio que
+   `reminder_deliveries` en la Fase 2, pero aplicado a la tabla que ya
+   existía de todos modos, sin tabla extra.
+6. **`due_date` es `date`, no `timestamptz`.** Una tarea vence un día,
+   no a una hora — evita a propósito el problema de zona horaria que
+   hubo que resolver para eventos `all_day` (regla de UI más arriba). No
+   lo conviertas a timestamp "para unificar" con eventos.
+7. **`warranty_notified_at` en `assets` no estaba en el diseño original
+   del prompt de la Fase 3** — se agregó porque el aviso de garantía
+   próxima a vencer necesita el mismo mecanismo de idempotencia
+   (notified_at + reenvío cada 7 días) que las tareas, o el cron
+   mandaría ese aviso todos los días mientras la garantía esté vigente.
+   Ver `lib/tasks/schedule.ts` (`shouldNotifyWarranty`,
+   `WARRANTY_LEAD_DAYS`).
+8. **`assets.asset_type` incluye `'vehiculo'` a propósito, pensando en
+   la Fase 4 (combustible).** Esa fase futura va a crear una tabla
+   `vehicles` con un `asset_id` opcional apuntando acá, para que el auto
+   no exista dos veces en la base — el service del auto es una tarea de
+   mantenimiento vía `task_definitions`, la carga de nafta es otra cosa,
+   pero el auto es uno solo. No crear `vehicles` fuera de esa fase.
+9. **El cron de tareas (`app/api/cron/tareas/route.ts`) corre una vez
+   por día** (a diferencia del cron de eventos, que es horario), en dos
+   pasos: generar instancias y avisar. Reutiliza
+   `sendTelegramMessage`/`escapeTelegramHtml` de `lib/telegram.ts` — no
+   se agregó nada nuevo de Telegram.
+10. **Un solo mensaje de Telegram por destinatario**, agrupando todas
+    sus tareas por avisar (vencidas primero, con días de atraso) y las
+    garantías próximas a vencer — a diferencia del cron de eventos, que
+    manda un mensaje por ocurrencia. Se mantiene la regla de la Fase 2:
+    si no hay nada que avisar, no se manda nada a nadie.
+11. **Un aviso se repite cada 7 días mientras la tarea siga pendiente**,
+    no todos los días — controlado por `notified_at` en `task_instances`
+    (y `warranty_notified_at` en `assets`), no por un booleano.
+12. **"Marcar hecha" desde `/tareas` es optimista con deshacer.** El
+    servidor devuelve el `next_due_date`/`is_active` previos de la
+    definición (`CompleteResult.undo` en `app/(app)/tareas/actions.ts`)
+    para poder revertir tanto la instancia como la definición desde el
+    toast de "Deshacer" sin volver a consultar la base.
 
 ## Comandos útiles
 

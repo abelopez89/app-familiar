@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ChevronRight, FileText, Fuel, LogOut, Send, Settings, Users } from "lucide-react";
+import { CalendarDays, ChevronRight, FileText, Fuel, LogOut, Send, Settings, Users, Wrench } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/app/(auth)/actions";
@@ -10,6 +10,7 @@ const configLinks = [
   { href: "/config/categorias", label: "Categorías de productos", icon: Settings },
   { href: "/config/calendario", label: "Calendario", icon: CalendarDays },
   { href: "/config/telegram", label: "Telegram", icon: Send },
+  { href: "/tareas/activos", label: "Activos", icon: Wrench },
 ];
 
 const proximamente = [
