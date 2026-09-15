@@ -13,19 +13,30 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   producción** (Vercel + Supabase), incluyendo registro, login con
   Google, generación de listas con deduplicación y el modo supermercado
   probado desde celular.
-- Migraciones `001` a `005` aplicadas en la base compartida. Antes de
-  escribir la migración `006`, mirá `supabase/migrations/` para confirmar
+- **Fase 2 (eventos, calendario y notificaciones): implementada**, sujeta
+  a que el usuario haya aplicado la migración `006` y cargado las
+  variables de entorno nuevas (ver más abajo) y los pasos manuales del
+  lado de Telegram (webhook registrado, cron configurado en
+  cron-job.org). Cubre: ABM de eventos con categorías/participantes/
+  recurrencia simple, vista calendario (grilla mensual + agenda) en
+  `/eventos`, cumpleaños virtuales derivados de `birth_date`, feed ICS
+  suscribible en `/config/calendario`, notificador de Telegram de una
+  vía (`/config/telegram` + webhook + cron horario), y el bloque de
+  eventos del dashboard "Hoy". **No** incluye: tareas del hogar,
+  documentos, combustible, ni el bot conversacional de Telegram
+  (comandos generales, sesiones con estado, inline keyboards) — eso
+  sigue siendo diseño sin detalle en este repo, igual que antes.
+- Migraciones `001` a `006` aplicadas en la base compartida. Antes de
+  escribir la migración `007`, mirá `supabase/migrations/` para confirmar
   el próximo número — no lo asumas.
-- **Próximo hito: Fase 2.** Sus módulos — eventos, tareas, documentos,
-  combustible, bot de Telegram — están mencionados en el diseño original
-  pero **este repo no tiene el detalle de esa fase** (el prompt con el
-  que se armó Fase 0 + Fase 1 solo especificaba esas dos). Si arrancás
-  una sesión para Fase 2 sin que el usuario haya pegado el spec de esa
-  fase en el prompt, pedíselo antes de crear tablas, rutas o componentes
-  — no los inventes a partir del nombre del módulo. El bottom nav ya
-  tiene placeholders "Próximamente" para `/eventos` y `/tareas`;
-  "Documentos" y "Combustible" hoy solo aparecen listados (sin ruta) en
-  `/mas`.
+- **Próximo hito: Fase 3 (tareas del hogar).** Documentos y combustible
+  siguen mencionados en el diseño original pero **este repo no tiene el
+  detalle de esas fases**. Si arrancás una sesión para alguna de ellas
+  sin que el usuario haya pegado el spec correspondiente en el prompt,
+  pedíselo antes de crear tablas, rutas o componentes — no los inventes
+  a partir del nombre del módulo. El bottom nav ya tiene un placeholder
+  "Próximamente" para `/tareas`; "Documentos" y "Combustible" hoy solo
+  aparecen listados (sin ruta) en `/mas`.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
   siguiente sobre grants de tabla, y la nota de la regla 7 sobre
@@ -48,9 +59,11 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   donde hace falta interactividad real (formularios, drag & drop, modo
   supermercado, realtime).
 - Mutaciones vía **Server Actions**, no rutas API — excepto webhooks,
-  crons de fases futuras (todavía no existen) y el callback de OAuth
-  (`app/auth/callback/route.ts`), que por protocolo tiene que ser un
-  Route Handler GET.
+  crons y el callback de OAuth, que por protocolo/naturaleza tienen que
+  ser Route Handlers: `app/auth/callback/route.ts` (GET, OAuth),
+  `app/api/calendar/[token]/route.ts` (GET, feed ICS sin sesión),
+  `app/api/telegram/webhook/route.ts` (POST, lo llama Telegram) y
+  `app/api/cron/recordatorios/route.ts` (GET, lo llama cron-job.org).
 - Sin librerías de estado global (Redux, Zustand). Alcanza con Server
   Components + estado local de React.
 - Sin tests automatizados en esta etapa.
@@ -64,6 +77,17 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG', maximumFractionDigits: 0 })`
   o equivalente — ver `lib/format.ts`.
 - Fechas y horas en zona `America/Asuncion` (`lib/dates.ts`).
+- **Eventos `all_day` (Fase 2):** se guardan como la medianoche local de
+  Asunción de ese día (`dateOnlyToFamilyMidnightUtc` en `lib/dates.ts`),
+  y siempre se formatean con esa misma zona. Paraguay está fijo en
+  UTC−3 (sin horario de verano), así que ese atajo es seguro acá. Nunca
+  uses `new Date(...)` del navegador para derivar la fecha de un evento
+  de día completo — toma la zona del dispositivo, no la de la familia.
+  Por el mismo motivo, la navegación de la grilla del calendario
+  (`month-grid.tsx`) hace aritmética de fecha calendario a mano
+  (`addDaysToDateOnly`, `addMonthsToDateOnly`, etc., también en
+  `lib/dates.ts`) en vez de usar los helpers locales de `date-fns`, que
+  dependen de la zona horaria del navegador.
 
 ## Base de datos — reglas críticas
 
@@ -140,6 +164,18 @@ Estas reglas no son opcionales:
     revisá que la tabla en cuestión efectivamente haya heredado el
     default privilege (por ejemplo, si se crea con un rol dueño distinto
     al que corrió la 005).
+11. `hogar.reminder_deliveries` (Fase 2) no tiene `family_id` ni grants a
+    `authenticated` — a propósito. Solo la toca el cron de recordatorios
+    con el admin client (service role), que ignora tanto RLS como los
+    grants de rol. Su primary key compuesta
+    (`reminder_id, occurrence_starts_at, member_id`) es lo que hace
+    idempotente el envío: un recordatorio sobre un evento recurrente
+    tiene que dispararse una vez por ocurrencia, no una sola vez para
+    siempre — un `sent_at` único en `event_reminders` lo marcaría como
+    "enviado" después de la primera ocurrencia y nunca volvería a avisar
+    las siguientes. Si dos corridas del cron se solapan, el insert de la
+    segunda choca contra la primary key y no se duplica el mensaje, sin
+    necesidad de un lock explícito.
 
 ### Migraciones aplicadas (referencia rápida)
 
@@ -152,8 +188,9 @@ Todas corridas a mano en Supabase y confirmadas funcionando en producción:
 | `003_ensure_family_membership.sql` | Vinculación idempotente por RPC (ver regla 7). |
 | `004_grants_funciones.sql` | `GRANT EXECUTE` para funciones llamadas por RPC (ver regla 7). |
 | `005_grants_tablas.sql` | `GRANT SELECT/INSERT/UPDATE/DELETE` base sobre tablas (ver regla 10). |
+| `006_eventos.sql` | `events`, `event_participants`, `event_reminders`, `telegram_link_codes`, `reminder_deliveries` + RLS + grants (ver regla 11). |
 
-La próxima migración de cualquier fase nueva es `006_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `007_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
@@ -166,6 +203,16 @@ En tiempo de ejecución deben existir:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (solo server, nunca en código de cliente)
+- `NEXT_PUBLIC_APP_URL` (Fase 2) — para armar el link del feed ICS en
+  `/config/calendario`. Es la única de las nuevas que es pública a
+  propósito.
+- `TELEGRAM_BOT_TOKEN` (Fase 2, solo server) — token del bot, de
+  `@BotFather`.
+- `TELEGRAM_WEBHOOK_SECRET` (Fase 2, solo server) — se compara contra el
+  header `X-Telegram-Bot-Api-Secret-Token` en
+  `app/api/telegram/webhook/route.ts`.
+- `CRON_SECRET` (Fase 2, solo server) — protege
+  `GET /api/cron/recordatorios` (`Authorization: Bearer <CRON_SECRET>`).
 
 `lib/env.ts` valida su presencia con un mensaje de error claro si falta
 alguna. No agregues variables nuevas sin documentarlas ahí y en el README.
@@ -181,6 +228,18 @@ Tres clientes separados, no los mezcles:
   de servidor (Server Actions, route handlers). **Nunca** desde un
   componente cliente.
 
+  El feed ICS (`lib/calendar-feed.ts`) es el primer lugar del proyecto
+  donde el admin client se usa porque **no hay sesión posible**, no por
+  conveniencia: Apple/Google piden la URL sin cookies, así que
+  `hogar.current_family_id()` devolvería `null` y RLS no dejaría ver
+  nada. Ahí el filtrado por `family_id` es responsabilidad explícita del
+  código (cada query filtra `.eq("family_id", familyId)` a mano) — es el
+  único punto del proyecto donde una fuga de `family_id` significa que
+  una familia ve los eventos de otra. El webhook de Telegram y el cron
+  de recordatorios usan el admin client por el mismo motivo (sin
+  sesión), pero ahí no hay riesgo de fuga entre familias porque operan
+  sobre filas ya resueltas por id.
+
 ## Estructura de rutas
 
 - `(auth)` — `/login`, `/registro`, `/recuperar`. Sin sesión. Ambas
@@ -192,12 +251,25 @@ Tres clientes separados, no los mezcles:
   y `(app)` a propósito.
 - `(app)` — todo lo que requiere sesión. El middleware (`middleware.ts`)
   redirige a `/login` si no hay usuario autenticado.
-  - `/` — dashboard "Hoy"
+  - `/` — dashboard "Hoy" (incluye el bloque de eventos de hoy/mañana)
   - `/compras`, `/compras/nueva`, `/compras/[id]`, `/compras/[id]/comprar`,
     `/compras/plantillas`, `/compras/plantillas/[id]`
+  - `/eventos` — calendario (grilla mensual + agenda), Fase 2.
   - `/config/familia`, `/config/miembros`, `/config/categorias`
-  - `/eventos`, `/tareas`, `/mas` — placeholders "Próximamente" hasta que
-    se implementen esas fases.
+  - `/config/calendario` — link del feed ICS + rotar token, Fase 2.
+  - `/config/telegram` — vinculación de cuenta de Telegram, Fase 2.
+  - `/tareas`, `/mas` — `/tareas` sigue siendo placeholder "Próximamente"
+    hasta la fase de tareas del hogar; `/mas` lista, sin ruta todavía,
+    "Documentos" y "Combustible".
+- Rutas públicas sin sesión, **fuera** de `(auth)` y `(app)` a propósito
+  (ver la lista comentada en `middleware.ts`, y no tocarla sin motivo —
+  es el tipo de cosa que se rompe en silencio si alguien toca el
+  matcher meses después):
+  - `/auth/callback` — Route Handler GET, código de OAuth de Google.
+  - `/api/calendar/*` — el feed ICS, lo piden Apple Calendar y Google
+    Calendar directo, sin cookies.
+  - `/api/telegram/*` — el webhook, lo llama Telegram.
+  - `/api/cron/*` — el cron de recordatorios, lo llama cron-job.org.
 
 ## Fase 1 — Módulo de compras: decisiones a respetar
 
@@ -227,6 +299,48 @@ Tres clientes separados, no los mezcles:
    confirmación previa. Cubre el caso de una ida al súper que no se
    concretó. El `on delete cascade` de `shopping_list_items.list_id` se
    encarga de los items, no hace falta borrarlos a mano.
+
+## Fase 2 — Eventos, calendario y Telegram: decisiones a respetar
+
+1. **Se guarda la definición de recurrencia, no las instancias.**
+   `events.recurrence` (`weekly`/`monthly`/`yearly`) +
+   `recurrence_until` opcional. La expansión a ocurrencias concretas
+   sobre un rango vive en un solo lugar, `lib/recurrence.ts`
+   (`expandOccurrences`), y la usan la grilla, la agenda, el dashboard y
+   el cron de recordatorios. No dupliques esa lógica en ninguno de esos
+   lugares. No implementa excepciones a series ni RRULE completo.
+2. **Los cumpleaños no son eventos.** Se derivan en memoria de
+   `family_members.birth_date` (`lib/events/birthdays.ts`,
+   `expandBirthdays`), de solo lectura, categoría `cumpleanos`. No
+   confundas esto con crear filas en `events` — nunca se materializan.
+3. **El feed ICS no expande recurrencia.** A diferencia de la UI, emite
+   un solo `VEVENT` por evento (o por miembro con cumpleaños) con su
+   `RRULE`, y es el cliente de calendario (Apple/Google) el que expande
+   — es el modelo estándar de ICS. Ver `lib/ics.ts`.
+4. **`SEQUENCE` del ICS se deriva de `updated_at`** (epoch en segundos),
+   no hay una columna dedicada. Es estrictamente creciente cada vez que
+   el trigger `events_set_updated_at` toca la fila, que es lo único que
+   pide RFC 5545 (no hace falta que suba de a 1).
+5. **Folding y escapado del ICS son funciones separadas y puras** en
+   `lib/ics.ts` (`foldIcsLine`, `escapeIcsText`) — el folding corta por
+   bytes UTF-8, no por caracteres, para no partir una tilde o una ñ a la
+   mitad a los 75 octetos.
+6. **El notificador de Telegram es de una vía.** No agregues comandos
+   conversacionales, sesiones con estado ni inline keyboards al webhook
+   (`app/api/telegram/webhook/route.ts`) — entiende únicamente `/start`
+   y `/vincular <código>`. Eso es una fase futura sin spec en este repo.
+7. **La vinculación de Telegram se resuelve contra `member_id`, nunca
+   contra email.** `auth.users` es compartida entre las 4 apps del
+   proyecto — no asumas nada sobre "usuario nuevo" a partir de esa
+   tabla.
+8. **El cron nunca manda nada si no hay recordatorios vencidos.** Sin
+   resumen diario, sin "no tenés eventos hoy" — el bot solo habla cuando
+   hay algo concreto que avisar (`app/api/cron/recordatorios/route.ts`).
+   Ventana de reenvío: recordatorios cuyo aviso caiga entre "ahora" y
+   "ahora − 3 horas", para no generar una avalancha de avisos viejos
+   tras una caída del cron. Por qué `reminder_deliveries` (y no un
+   `sent_at`) hace esto idempotente: ver regla 11 de la sección de base
+   de datos.
 
 ## Comandos útiles
 

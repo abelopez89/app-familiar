@@ -44,6 +44,7 @@ const memberSchema = z.object({
   role: z.enum(["adulto", "menor"]),
   color: z.string().trim().min(1),
   can_login: z.coerce.boolean(),
+  birth_date: z.union([z.string().trim().min(1), z.literal("")]).optional(),
 });
 
 export async function createMember(
@@ -56,6 +57,7 @@ export async function createMember(
     role: formData.get("role") ?? "adulto",
     color: formData.get("color") ?? "#6366f1",
     can_login: formData.get("can_login") === "on",
+    birth_date: formData.get("birth_date") ?? "",
   };
 
   const parsed = memberSchema.safeParse(raw);
@@ -68,6 +70,8 @@ export async function createMember(
 
   const { display_name, role, color, can_login } = parsed.data;
   const email = parsed.data.email && parsed.data.email !== "" ? parsed.data.email : null;
+  const birth_date =
+    parsed.data.birth_date && parsed.data.birth_date !== "" ? parsed.data.birth_date : null;
 
   if (role === "menor" && email) {
     return { error: "Los menores se crean sin email." };
@@ -81,6 +85,7 @@ export async function createMember(
     role,
     color,
     can_login: role === "menor" ? false : can_login,
+    birth_date,
   });
 
   if (error) {
@@ -91,6 +96,8 @@ export async function createMember(
   }
 
   revalidatePath("/config/miembros");
+  revalidatePath("/eventos");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -107,6 +114,7 @@ export async function updateMember(
     role: formData.get("role") ?? "adulto",
     color: formData.get("color") ?? "#6366f1",
     can_login: formData.get("can_login") === "on",
+    birth_date: formData.get("birth_date") ?? "",
   };
 
   const parsed = memberSchema.safeParse(raw);
@@ -116,6 +124,8 @@ export async function updateMember(
 
   const { display_name, role, color, can_login } = parsed.data;
   const email = parsed.data.email && parsed.data.email !== "" ? parsed.data.email : null;
+  const birth_date =
+    parsed.data.birth_date && parsed.data.birth_date !== "" ? parsed.data.birth_date : null;
 
   if (role === "menor" && email) {
     return { error: "Los menores se crean sin email." };
@@ -130,6 +140,7 @@ export async function updateMember(
       role,
       color,
       can_login: role === "menor" ? false : can_login,
+      birth_date,
     })
     .eq("id", id);
 
@@ -141,6 +152,8 @@ export async function updateMember(
   }
 
   revalidatePath("/config/miembros");
+  revalidatePath("/eventos");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -154,5 +167,7 @@ export async function deactivateMember(id: string): Promise<ActionResult> {
   if (error) return { error: "No se pudo dar de baja al miembro." };
 
   revalidatePath("/config/miembros");
+  revalidatePath("/eventos");
+  revalidatePath("/");
   return { success: true };
 }

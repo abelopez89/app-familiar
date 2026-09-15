@@ -6,7 +6,24 @@ import { env } from "@/lib/env";
 const PUBLIC_PATHS = ["/login", "/registro", "/recuperar"];
 const AUTH_FLOW_PATHS = ["/auth/callback"];
 
+// Rutas sin sesión a propósito, además de /auth/callback: las piden
+// terceros que no pueden mandar cookies. Si se rompe esto en silencio
+// (por ejemplo al tocar el matcher de abajo), estas tres rutas empiezan
+// a devolver un redirect a /login en vez de su respuesta real, y el
+// error es difícil de diagnosticar del lado del cliente externo.
+//   /api/calendar/* — el feed ICS, lo piden Apple Calendar y Google Calendar
+//   /api/telegram/*  — el webhook, lo llama Telegram
+//   /api/cron/*      — el cron de recordatorios, lo llama cron-job.org
+const PUBLIC_API_PATHS = ["/api/calendar", "/api/telegram", "/api/cron"];
+
 export async function updateSession(request: NextRequest) {
+  const isPublicApiPath = PUBLIC_API_PATHS.some((path) =>
+    request.nextUrl.pathname.startsWith(path),
+  );
+  if (isPublicApiPath) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient<Database, "hogar">(

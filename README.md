@@ -5,8 +5,9 @@ del supermercado, eventos, tareas del hogar, documentos y consumo de
 combustible. Pensada para uso en celular, por los adultos de una misma
 familia.
 
-Este repositorio implementa **Fase 0 (base)** y **Fase 1 (módulo de
-compras)**. Ver [`CLAUDE.md`](./CLAUDE.md) para las convenciones del
+Este repositorio implementa **Fase 0 (base)**, **Fase 1 (módulo de
+compras)** y **Fase 2 (eventos, calendario y notificaciones de
+Telegram)**. Ver [`CLAUDE.md`](./CLAUDE.md) para las convenciones del
 proyecto y el detalle de qué está implementado y qué no.
 
 ## Stack
@@ -26,9 +27,15 @@ Las variables de entorno **se configuran únicamente en Vercel**
 | `NEXT_PUBLIC_SUPABASE_URL` | cliente y servidor | URL del proyecto de Supabase. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | cliente y servidor | Clave anónima (pública) de Supabase. |
 | `SUPABASE_SERVICE_ROLE_KEY` | solo servidor | Clave de service role. Nunca se expone al cliente. |
+| `NEXT_PUBLIC_APP_URL` | servidor (UI) | URL pública de la app, para armar el link del feed ICS en `/config/calendario`. |
+| `TELEGRAM_BOT_TOKEN` | solo servidor | Token del bot de Telegram (de `@BotFather`). Usado para enviar mensajes y para `getMe` en la pantalla de vinculación. |
+| `TELEGRAM_WEBHOOK_SECRET` | solo servidor | String aleatorio que Telegram manda de vuelta en cada request al webhook (`X-Telegram-Bot-Api-Secret-Token`), para verificar que el request es legítimo. |
+| `CRON_SECRET` | solo servidor | Protege `GET /api/cron/recordatorios` (`Authorization: Bearer <CRON_SECRET>`), la única llamada permitida es la del cron externo. |
 
-Si falta alguna, `lib/env.ts` lanza un error claro en vez de fallar en
-silencio.
+Ninguna de las nuevas lleva el prefijo `NEXT_PUBLIC_` salvo
+`NEXT_PUBLIC_APP_URL`, que es pública a propósito (se usa para armar un
+link que se muestra en la UI). Si falta alguna variable requerida,
+`lib/env.ts` lanza un error claro en vez de fallar en silencio.
 
 ## Base de datos
 
@@ -44,7 +51,15 @@ Orden de aplicación:
    trigger de alta de usuario.
 2. `supabase/migrations/002_compras.sql` — categorías, plantillas,
    listas de compras, RLS, publicación de realtime.
-3. (Opcional) `supabase/seed/categorias.sql` — categorías típicas de
+3. `supabase/migrations/003_ensure_family_membership.sql` — vinculación
+   idempotente por RPC.
+4. `supabase/migrations/004_grants_funciones.sql` — grants de `EXECUTE`
+   para funciones llamadas por RPC.
+5. `supabase/migrations/005_grants_tablas.sql` — grants base de tabla
+   para el rol `authenticated`.
+6. `supabase/migrations/006_eventos.sql` — eventos, participantes,
+   recordatorios, vinculación de Telegram (Fase 2).
+7. (Opcional) `supabase/seed/categorias.sql` — categorías típicas de
    supermercado. Reemplazar el `family_id` de ejemplo por el real antes
    de ejecutarlo.
 
