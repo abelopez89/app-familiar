@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ProductCategory, ShoppingListItem } from "@/lib/supabase/types";
 import { formatQuantity } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { toggleItemChecked } from "./actions";
 import { CloseListButton } from "./close-list-button";
 
@@ -159,9 +161,16 @@ export function SupermercadoView({
     <div className="flex flex-col gap-4 pb-28">
       <div className="sticky top-0 z-20 -mx-4 bg-background px-4 pb-3 pt-1">
         <div className="flex items-center justify-between text-lg font-semibold">
-          <span>
-            {checkedCount} de {totalCount}
-          </span>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" asChild className="-ml-2">
+              <Link href={`/compras/${listId}`} aria-label="Volver a la lista">
+                <ArrowLeft className="size-5" />
+              </Link>
+            </Button>
+            <span>
+              {checkedCount} de {totalCount}
+            </span>
+          </div>
           <span className="text-sm font-normal text-muted-foreground">{progressPercent}%</span>
         </div>
         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">

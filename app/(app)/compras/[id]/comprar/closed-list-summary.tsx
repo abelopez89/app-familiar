@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/dates";
 import { formatGuaranies, formatQuantity } from "@/lib/format";
+import { DeleteListButton } from "../delete-list-button";
 
 export function ClosedListSummary({
   list,
@@ -17,13 +18,16 @@ export function ClosedListSummary({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/compras">
-            <ArrowLeft className="size-4" />
-          </Link>
-        </Button>
-        <h1 className="text-xl font-semibold">{list.name ?? "Lista de compras"}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/compras">
+              <ArrowLeft className="size-4" />
+            </Link>
+          </Button>
+          <h1 className="text-xl font-semibold">{list.name ?? "Lista de compras"}</h1>
+        </div>
+        <DeleteListButton listId={list.id} />
       </div>
 
       <Card>
