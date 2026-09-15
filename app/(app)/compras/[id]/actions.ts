@@ -1,11 +1,23 @@
 "use server";
 
 import { z } from "zod";
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
 
 export type ActionResult = { error?: string; success?: boolean; id?: string };
+
+export async function deleteShoppingList(listId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("shopping_lists").delete().eq("id", listId);
+
+  if (error) return { error: "No se pudo eliminar la lista." };
+
+  revalidatePath("/compras");
+  revalidatePath("/");
+  redirect("/compras");
+}
 
 export async function updateItemQuantity(
   itemId: string,
