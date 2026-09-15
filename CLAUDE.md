@@ -39,9 +39,10 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   aparecen listados (sin ruta) en `/mas`.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
-  siguiente sobre grants de tabla, y la nota de la regla 7 sobre
-  `ensure_family_membership`. Ambas costaron varias rondas de debugging
-  real con logs de Vercel — no son hipotéticas.
+  siguiente sobre grants de tabla para `authenticated`, la regla 12
+  sobre el mismo problema pero para `service_role`, y la nota de la
+  regla 7 sobre `ensure_family_membership`. Las tres costaron rondas
+  reales de debugging con logs de Vercel — no son hipotéticas.
 
 ## Stack
 
@@ -176,6 +177,22 @@ Estas reglas no son opcionales:
     las siguientes. Si dos corridas del cron se solapan, el insert de la
     segunda choca contra la primary key y no se duplica el mensaje, sin
     necesidad de un lock explícito.
+12. **`service_role` necesita sus propios grants, igual que
+    `authenticated`.** Las migraciones 004 y 005 le dieron privilegios a
+    `authenticated`, pero nunca a `service_role` — y bypassear RLS (lo
+    que sí hace `service_role` por defecto) es un mecanismo
+    completamente independiente de tener el privilegio de schema/tabla
+    en sí. Como el admin client (`lib/supabase/admin.ts`) recién se usó
+    de verdad por primera vez con la Fase 2 (feed ICS, webhook de
+    Telegram, cron de recordatorios), este agujero pasó desapercibido
+    desde la Fase 0. Si una consulta con el admin client falla con
+    `permission denied for schema hogar` (42501), es este mismo
+    problema — ver `supabase/migrations/007_grants_service_role.sql`.
+    Cualquier tabla/función nueva que se cree de acá en adelante ya
+    queda cubierta por el `ALTER DEFAULT PRIVILEGES` de esa migración,
+    pero si en el futuro aparece un cuarto rol de Postgres usado desde
+    código (más allá de `anon`/`authenticated`/`service_role`), hay que
+    repetir este mismo grant para ese rol — no es automático.
 
 ### Migraciones aplicadas (referencia rápida)
 
@@ -189,8 +206,9 @@ Todas corridas a mano en Supabase y confirmadas funcionando en producción:
 | `004_grants_funciones.sql` | `GRANT EXECUTE` para funciones llamadas por RPC (ver regla 7). |
 | `005_grants_tablas.sql` | `GRANT SELECT/INSERT/UPDATE/DELETE` base sobre tablas (ver regla 10). |
 | `006_eventos.sql` | `events`, `event_participants`, `event_reminders`, `telegram_link_codes`, `reminder_deliveries` + RLS + grants (ver regla 11). |
+| `007_grants_service_role.sql` | `GRANT` de schema/tablas/funciones/secuencias a `service_role` (ver regla 12). |
 
-La próxima migración de cualquier fase nueva es `007_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `008_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
