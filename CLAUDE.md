@@ -13,21 +13,26 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   producción** (Vercel + Supabase), incluyendo registro, login con
   Google, generación de listas con deduplicación y el modo supermercado
   probado desde celular.
-- **Fase 2 (eventos, calendario y notificaciones): implementada**, sujeta
-  a que el usuario haya aplicado la migración `006` y cargado las
-  variables de entorno nuevas (ver más abajo) y los pasos manuales del
-  lado de Telegram (webhook registrado, cron configurado en
-  cron-job.org). Cubre: ABM de eventos con categorías/participantes/
-  recurrencia simple, vista calendario (grilla mensual + agenda) en
-  `/eventos`, cumpleaños virtuales derivados de `birth_date`, feed ICS
-  suscribible en `/config/calendario`, notificador de Telegram de una
-  vía (`/config/telegram` + webhook + cron horario), y el bloque de
-  eventos del dashboard "Hoy". **No** incluye: tareas del hogar,
-  documentos, combustible, ni el bot conversacional de Telegram
-  (comandos generales, sesiones con estado, inline keyboards) — eso
-  sigue siendo diseño sin detalle en este repo, igual que antes.
-- Migraciones `001` a `006` aplicadas en la base compartida. Antes de
-  escribir la migración `007`, mirá `supabase/migrations/` para confirmar
+- **Fase 2 (eventos, calendario y notificaciones): implementada y
+  verificada en producción.** Vinculación de Telegram confirmada
+  funcionando de punta a punta (código de 6 dígitos → `/vincular` →
+  `telegram_user_id` guardado). El feed ICS y el cron de recordatorios
+  comparten el mismo admin client que ya se probó funcionando (regla 12
+  de la sección de base de datos), pero si una sesión nueva los toca,
+  conviene confirmar con el usuario que también los probó (suscribirse
+  al `.ics` desde un calendario real, y que el cron corrió al menos una
+  vez en cron-job.org) antes de asumirlo. Cubre: ABM de eventos con
+  categorías/participantes/recurrencia simple, vista calendario (grilla
+  mensual + agenda) en `/eventos`, cumpleaños virtuales derivados de
+  `birth_date`, feed ICS suscribible en `/config/calendario`,
+  notificador de Telegram de una vía (`/config/telegram` + webhook +
+  cron horario), y el bloque de eventos del dashboard "Hoy". **No**
+  incluye: tareas del hogar, documentos, combustible, ni el bot
+  conversacional de Telegram (comandos generales, sesiones con estado,
+  inline keyboards) — eso sigue siendo diseño sin detalle en este repo,
+  igual que antes.
+- Migraciones `001` a `007` aplicadas en la base compartida. Antes de
+  escribir la migración `008`, mirá `supabase/migrations/` para confirmar
   el próximo número — no lo asumas.
 - **Próximo hito: Fase 3 (tareas del hogar).** Documentos y combustible
   siguen mencionados en el diseño original pero **este repo no tiene el
