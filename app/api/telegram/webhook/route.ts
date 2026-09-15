@@ -69,12 +69,25 @@ async function handleUpdate(update: TelegramUpdate) {
 async function handleVincular(chatId: number, code: string) {
   const supabase = createAdminClient();
 
-  const { data: linkCode } = await supabase
+  const { data: linkCode, error: selectError } = await supabase
     .from("telegram_link_codes")
     .select("*")
     .eq("code", code)
     .is("used_at", null)
     .maybeSingle();
+
+  if (selectError) {
+    // No debería pasar nunca con el service role (bypassea RLS). Si
+    // aparece, es casi seguro un problema de configuración —
+    // SUPABASE_SERVICE_ROLE_KEY mal cargada en Vercel (o cargada para
+    // el ambiente equivocado) — no un código inválido de verdad.
+    console.error(
+      "[telegram webhook] error consultando telegram_link_codes (revisar SUPABASE_SERVICE_ROLE_KEY):",
+      selectError,
+    );
+  } else if (!linkCode) {
+    console.warn("[telegram webhook] código no encontrado o ya usado");
+  }
 
   // Mensaje de error único para código inexistente o vencido — no
   // revelar cuál de los dos casos es.
