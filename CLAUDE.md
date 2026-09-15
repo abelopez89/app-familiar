@@ -14,41 +14,34 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   Google, generación de listas con deduplicación y el modo supermercado
   probado desde celular.
 - **Fase 2 (eventos, calendario y notificaciones): implementada y
-  verificada en producción.** Vinculación de Telegram confirmada
-  funcionando de punta a punta (código de 6 dígitos → `/vincular` →
-  `telegram_user_id` guardado). El feed ICS y el cron de recordatorios
-  comparten el mismo admin client que ya se probó funcionando (regla 12
-  de la sección de base de datos), pero si una sesión nueva los toca,
-  conviene confirmar con el usuario que también los probó (suscribirse
-  al `.ics` desde un calendario real, y que el cron corrió al menos una
-  vez en cron-job.org) antes de asumirlo. Cubre: ABM de eventos con
-  categorías/participantes/recurrencia simple, vista calendario (grilla
-  mensual + agenda) en `/eventos`, cumpleaños virtuales derivados de
-  `birth_date`, feed ICS suscribible en `/config/calendario`,
-  notificador de Telegram de una vía (`/config/telegram` + webhook +
-  cron horario), y el bloque de eventos del dashboard "Hoy". **No**
-  incluye: tareas del hogar, documentos, combustible, ni el bot
-  conversacional de Telegram (comandos generales, sesiones con estado,
-  inline keyboards) — eso sigue siendo diseño sin detalle en este repo,
-  igual que antes.
-- **Fase 3 (tareas del hogar): implementada, migración `008` aplicada en
-  producción.** El código quedó mergeado a `main` y la migración corrida
-  a mano desde el SQL Editor — `assets`, `task_definitions` y
-  `task_instances` ya existen en la base compartida. Lo único que
-  todavía no está confirmado de punta a punta es el cron diario: si una
-  sesión nueva toca `/api/cron/tareas`, conviene confirmar con el
-  usuario que ya creó el job en cron-job.org (`GET /api/cron/tareas`,
-  07:00 `America/Asuncion`, mismo `CRON_SECRET`) y que corrió al menos
-  una vez, antes de asumirlo (mismo criterio que con el cron de
-  recordatorios de la Fase 2). Cubre: ABM de activos (`/tareas/activos`)
-  con ficha e historial de mantenimiento, definiciones de tareas con
-  recurrencia y las dos anclas de recálculo (`/tareas/definiciones`),
-  pantalla `/tareas` con vencidas/semana/próximas, completar (con fecha
-  editable, costo y notas) y omitir, bloque de tareas en el dashboard
-  "Hoy", y el cron diario en sí (genera instancias y avisa por Telegram
-  agrupado por destinatario). Ver la sección "Fase 3" más abajo para las
-  decisiones de diseño. **No** incluye: documentos, combustible, ni la
-  tabla `vehicles` (queda para la Fase 4 — ver la nota sobre
+  verificada en producción, sin puntos pendientes de verificación.**
+  Vinculación de Telegram confirmada funcionando de punta a punta
+  (código de 6 dígitos → `/vincular` → `telegram_user_id` guardado). El
+  feed ICS se confirmó suscribible desde un calendario real y el cron de
+  recordatorios se confirmó corriendo en cron-job.org. Cubre: ABM de
+  eventos con categorías/participantes/recurrencia simple, vista
+  calendario (grilla mensual + agenda) en `/eventos`, cumpleaños
+  virtuales derivados de `birth_date`, feed ICS suscribible en
+  `/config/calendario`, notificador de Telegram de una vía
+  (`/config/telegram` + webhook + cron horario), y el bloque de eventos
+  del dashboard "Hoy". **No** incluye: tareas del hogar, documentos,
+  combustible, ni el bot conversacional de Telegram (comandos generales,
+  sesiones con estado, inline keyboards) — eso sigue siendo diseño sin
+  detalle en este repo, igual que antes.
+- **Fase 3 (tareas del hogar): implementada y verificada en
+  producción.** Migración `008` aplicada a mano desde el SQL Editor —
+  `assets`, `task_definitions` y `task_instances` ya existen en la base
+  compartida. El cron diario (`GET /api/cron/tareas`, 07:00
+  `America/Asuncion`, mismo `CRON_SECRET`) ya está creado en
+  cron-job.org. Cubre: ABM de activos (`/tareas/activos`) con ficha e
+  historial de mantenimiento, definiciones de tareas con recurrencia y
+  las dos anclas de recálculo (`/tareas/definiciones`), pantalla
+  `/tareas` con vencidas/semana/próximas, completar (con fecha editable,
+  costo y notas) y omitir, bloque de tareas en el dashboard "Hoy", y el
+  cron diario en sí (genera instancias y avisa por Telegram agrupado por
+  destinatario). Ver la sección "Fase 3" más abajo para las decisiones
+  de diseño. **No** incluye: documentos, combustible, ni la tabla
+  `vehicles` (queda para la Fase 4 — ver la nota sobre
   `assets.asset_type = 'vehiculo'` en esa sección).
 - Migraciones `001` a `008` aplicadas en la base compartida y
   confirmadas funcionando. Antes de escribir la migración `009`, mirá
