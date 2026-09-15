@@ -282,6 +282,153 @@ export type Database = {
         };
         Relationships: [];
       };
+      events: {
+        Row: {
+          id: string;
+          family_id: string;
+          title: string;
+          description: string | null;
+          category: "escolar" | "medico" | "familiar" | "cumpleanos" | "otro";
+          starts_at: string;
+          ends_at: string | null;
+          all_day: boolean;
+          location: string | null;
+          recurrence: "weekly" | "monthly" | "yearly" | null;
+          recurrence_until: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          title: string;
+          description?: string | null;
+          category?: "escolar" | "medico" | "familiar" | "cumpleanos" | "otro";
+          starts_at: string;
+          ends_at?: string | null;
+          all_day?: boolean;
+          location?: string | null;
+          recurrence?: "weekly" | "monthly" | "yearly" | null;
+          recurrence_until?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_id?: string;
+          title?: string;
+          description?: string | null;
+          category?: "escolar" | "medico" | "familiar" | "cumpleanos" | "otro";
+          starts_at?: string;
+          ends_at?: string | null;
+          all_day?: boolean;
+          location?: string | null;
+          recurrence?: "weekly" | "monthly" | "yearly" | null;
+          recurrence_until?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      event_participants: {
+        Row: {
+          event_id: string;
+          member_id: string;
+          family_id: string;
+        };
+        Insert: {
+          event_id: string;
+          member_id: string;
+          family_id: string;
+        };
+        Update: {
+          event_id?: string;
+          member_id?: string;
+          family_id?: string;
+        };
+        Relationships: [];
+      };
+      event_reminders: {
+        Row: {
+          id: string;
+          event_id: string;
+          family_id: string;
+          offset_minutes: number;
+          channel: "calendar" | "telegram";
+          target_member: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          family_id: string;
+          offset_minutes: number;
+          channel?: "calendar" | "telegram";
+          target_member?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_id?: string;
+          family_id?: string;
+          offset_minutes?: number;
+          channel?: "calendar" | "telegram";
+          target_member?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      telegram_link_codes: {
+        Row: {
+          code: string;
+          member_id: string;
+          family_id: string;
+          expires_at: string;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          member_id: string;
+          family_id: string;
+          expires_at: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          member_id?: string;
+          family_id?: string;
+          expires_at?: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      reminder_deliveries: {
+        Row: {
+          reminder_id: string;
+          occurrence_starts_at: string;
+          member_id: string;
+          sent_at: string;
+        };
+        Insert: {
+          reminder_id: string;
+          occurrence_starts_at: string;
+          member_id: string;
+          sent_at?: string;
+        };
+        Update: {
+          reminder_id?: string;
+          occurrence_starts_at?: string;
+          member_id?: string;
+          sent_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -302,3 +449,10 @@ export type ShoppingTemplate = Database["hogar"]["Tables"]["shopping_templates"]
 export type TemplateItem = Database["hogar"]["Tables"]["template_items"]["Row"];
 export type ShoppingList = Database["hogar"]["Tables"]["shopping_lists"]["Row"];
 export type ShoppingListItem = Database["hogar"]["Tables"]["shopping_list_items"]["Row"];
+export type Event = Database["hogar"]["Tables"]["events"]["Row"];
+export type EventParticipant = Database["hogar"]["Tables"]["event_participants"]["Row"];
+export type EventReminder = Database["hogar"]["Tables"]["event_reminders"]["Row"];
+export type TelegramLinkCode = Database["hogar"]["Tables"]["telegram_link_codes"]["Row"];
+export type ReminderDelivery = Database["hogar"]["Tables"]["reminder_deliveries"]["Row"];
+export type EventCategory = Event["category"];
+export type RecurrenceRule = NonNullable<Event["recurrence"]>;

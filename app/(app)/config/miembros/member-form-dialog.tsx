@@ -151,6 +151,20 @@ export function MemberFormDialog({ member }: { member?: FamilyMember }) {
             </div>
           )}
 
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="birth_date">Fecha de nacimiento (opcional)</Label>
+            <Input
+              id="birth_date"
+              name="birth_date"
+              type="date"
+              defaultValue={member?.birth_date ?? ""}
+            />
+            <p className="text-xs text-muted-foreground">
+              Se usa para mostrar el cumpleaños en el calendario. No hace
+              falta si preferís no cargarla.
+            </p>
+          </div>
+
           <DialogFooter>
             <Button type="submit" disabled={pending}>
               {pending ? "Guardando…" : "Guardar"}
