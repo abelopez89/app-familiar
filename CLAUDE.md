@@ -43,11 +43,9 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   de diseño. **No** incluye: documentos, combustible, ni la tabla
   `vehicles` (queda para la Fase 4 — ver la nota sobre
   `assets.asset_type = 'vehiculo'` en esa sección).
-- **Fase 4 (combustible): implementada, migración `009` aplicada.**
-  `vehicles` y `fuel_logs` ya existen en la base compartida. Todavía sin
-  verificación end-to-end en producción (carga real desde celular,
-  alerta de consumo con datos reales) — no la des por confirmada hasta
-  que el usuario la pruebe. Cubre: ABM de vehículos
+- **Fase 4 (combustible): implementada y verificada en producción.**
+  Migración `009` aplicada a mano desde el SQL Editor — `vehicles` y
+  `fuel_logs` ya existen en la base compartida. Cubre: ABM de vehículos
   (`/combustible/vehiculos`) vinculables a un `asset` de tipo `vehiculo`
   (existente o creado en el mismo formulario), carga rápida optimizada
   para la estación (`/combustible/nueva`), cálculo de rendimiento entre
@@ -55,12 +53,16 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   (`lib/fuel/consumption.ts`), alerta de consumo excesivo al guardar, y
   pantalla de detalle por vehículo (`/combustible/[vehicleId]`) con
   estadísticas, dos gráficos SVG a mano, historial editable/borrable y
-  las tareas de mantenimiento pendientes del activo vinculado. Ver la
-  sección "Fase 4" más abajo para las decisiones de diseño. **No**
-  incluye: documentos, bot conversacional de Telegram, ni mantenimiento
-  por kilometraje (el service del auto sigue siendo una tarea normal de
-  la Fase 3, con recurrencia temporal — no se agregaron columnas a
-  `task_definitions`).
+  las tareas de mantenimiento pendientes del activo vinculado. También
+  incluye tres ajustes post-verificación pedidos por el usuario: botón
+  de volver global (ver "UI e internacionalización"), botones "Cargar
+  combustible" con preselección de vehículo vía `?vehicle=<id>`, y el
+  link cruzado desde la ficha de un activo tipo `vehiculo` hacia
+  `/combustible/[vehicleId]`. Ver la sección "Fase 4" más abajo para las
+  decisiones de diseño. **No** incluye: documentos, bot conversacional
+  de Telegram, ni mantenimiento por kilometraje (el service del auto
+  sigue siendo una tarea normal de la Fase 3, con recurrencia temporal —
+  no se agregaron columnas a `task_definitions`).
 - Migraciones `001` a `009` aplicadas en la base compartida. Antes de escribir la migración `010`, mirá
   `supabase/migrations/` para confirmar el próximo número — no lo
   asumas.
@@ -240,9 +242,8 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `008` corridas a mano en Supabase y confirmadas funcionando en
-producción. `009` también aplicada, pendiente de verificación end-to-end
-(ver Fase 4 más arriba).
+`001` a `009` corridas a mano en Supabase y confirmadas funcionando en
+producción.
 
 | Archivo | Contenido |
 | --- | --- |
