@@ -63,16 +63,34 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   de Telegram, ni mantenimiento por kilometraje (el service del auto
   sigue siendo una tarea normal de la Fase 3, con recurrencia temporal —
   no se agregaron columnas a `task_definitions`).
-- Migraciones `001` a `009` aplicadas en la base compartida. Antes de escribir la migración `010`, mirá
-  `supabase/migrations/` para confirmar el próximo número — no lo
-  asumas.
-- **Próximo hito: Fase 5 (documentos).** Este repo **no tiene el detalle
-  de esa fase**. Si arrancás una sesión para documentos sin que el
-  usuario haya pegado el spec correspondiente en el prompt, pedíselo
-  antes de crear tablas, rutas o componentes — no los inventes a partir
-  del nombre del módulo. "Documentos" hoy solo aparece listado (sin
-  ruta) en `/mas`. `hogar.assets.document_id` ya existe pensando en esa
-  fase (comentario "la FK recién en Fase 5" en la migración `008`).
+- **Fase 5 (Centro de Documentos): implementada, pendiente de aplicar la
+  migración `010` y de verificar en producción.** Migración `010`
+  escrita — falta que el usuario la aplique a mano desde el SQL Editor
+  (y que cree antes el bucket privado `documentos` en Storage, ver el
+  comentario al inicio del archivo) antes de poder probar el módulo.
+  Cubre: bucket privado `documentos` con políticas propias sobre
+  `storage.objects` (aislamiento entre familias resuelto por la base, no
+  por el código — ver la sección "Fase 5" más abajo), tablas
+  `document_categories`/`documents`/`document_files`, la FK pendiente
+  `assets.document_id → documents.id`, compresión de imágenes en el
+  cliente (`lib/documents/image.ts`, EXIF vía `createImageBitmap`,
+  fallback si el navegador no puede decodificar el archivo), `/documentos`
+  (buscador + fijados + filtros por miembro/categoría, sin carpetas),
+  `/documentos/nuevo`, `/documentos/[id]` (visor con zoom, navegación
+  entre páginas, PDF en pestaña nueva, editar metadatos, agregar/quitar
+  páginas), `/config/documentos` (ABM de categorías + espacio usado) y
+  `/config/miembros/[id]` (ficha de miembro nueva: documentos agrupados
+  por categoría, próximos eventos, tareas asignadas). El cron diario
+  (antes "cron de tareas", `/api/cron/tareas`) ahora también avisa
+  vencimientos de documentos, con el mismo mecanismo de idempotencia
+  (`expiry_notified_at`) que garantías y tareas — no se creó un cron ni
+  una ruta nueva. Ver la sección "Fase 5" más abajo para las decisiones
+  de diseño. **No** incluye: OCR, versionado de documentos, carpetas, ni
+  compartir fuera de la familia — deliberadamente fuera de alcance.
+- Migraciones `001` a `010` escritas. `001` a `009` aplicadas y
+  confirmadas en producción; `010` (Fase 5) todavía no. Antes de
+  escribir la migración `011`, mirá `supabase/migrations/` para
+  confirmar el próximo número — no lo asumas.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
   siguiente sobre grants de tabla para `authenticated`, la regla 12
@@ -243,7 +261,10 @@ Estas reglas no son opcionales:
 ### Migraciones (referencia rápida)
 
 `001` a `009` corridas a mano en Supabase y confirmadas funcionando en
-producción.
+producción. `010` (Fase 5) está escrita pero **todavía no aplicada** —
+avisale al usuario que tiene que correrla (y crear antes el bucket
+`documentos` en Storage a mano, ver el comentario al inicio del archivo)
+antes de probar cualquier pantalla de documentos.
 
 | Archivo | Contenido |
 | --- | --- |
@@ -256,8 +277,9 @@ producción.
 | `007_grants_service_role.sql` | `GRANT` de schema/tablas/funciones/secuencias a `service_role` (ver regla 12). |
 | `008_tareas.sql` | `assets`, `task_definitions`, `task_instances` + RLS + grants (ver sección Fase 3 más abajo). |
 | `009_combustible.sql` | `vehicles`, `fuel_logs` + RLS + grants (ver sección Fase 4 más abajo). |
+| `010_documentos.sql` | `document_categories`, `documents`, `document_files`, FK `assets.document_id`, políticas sobre `storage.objects` (ver sección Fase 5 más abajo). |
 
-La próxima migración de cualquier fase nueva es `010_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `011_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
@@ -323,6 +345,8 @@ Tres clientes separados, no los mezcles:
     `/compras/plantillas`, `/compras/plantillas/[id]`
   - `/eventos` — calendario (grilla mensual + agenda), Fase 2.
   - `/config/familia`, `/config/miembros`, `/config/categorias`
+  - `/config/miembros/[id]` — ficha del miembro: sus documentos agrupados
+    por categoría, próximos eventos y tareas asignadas, Fase 5.
   - `/config/calendario` — link del feed ICS + rotar token, Fase 2.
   - `/config/telegram` — vinculación de cuenta de Telegram, Fase 2.
   - `/tareas` — vencidas/semana/próximas, completar y omitir, Fase 3.
@@ -338,7 +362,14 @@ Tres clientes separados, no los mezcles:
   - `/combustible/[vehicleId]` — detalle: estadísticas, gráficos,
     historial editable/borrable y tareas de mantenimiento del activo
     vinculado, Fase 4. También enlazado desde `/mas`.
-  - `/mas` lista, sin ruta todavía, "Documentos".
+  - `/documentos` — buscador + fijados + filtros por miembro/categoría,
+    sin carpetas, Fase 5.
+  - `/documentos/nuevo` — cámara o galería, compresión en el cliente,
+    metadatos, Fase 5.
+  - `/documentos/[id]` — visor (zoom, navegación entre páginas, PDF en
+    pestaña nueva), editar metadatos, agregar/quitar páginas, Fase 5.
+  - `/config/documentos` — ABM de categorías de documentos + espacio
+    usado, Fase 5. También enlazado desde `/mas`.
 - Rutas públicas sin sesión, **fuera** de `(auth)` y `(app)` a propósito
   (ver la lista comentada en `middleware.ts`, y no tocarla sin motivo —
   es el tipo de cosa que se rompe en silencio si alguien toca el
@@ -575,6 +606,94 @@ Tres clientes separados, no los mezcles:
     del vehículo (odómetro inicial, tanque, tipo de combustible) viven
     en `vehicles`, no en `assets`, y sin este link la persona no tiene
     forma de adivinar dónde están desde la pantalla de mantenimiento.
+
+## Fase 5 — Centro de Documentos: decisiones a respetar
+
+1. **Los archivos viven en `storage.objects`, un sistema de permisos
+   separado del schema `hogar`.** Las políticas RLS de la tabla
+   `documents` no protegen el acceso a los archivos en sí — un bucket
+   privado sin políticas propias sobre `storage.objects` no aísla nada
+   entre familias. La ruta de cada archivo es
+   `{family_id}/{document_id}/{nombre_archivo}`, y las políticas
+   comparan el primer segmento contra `hogar.current_family_id()` (ver
+   migración `010`). El bucket `documentos` se crea a mano desde el
+   dashboard de Supabase (no hay forma de fijar `file_size_limit` /
+   `allowed_mime_types` por SQL desde acá), con `public = false`.
+2. **Signed URLs de 60 segundos, generadas con el cliente de sesión
+   (`lib/supabase/server.ts`), nunca con el admin client.** A diferencia
+   del feed ICS de la Fase 2, acá sí hay sesión — usar el admin client
+   saltearía las políticas de `storage.objects` sin necesidad, que es
+   justo el mecanismo que garantiza el aislamiento entre familias. Ver
+   `lib/documents/storage.ts`.
+3. **`document_files` es una tabla aparte, no una columna en
+   `documents`.** Una cédula tiene frente y dorso, un estudio médico
+   tiene varias páginas — modelar un archivo por documento obligaría a
+   cargarlos como documentos distintos, exactamente lo que no querés
+   estar decidiendo en una emergencia. El documento es la unidad
+   conceptual; los archivos son sus páginas.
+4. **Sin carpetas, a propósito.** `/documentos` se navega con buscador +
+   fijados (`is_pinned`) + filtros por miembro y categoría, combinables
+   — un documento puede ser a la vez de un miembro, de una categoría
+   médica y tener un tag de "importante", cosa que una jerarquía de
+   carpetas no permite sin elegir una sola dimensión. Este módulo se abre
+   en una emergencia (la cédula, el carnet del seguro): un filtro es un
+   toque, una carpeta son varios.
+5. **`documents.member_id` decide si el documento es personal o
+   familiar.** Con miembro → documento de esa persona (incluye menores
+   sin login, se vinculan igual que un adulto). Sin miembro (`null`) →
+   documento de la familia (contrato de alquiler, seguro de la casa). El
+   formulario de carga lo hace explícito con "De la familia" como primera
+   opción del selector, no como un campo opcional escondido.
+6. **Compresión de imágenes en el cliente antes de subir**
+   (`lib/documents/image.ts`): lado mayor ≤ 1600px, JPEG al 80% —
+   4-5 MB de una foto de celular bajan a algo del orden de 250 KB. Usa
+   `createImageBitmap(file, { imageOrientation: "from-image" })` para la
+   rotación EXIF en vez de parsear el metadato a mano — el navegador ya
+   sabe hacerlo. Si el navegador no puede decodificar el archivo (HEIC de
+   iPhone que no se convirtió solo), sube el original sin comprimir en
+   vez de fallar: un documento pesado guardado es mejor que uno perdido.
+   Los PDF nunca pasan por esta compresión, van directo con el límite de
+   tamaño.
+7. **Orden de subida: primero el archivo, después la fila de
+   `document_files`.** Para tener una ruta de Storage hace falta el
+   `document_id`, así que el orden real es: crear la fila de `documents`
+   (sin archivos) → subir cada archivo con esa ruta → insertar su fila en
+   `document_files`. Si ese último insert falla, se borra el archivo ya
+   subido. El peor caso es un archivo huérfano invisible en Storage, no
+   una fila apuntando a un archivo que no existe. Ver `createDocument` en
+   `app/(app)/documentos/actions.ts`.
+8. **`expires_at` + `expiry_notified_at` (fecha, no booleano) para el
+   aviso de vencimiento**, mismo patrón que `warranty_notified_at` en
+   `assets` y `notified_at` en `task_instances` — permite repetir el
+   aviso cada 7 días mientras el documento siga vencido o por vencer, en
+   vez de avisar una sola vez para siempre. La lógica vive en
+   `lib/documents/schedule.ts`, **independiente** de
+   `lib/tasks/schedule.ts` a propósito (ver "qué no hacer" más abajo):
+   comparten la forma del problema, no el código.
+9. **Los vencimientos de documentos se avisan en el cron diario
+   existente (`/api/cron/tareas`), sin cron ni ruta nueva.** El cron
+   nació en la Fase 3 como "el cron de tareas"; desde esta fase cubre
+   tres fuentes (tareas, garantías, documentos) con el mismo mecanismo.
+   Se dejó el nombre de archivo igual para no tener que reconfigurar el
+   job en cron-job.org. Destinatario: el `member_id` del documento si
+   tiene dueño, si no todos los miembros con Telegram vinculado — mismo
+   criterio que garantías de activos (que siempre son de toda la
+   familia).
+10. **La ficha de un miembro (`/config/miembros/[id]`) es nueva en esta
+    fase** — antes `/config/miembros` era solo una lista con edición
+    inline. Agrupa los documentos de esa persona por categoría, y de
+    paso muestra sus próximos eventos y tareas asignadas: es la vista de
+    "todo lo de esta persona" que las carpetas hubieran dado como efecto
+    secundario, pero acá es un destino deliberado en vez de un paso
+    obligatorio para llegar a un documento.
+11. **Qué no hacer:** no usar el admin client para leer documentos o
+    generar signed URLs (hay sesión, tiene que resolverlo RLS de
+    storage); no hacer público el bucket ni generar URLs públicas; no
+    crear un cron ni una ruta nueva para vencimientos; no construir un
+    visor de PDF (se abre en pestaña nueva y el navegador hace el
+    trabajo); no implementar OCR, versionado de documentos ni carpetas;
+    no tocar `lib/recurrence.ts`, `lib/tasks/schedule.ts`,
+    `lib/fuel/consumption.ts` ni `lib/ics.ts` por este módulo.
 
 ## Comandos útiles
 

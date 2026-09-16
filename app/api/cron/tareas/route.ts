@@ -4,17 +4,27 @@ import { getCronSecret } from "@/lib/env";
 import { formatDate, todayInFamilyTimezone } from "@/lib/dates";
 import { escapeTelegramHtml, sendTelegramMessage } from "@/lib/telegram";
 import { daysOverdue, shouldGenerateInstance, shouldNotifyTaskInstance, shouldNotifyWarranty } from "@/lib/tasks/schedule";
-import type { Asset, FamilyMember, TaskDefinition, TaskInstance } from "@/lib/supabase/types";
+import { shouldNotifyDocumentExpiry } from "@/lib/documents/schedule";
+import type { Asset, FamilyDocument, FamilyMember, TaskDefinition, TaskInstance } from "@/lib/supabase/types";
 
 /**
- * Cron diario (07:00 America/Asuncion) de tareas del hogar, protegido
- * por Authorization: Bearer CRON_SECRET (lo llama cron-job.org). Service
+ * Cron diario (07:00 America/Asuncion), protegido por
+ * Authorization: Bearer CRON_SECRET (lo llama cron-job.org). Service
  * role: no hay sesión, opera sobre todas las familias.
  *
- * Corre en orden: 1) genera las instancias que correspondan, 2) arma un
- * único mensaje de Telegram por destinatario con todo lo que tiene
- * pendiente de avisar (tareas + garantías próximas a vencer). Si no hay
- * nada para avisar, no manda nada — misma regla que el cron de eventos.
+ * Nació como "el cron de tareas" en la Fase 3 pero desde la Fase 5 cubre
+ * tres fuentes de avisos — tareas, garantías de activos y vencimientos de
+ * documentos — bajo el mismo mecanismo (generar/revisar, después avisar
+ * agrupado por destinatario). No se creó un cron ni una ruta nueva para
+ * documentos a propósito: es el mismo problema con otra tabla. El nombre
+ * de archivo (`/api/cron/tareas`) quedó igual para no reconfigurar el job
+ * en cron-job.org.
+ *
+ * Corre en orden: 1) genera las instancias de tareas que correspondan,
+ * 2) arma un único mensaje de Telegram por destinatario con todo lo que
+ * tiene pendiente de avisar (tareas + garantías + documentos por
+ * vencer). Si no hay nada para avisar, no manda nada — misma regla que
+ * el cron de eventos.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -57,13 +67,19 @@ export async function GET(request: NextRequest) {
   }
 
   // ============ 2. Avisar ============
-  const [{ data: pendingInstances }, { data: allDefinitions }, { data: assets }, { data: members }] =
-    await Promise.all([
-      supabase.from("task_instances").select("*").eq("status", "pendiente"),
-      supabase.from("task_definitions").select("*"),
-      supabase.from("assets").select("*").eq("is_active", true),
-      supabase.from("family_members").select("*").eq("is_active", true),
-    ]);
+  const [
+    { data: pendingInstances },
+    { data: allDefinitions },
+    { data: assets },
+    { data: members },
+    { data: expiringDocuments },
+  ] = await Promise.all([
+    supabase.from("task_instances").select("*").eq("status", "pendiente"),
+    supabase.from("task_definitions").select("*"),
+    supabase.from("assets").select("*").eq("is_active", true),
+    supabase.from("family_members").select("*").eq("is_active", true),
+    supabase.from("documents").select("*").not("expires_at", "is", null),
+  ]);
 
   const definitionsById = new Map((allDefinitions ?? []).map((d) => [d.id, d]));
   const membersById = new Map((members ?? []).map((m) => [m.id, m]));
@@ -127,7 +143,41 @@ export async function GET(request: NextRequest) {
     if (notifiedSomeone) notifiedAssetIds.push(asset.id);
   }
 
-  const recipientChatIds = new Set([...taskLinesByChatId.keys(), ...warrantyLinesByChatId.keys()]);
+  const documentLinesByChatId = new Map<number, string[]>();
+  const notifiedDocumentIds: string[] = [];
+
+  // Destinatario: el member_id del documento si tiene dueño; si no, todos
+  // los miembros con Telegram vinculado (documento de la familia).
+  for (const doc of (expiringDocuments ?? []) as FamilyDocument[]) {
+    if (!shouldNotifyDocumentExpiry(doc, today)) continue;
+
+    const recipients = doc.member_id
+      ? [membersById.get(doc.member_id)].filter((m): m is FamilyMember => !!m)
+      : (membersByFamily.get(doc.family_id) ?? []);
+
+    const overdue = daysOverdue(doc.expires_at!, today);
+    const text =
+      overdue > 0
+        ? `${escapeTelegramHtml(doc.title)} — vencido hace ${overdue} día${overdue === 1 ? "" : "s"}`
+        : `${escapeTelegramHtml(doc.title)} — vence el ${formatDate(doc.expires_at!)}`;
+
+    let notifiedSomeone = false;
+    for (const member of recipients) {
+      if (!member.telegram_user_id) continue;
+      const list = documentLinesByChatId.get(member.telegram_user_id) ?? [];
+      list.push(text);
+      documentLinesByChatId.set(member.telegram_user_id, list);
+      notifiedSomeone = true;
+    }
+
+    if (notifiedSomeone) notifiedDocumentIds.push(doc.id);
+  }
+
+  const recipientChatIds = new Set([
+    ...taskLinesByChatId.keys(),
+    ...warrantyLinesByChatId.keys(),
+    ...documentLinesByChatId.keys(),
+  ]);
 
   let enviados = 0;
   let errores = 0;
@@ -135,6 +185,7 @@ export async function GET(request: NextRequest) {
   for (const chatId of recipientChatIds) {
     const taskLines = (taskLinesByChatId.get(chatId) ?? []).sort((a, b) => b.overdueDays - a.overdueDays);
     const warrantyLines = warrantyLinesByChatId.get(chatId) ?? [];
+    const documentLines = documentLinesByChatId.get(chatId) ?? [];
 
     const parts: string[] = [];
     if (taskLines.length > 0) {
@@ -145,6 +196,11 @@ export async function GET(request: NextRequest) {
       if (parts.length > 0) parts.push("");
       parts.push("<b>Garantías</b>");
       parts.push(...warrantyLines.map((line) => `• ${line}`));
+    }
+    if (documentLines.length > 0) {
+      if (parts.length > 0) parts.push("");
+      parts.push("<b>Documentos</b>");
+      parts.push(...documentLines.map((line) => `• ${line}`));
     }
 
     let sent = false;
@@ -170,6 +226,13 @@ export async function GET(request: NextRequest) {
       .from("assets")
       .update({ warranty_notified_at: new Date().toISOString() })
       .in("id", notifiedAssetIds);
+  }
+
+  if (notifiedDocumentIds.length > 0) {
+    await supabase
+      .from("documents")
+      .update({ expiry_notified_at: new Date().toISOString() })
+      .in("id", notifiedDocumentIds);
   }
 
   return NextResponse.json({ generadas, enviados, errores });

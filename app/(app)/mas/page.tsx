@@ -12,9 +12,9 @@ const configLinks = [
   { href: "/config/telegram", label: "Telegram", icon: Send },
   { href: "/tareas/activos", label: "Activos", icon: Wrench },
   { href: "/combustible", label: "Combustible", icon: Fuel },
+  { href: "/documentos", label: "Documentos", icon: FileText },
+  { href: "/config/documentos", label: "Categorías de documentos", icon: FileText },
 ];
-
-const proximamente = [{ label: "Documentos", icon: FileText }];
 
 export default function MasPage() {
   return (
@@ -33,23 +33,6 @@ export default function MasPage() {
               </span>
               <ChevronRight className="size-4 text-muted-foreground" />
             </Link>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="flex flex-col divide-y p-0">
-          {proximamente.map(({ label, icon: Icon }) => (
-            <div
-              key={label}
-              className="flex items-center justify-between px-4 py-3.5 text-sm text-muted-foreground"
-            >
-              <span className="flex items-center gap-3">
-                <Icon className="size-4" />
-                {label}
-              </span>
-              <span className="text-xs">Próximamente</span>
-            </div>
           ))}
         </CardContent>
       </Card>

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { createAsset, updateAsset, type ActionResult } from "./actions";
 import { ASSET_TYPES } from "@/lib/tasks/constants";
-import type { Asset, AssetType } from "@/lib/supabase/types";
+import type { Asset, AssetType, FamilyDocument } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,12 +28,15 @@ import {
 
 export function AssetFormDialog({
   asset,
+  documents = [],
   trigger,
 }: {
   asset?: Asset;
+  documents?: FamilyDocument[];
   trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [documentId, setDocumentId] = useState(asset?.document_id ?? "");
   const action = asset ? updateAsset : createAsset;
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(action, {});
 
@@ -108,6 +111,26 @@ export function AssetFormDialog({
               <Input id="warranty_until" name="warranty_until" type="date" defaultValue={asset?.warranty_until ?? ""} />
             </div>
           </div>
+
+          {documents.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <Label>Manual o factura vinculado (opcional)</Label>
+              <Select value={documentId || "ninguno"} onValueChange={(v) => setDocumentId(v === "ninguno" ? "" : v)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ninguno">Ninguno</SelectItem>
+                  {documents.map((doc) => (
+                    <SelectItem key={doc.id} value={doc.id}>
+                      {doc.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input type="hidden" name="document_id" value={documentId} />
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="notes">Notas (opcional)</Label>

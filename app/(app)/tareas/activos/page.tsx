@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { listAssets } from "@/lib/tasks/queries";
+import { listDocumentsWithFiles } from "@/lib/documents/queries";
 import { ASSET_TYPES } from "@/lib/tasks/constants";
 import { Card, CardContent } from "@/components/ui/card";
 import { AssetFormDialog } from "./asset-form-dialog";
@@ -10,7 +11,7 @@ export default async function ActivosPage() {
   const context = await getCurrentFamilyContext();
   if (!context) redirect("/login");
 
-  const assets = await listAssets();
+  const [assets, documents] = await Promise.all([listAssets(), listDocumentsWithFiles()]);
 
   return (
     <div className="flex flex-col gap-4 pb-24">
@@ -35,7 +36,7 @@ export default async function ActivosPage() {
       )}
 
       <div className="fixed bottom-20 right-4 z-30">
-        <AssetFormDialog />
+        <AssetFormDialog documents={documents} />
       </div>
     </div>
   );
