@@ -1,8 +1,9 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Asset, FuelLog, TaskDefinition, Vehicle } from "@/lib/supabase/types";
 
-export async function listVehicles(): Promise<Vehicle[]> {
+export const listVehicles = cache(async function listVehicles(): Promise<Vehicle[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("vehicles")
@@ -10,7 +11,7 @@ export async function listVehicles(): Promise<Vehicle[]> {
     .eq("is_active", true)
     .order("name", { ascending: true });
   return data ?? [];
-}
+});
 
 export async function getVehicle(id: string): Promise<Vehicle | null> {
   const supabase = await createClient();

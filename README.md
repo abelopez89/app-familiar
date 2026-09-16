@@ -5,10 +5,12 @@ del supermercado, eventos, tareas del hogar, documentos y consumo de
 combustible. Pensada para uso en celular, por los adultos de una misma
 familia.
 
-Este repositorio implementa **Fase 0 (base)**, **Fase 1 (módulo de
-compras)** y **Fase 2 (eventos, calendario y notificaciones de
-Telegram)**. Ver [`CLAUDE.md`](./CLAUDE.md) para las convenciones del
-proyecto y el detalle de qué está implementado y qué no.
+Este repositorio implementa **Fase 0 (base)**, **Fase 1 (compras)**,
+**Fase 2 (eventos, calendario y notificaciones de Telegram)**, **Fase 3
+(tareas del hogar)**, **Fase 4 (combustible)**, **Fase 5 (centro de
+documentos)** y la **Fase Extra (rediseño de interfaz y performance)**.
+Ver [`CLAUDE.md`](./CLAUDE.md) para las convenciones del proyecto y el
+detalle de qué está implementado y qué no.
 
 ## Stack
 
@@ -59,9 +61,22 @@ Orden de aplicación:
    para el rol `authenticated`.
 6. `supabase/migrations/006_eventos.sql` — eventos, participantes,
    recordatorios, vinculación de Telegram (Fase 2).
-7. (Opcional) `supabase/seed/categorias.sql` — categorías típicas de
-   supermercado. Reemplazar el `family_id` de ejemplo por el real antes
-   de ejecutarlo.
+7. `supabase/migrations/007_grants_service_role.sql` — grants de schema,
+   tablas, funciones y secuencias para `service_role`.
+8. `supabase/migrations/008_tareas.sql` — activos, definiciones e
+   instancias de tareas (Fase 3).
+9. `supabase/migrations/009_combustible.sql` — vehículos y cargas de
+   combustible (Fase 4).
+10. `supabase/migrations/010_documentos.sql` — categorías, documentos,
+    archivos y políticas sobre `storage.objects` (Fase 5). Requiere
+    además crear a mano el bucket privado `documentos` desde el
+    dashboard de Supabase.
+11. (Opcional) `supabase/seed/categorias.sql` — categorías típicas de
+    supermercado. Reemplazar el `family_id` de ejemplo por el real antes
+    de ejecutarlo.
+
+La Fase Extra (rediseño de interfaz y performance) **no agrega ninguna
+migración**: es solo código de la app.
 
 Ver más detalle y las reglas críticas (RLS obligatorio, funciones
 `security definer`, snapshot de `shopping_list_items`, etc.) en

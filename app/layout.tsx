@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { RegisterServiceWorker } from "@/components/register-service-worker";
 import "./globals.css";
@@ -7,11 +7,7 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -20,8 +16,16 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    // `black-translucent` es lo que deja que el header de vidrio se vea
+    // por debajo de la barra de estado en iOS; el padding lo pone
+    // `--safe-top` en el header, no el sistema.
+    statusBarStyle: "black-translucent",
     title: "App Familiar",
+  },
+  formatDetection: {
+    // Safari convierte cantidades y precios en guaraníes en links de
+    // teléfono si no se desactiva.
+    telephone: false,
   },
   icons: {
     apple: "/apple-touch-icon.png",
@@ -29,22 +33,25 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#6366f1",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#1b1a24" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // Sin esto la app no dibuja debajo del notch ni del indicador de
+  // inicio del iPhone, y `env(safe-area-inset-*)` devuelve siempre 0.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-muted/30">
+    <html lang="es" className={`${geistSans.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-background">
         {children}
-        <Toaster position="top-center" richColors />
+        <Toaster position="top-center" richColors closeButton />
         <RegisterServiceWorker />
       </body>
     </html>

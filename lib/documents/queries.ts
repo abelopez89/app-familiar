@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { DocumentCategory, DocumentFile, FamilyDocument } from "@/lib/supabase/types";
 import { isDocumentExpiryDue } from "@/lib/documents/schedule";
@@ -6,14 +7,14 @@ import { todayInFamilyTimezone } from "@/lib/dates";
 
 export type DocumentWithFiles = FamilyDocument & { files: DocumentFile[] };
 
-export async function listDocumentCategories(): Promise<DocumentCategory[]> {
+export const listDocumentCategories = cache(async function listDocumentCategories(): Promise<DocumentCategory[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("document_categories")
     .select("*")
     .order("sort_order", { ascending: true });
   return data ?? [];
-}
+});
 
 export async function getDocumentCategory(id: string): Promise<DocumentCategory | null> {
   const supabase = await createClient();
@@ -26,7 +27,7 @@ export async function getDocumentCategory(id: string): Promise<DocumentCategory 
  * resueltos, sin N+1 — la usan /documentos, la ficha de un miembro y el
  * bloque de vencimientos del dashboard.
  */
-export async function listDocumentsWithFiles(): Promise<DocumentWithFiles[]> {
+export const listDocumentsWithFiles = cache(async function listDocumentsWithFiles(): Promise<DocumentWithFiles[]> {
   const supabase = await createClient();
 
   const [documentsRes, filesRes] = await Promise.all([
@@ -47,7 +48,7 @@ export async function listDocumentsWithFiles(): Promise<DocumentWithFiles[]> {
     ...doc,
     files: filesByDocument.get(doc.id) ?? [],
   }));
-}
+});
 
 export async function getDocumentWithFiles(id: string): Promise<DocumentWithFiles | null> {
   const supabase = await createClient();
@@ -70,7 +71,7 @@ export async function listDocumentsByMember(memberId: string): Promise<DocumentW
  * `expiry_lead_days` días o menos de `expires_at`, o ya venció) — los que
  * corresponde mostrar en el bloque de alertas del dashboard "Hoy".
  */
-export async function listExpiringDocuments(): Promise<FamilyDocument[]> {
+export const listExpiringDocuments = cache(async function listExpiringDocuments(): Promise<FamilyDocument[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("documents")
@@ -80,7 +81,7 @@ export async function listExpiringDocuments(): Promise<FamilyDocument[]> {
 
   const today = todayInFamilyTimezone();
   return (data ?? []).filter((doc) => isDocumentExpiryDue(doc, today));
-}
+});
 
 /**
  * Suma de size_bytes de todos los archivos de la familia, para mostrar el

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { env } from "@/lib/env";
 import { CalendarLinkCard } from "./calendar-link-card";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export default async function ConfigCalendarioPage() {
   const context = await getCurrentFamilyContext();
@@ -11,7 +12,7 @@ export default async function ConfigCalendarioPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Calendario</h1>
+      <PageHeader title="Calendario externo" description="Suscribí los eventos de la familia en tu celular" />
       <CalendarLinkCard feedUrl={feedUrl} />
     </div>
   );

@@ -1,6 +1,10 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import type { Event, EventReminder, FamilyMember } from "@/lib/supabase/types";
+// Reexportada desde lib/members.ts para que haya una sola instancia
+// memoizada por request (ver el comentario de ese archivo).
+export { listActiveMembers } from "@/lib/members";
+import type { Event, EventReminder } from "@/lib/supabase/types";
 
 export type EventWithDetails = Event & {
   participant_ids: string[];
@@ -16,7 +20,7 @@ export type EventWithDetails = Event & {
  * Volumen esperado (agenda familiar) es chico, así que esto no es un
  * problema de escala en este proyecto.
  */
-export async function listEventsWithDetails(): Promise<EventWithDetails[]> {
+export const listEventsWithDetails = cache(async function listEventsWithDetails(): Promise<EventWithDetails[]> {
   const supabase = await createClient();
 
   const [eventsRes, participantsRes, remindersRes] = await Promise.all([
@@ -37,7 +41,7 @@ export async function listEventsWithDetails(): Promise<EventWithDetails[]> {
       .map((p) => p.member_id),
     reminders: reminders.filter((r) => r.event_id === event.id),
   }));
-}
+});
 
 export async function getEventWithDetails(id: string): Promise<EventWithDetails | null> {
   const supabase = await createClient();
@@ -56,14 +60,4 @@ export async function getEventWithDetails(id: string): Promise<EventWithDetails 
     participant_ids: (participantsRes.data ?? []).map((p) => p.member_id),
     reminders: remindersRes.data ?? [],
   };
-}
-
-export async function listActiveMembers(): Promise<FamilyMember[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("family_members")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
-  return data ?? [];
 }

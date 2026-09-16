@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2 } from "lucide-react";
 import { AddItemForm } from "./add-item-form";
+import { StickyBottomBar } from "@/components/app-shell/floating-action";
 
 const SIN_CATEGORIA = "__sin_categoria__";
 
@@ -132,14 +133,14 @@ export function ListEditor({
         ))
       )}
 
-      <div className="fixed inset-x-0 bottom-16 z-30 mx-auto max-w-lg border-t bg-background px-4 py-3">
+      <StickyBottomBar>
         <Button asChild size="lg" className="w-full gap-2">
           <Link href={`/compras/${list.id}/comprar`}>
             <ShoppingCart className="size-4" />
             Ir a comprar
           </Link>
         </Button>
-      </div>
+      </StickyBottomBar>
     </div>
   );
 }

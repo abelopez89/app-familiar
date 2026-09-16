@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FileText, Pin, Plus, Search } from "lucide-react";
+import { FileText, Pin, Search } from "lucide-react";
 import type { DocumentCategory, FamilyMember } from "@/lib/supabase/types";
 import type { DocumentWithFiles } from "@/lib/documents/queries";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/constants";
 import { formatDate } from "@/lib/dates";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionTitle } from "@/components/app-shell/page-header";
 
 function normalize(text: string): string {
   return text
@@ -65,14 +65,7 @@ export function DocumentsBrowser({
         />
       </div>
 
-      <Button asChild className="gap-2">
-        <Link href="/documentos/nuevo">
-          <Plus className="size-4" />
-          Nuevo documento
-        </Link>
-      </Button>
-
-      <div className="flex flex-wrap gap-2">
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <FilterChip label="Todos" active={!memberFilter} onClick={() => setMemberFilter(null)} />
         <FilterChip label="De la familia" active={memberFilter === "familia"} onClick={() => setMemberFilter("familia")} />
         {members.map((m) => (
@@ -87,7 +80,7 @@ export function DocumentsBrowser({
       </div>
 
       {categories.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <FilterChip label="Todas las categorías" active={!categoryFilter} onClick={() => setCategoryFilter(null)} />
           {categories.map((c) => (
             <FilterChip
@@ -102,31 +95,39 @@ export function DocumentsBrowser({
 
       {pinned.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-muted-foreground">Fijados</h2>
+          <SectionTitle>Fijados</SectionTitle>
           <div className="grid grid-cols-2 gap-3">
             {pinned.map((doc) => (
-              <Link key={doc.id} href={`/documentos/${doc.id}`}>
-                <Card className="overflow-hidden">
-                  <div className="flex aspect-square items-center justify-center bg-muted">
-                    {thumbnails[doc.id] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={thumbnails[doc.id]} alt={doc.title} className="size-full object-cover" />
-                    ) : (
-                      <FileText className="size-10 text-muted-foreground" />
-                    )}
-                  </div>
-                  <CardContent className="flex flex-col gap-0.5 p-2.5">
-                    <span className="flex items-center gap-1 truncate text-sm font-medium">
-                      <Pin className="size-3 shrink-0 text-primary" />
-                      {doc.title}
+              <Link
+                key={doc.id}
+                href={`/documentos/${doc.id}`}
+                className="overflow-hidden rounded-xl border bg-card shadow-sm transition-transform duration-150 active:scale-[0.97]"
+              >
+                <div className="flex aspect-square items-center justify-center bg-muted">
+                  {thumbnails[doc.id] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={thumbnails[doc.id]}
+                      alt={doc.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <FileText className="size-10 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex flex-col gap-0.5 p-2.5">
+                  <span className="flex items-center gap-1 truncate text-sm font-medium">
+                    <Pin className="size-3 shrink-0 text-mod-documentos" />
+                    {doc.title}
+                  </span>
+                  {doc.member_id && (
+                    <span className="truncate text-xs text-muted-foreground">
+                      {membersById.get(doc.member_id)?.display_name}
                     </span>
-                    {doc.member_id && (
-                      <span className="text-xs text-muted-foreground">
-                        {membersById.get(doc.member_id)?.display_name}
-                      </span>
-                    )}
-                  </CardContent>
-                </Card>
+                  )}
+                </div>
               </Link>
             ))}
           </div>
@@ -134,19 +135,28 @@ export function DocumentsBrowser({
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold text-muted-foreground">Recientes</h2>
+        <SectionTitle>Recientes</SectionTitle>
         {recent.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {documents.length === 0 ? "Todavía no cargaste ningún documento." : "No hay documentos que coincidan."}
-          </p>
+          <EmptyState
+            icon={FileText}
+            title={
+              documents.length === 0
+                ? "Todavía no cargaste ningún documento"
+                : "No hay documentos que coincidan"
+            }
+            description={
+              documents.length === 0
+                ? "Sacale una foto a la cédula o al carnet del seguro y quedan siempre a mano."
+                : "Probá con otro filtro o borrá lo que escribiste en el buscador."
+            }
+          />
         ) : (
-          <Card>
-            <CardContent className="flex flex-col divide-y p-0">
+          <div className="divide-y divide-border overflow-hidden rounded-xl border bg-card shadow-sm">
               {recent.map((doc) => (
                 <Link
                   key={doc.id}
                   href={`/documentos/${doc.id}`}
-                  className="flex items-center gap-3 px-4 py-3"
+                  className="tap-target flex items-center gap-3 px-4 py-3 transition-colors active:bg-muted"
                 >
                   <FileText className="size-5 shrink-0 text-muted-foreground" />
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -164,8 +174,7 @@ export function DocumentsBrowser({
                   <span className="shrink-0 text-xs text-muted-foreground">{formatDate(doc.created_at)}</span>
                 </Link>
               ))}
-            </CardContent>
-          </Card>
+          </div>
         )}
       </section>
     </div>
@@ -187,8 +196,8 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm ${
-        active ? "border-primary bg-primary/10" : ""
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm transition-colors ${
+        active ? "border-primary bg-primary text-primary-foreground" : "bg-card active:bg-muted"
       }`}
     >
       {color && <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />}

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Family, FamilyMember } from "@/lib/supabase/types";
 
@@ -8,6 +9,13 @@ export type CurrentFamilyContext = {
 };
 
 /**
+ * Envuelto en `cache()` de React: el layout de `(app)` y prácticamente
+ * cada página lo llaman por separado, y cada llamada cuesta un
+ * `auth.getUser()` (round trip a Supabase Auth) más dos consultas. Con
+ * `cache()` todo eso se resuelve una sola vez por request y las demás
+ * llamadas leen el resultado ya memoizado, sin que ninguna pantalla
+ * tenga que pasarse el contexto por props.
+ *
  * Devuelve el miembro y la familia del usuario autenticado, o null si no
  * hay sesión o el usuario todavía no está vinculado a ningún miembro.
  *
@@ -17,7 +25,7 @@ export type CurrentFamilyContext = {
  * exactamente el caso normal de esta app. `family_members.user_id` es
  * unique, así que este filtro garantiza como mucho una fila.
  */
-export async function getCurrentFamilyContext(): Promise<CurrentFamilyContext | null> {
+export const getCurrentFamilyContext = cache(async function getCurrentFamilyContext(): Promise<CurrentFamilyContext | null> {
   const supabase = await createClient();
 
   const {
@@ -62,4 +70,4 @@ export async function getCurrentFamilyContext(): Promise<CurrentFamilyContext | 
   if (!family) return null;
 
   return { member, family };
-}
+});

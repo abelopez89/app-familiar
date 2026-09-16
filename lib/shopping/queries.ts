@@ -1,8 +1,9 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { ShoppingList } from "@/lib/supabase/types";
 
-export async function getOpenShoppingList(): Promise<ShoppingList | null> {
+export const getOpenShoppingList = cache(async function getOpenShoppingList(): Promise<ShoppingList | null> {
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -14,4 +15,4 @@ export async function getOpenShoppingList(): Promise<ShoppingList | null> {
     .maybeSingle();
 
   return data;
-}
+});

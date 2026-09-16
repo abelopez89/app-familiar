@@ -1,19 +1,23 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { FileText, Plus } from "lucide-react";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { listDocumentCategories, listDocumentsWithFiles } from "@/lib/documents/queries";
+import { listActiveMembers } from "@/lib/members";
 import { getSignedDocumentUrl } from "@/lib/documents/storage";
-import { createClient } from "@/lib/supabase/server";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/app-shell/page-header";
+import { MODULES_BY_KEY } from "@/components/app-shell/modules";
 import { DocumentsBrowser } from "./documents-browser";
 
 export default async function DocumentosPage() {
   const context = await getCurrentFamilyContext();
   if (!context) redirect("/login");
 
-  const supabase = await createClient();
-  const [documents, categories, membersRes] = await Promise.all([
+  const [documents, categories, members] = await Promise.all([
     listDocumentsWithFiles(),
     listDocumentCategories(),
-    supabase.from("family_members").select("*").eq("is_active", true).order("created_at", { ascending: true }),
+    listActiveMembers(),
   ]);
 
   // Miniatura solo para los fijados (son pocos, por diseño) — el resto de
@@ -28,15 +32,31 @@ export default async function DocumentosPage() {
       return url ? ([doc.id, url] as const) : null;
     }),
   );
-  const thumbnails = Object.fromEntries(thumbnailEntries.filter((e): e is [string, string] => e !== null));
+  const thumbnails = Object.fromEntries(
+    thumbnailEntries.filter((e): e is [string, string] => e !== null),
+  );
+
+  const { fg, bg } = MODULES_BY_KEY.documentos;
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Documentos</h1>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Documentos"
+        icon={FileText}
+        iconFg={fg}
+        iconBg={bg}
+        actions={
+          <Button asChild size="icon" className="size-10">
+            <Link href="/documentos/nuevo" aria-label="Nuevo documento">
+              <Plus className="size-5" />
+            </Link>
+          </Button>
+        }
+      />
       <DocumentsBrowser
         documents={documents}
         categories={categories}
-        members={membersRes.data ?? []}
+        members={members}
         thumbnails={thumbnails}
       />
     </div>

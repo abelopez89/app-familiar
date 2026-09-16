@@ -1,48 +1,11 @@
-import Link from "next/link";
-import { CalendarDays, ChevronRight, FileText, Fuel, LogOut, Send, Settings, Users, Wrench } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { logout } from "@/app/(auth)/actions";
+import { permanentRedirect } from "next/navigation";
 
-const configLinks = [
-  { href: "/config/familia", label: "Familia", icon: Settings },
-  { href: "/config/miembros", label: "Miembros", icon: Users },
-  { href: "/config/categorias", label: "Categorías de productos", icon: Settings },
-  { href: "/config/calendario", label: "Calendario", icon: CalendarDays },
-  { href: "/config/telegram", label: "Telegram", icon: Send },
-  { href: "/tareas/activos", label: "Activos", icon: Wrench },
-  { href: "/combustible", label: "Combustible", icon: Fuel },
-  { href: "/documentos", label: "Documentos", icon: FileText },
-  { href: "/config/documentos", label: "Categorías de documentos", icon: FileText },
-];
-
+/**
+ * La pestaña "Más" dejó de existir en el rediseño: sus módulos se fueron
+ * a la grilla del inicio y sus ajustes a `/config`. Se mantiene la ruta
+ * redirigiendo porque la PWA puede tener la URL guardada en el historial
+ * o en un acceso directo de la pantalla de inicio del celular.
+ */
 export default function MasPage() {
-  return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardContent className="flex flex-col divide-y p-0">
-          {configLinks.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center justify-between px-4 py-3.5 text-sm"
-            >
-              <span className="flex items-center gap-3">
-                <Icon className="size-4 text-muted-foreground" />
-                {label}
-              </span>
-              <ChevronRight className="size-4 text-muted-foreground" />
-            </Link>
-          ))}
-        </CardContent>
-      </Card>
-
-      <form action={logout}>
-        <Button type="submit" variant="outline" className="w-full gap-2">
-          <LogOut className="size-4" />
-          Cerrar sesión
-        </Button>
-      </form>
-    </div>
-  );
+  permanentRedirect("/config");
 }

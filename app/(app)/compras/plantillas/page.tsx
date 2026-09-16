@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { TemplatesList } from "./templates-list";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export default async function PlantillasPage() {
   const context = await getCurrentFamilyContext();
@@ -25,7 +26,7 @@ export default async function PlantillasPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Plantillas de compras</h1>
+      <PageHeader title="Plantillas" description="La base de cada lista nueva" />
       <TemplatesList
         templates={templates ?? []}
         itemCounts={Object.fromEntries(counts)}

@@ -85,6 +85,17 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   una ruta nueva. Ver la sección "Fase 5" más abajo para las decisiones
   de diseño. **No** incluye: OCR, versionado de documentos, carpetas, ni
   compartir fuera de la familia — deliberadamente fuera de alcance.
+- **Fase Extra (rediseño de interfaz y performance): implementada, sin
+  cambios de base de datos ni de lógica de negocio.** Rediseña la app
+  como un ecosistema con un sistema de diseño propio (tokens con color
+  por módulo y modo oscuro automático), reemplaza el tablero del inicio
+  por un lanzador, consolida todos los ajustes en `/config` y elimina la
+  pestaña "Más". En el camino corrige el manejo de las áreas seguras del
+  iPhone y baja de forma importante el JavaScript inicial de las
+  pantallas más usadas. Ver la sección "Fase Extra" más abajo. **No**
+  incluye: ninguna migración, ningún cambio en las reglas de negocio de
+  las fases anteriores, ni el selector manual de tema claro/oscuro (el
+  sistema decide).
 - Migraciones `001` a `010` aplicadas y confirmadas en la base
   compartida. Antes de escribir la migración `011`, mirá
   `supabase/migrations/` para confirmar el próximo número — no lo
@@ -127,15 +138,43 @@ Restricciones deliberadas — no las repliques ni las "mejores":
 ## UI e internacionalización
 
 - Toda la interfaz está en **español** (es-PY informal, "vos").
-- **Botón de volver global** (`components/app-shell/back-button.tsx`,
-  montado en `AppHeader`): usa `router.back()` y se oculta a sí mismo en
-  las 5 pantallas del tab bar (`/`, `/compras`, `/eventos`, `/tareas`,
-  `/mas`), porque esas son destinos de navegación primaria, no pantallas
-  a las que se "entra". En cualquier otra ruta (formularios, detalles,
-  ABMs) aparece solo. Agregado a pedido del usuario porque forzaba a
-  salir por el tab bar para retroceder un paso. No lo dupliques por
-  pantalla — es un único componente en el header, no algo que cada
-  página tenga que declarar.
+- **Sistema de diseño en `app/globals.css`** (Fase Extra). Todo el color
+  sale de custom properties; no hay colores de Tailwind escritos a mano
+  en las pantallas (`bg-blue-500` y compañía). Los tokens semánticos son
+  los de shadcn (`background`, `card`, `primary`, `muted`, `border`…)
+  más `success`, `warning` y `surface`, y encima de esos hay **un par de
+  tokens por módulo**: `--mod-<modulo>` para el color del ícono y
+  `--mod-<modulo>-soft` para el fondo tintado que va detrás. Los seis
+  módulos son `compras`, `eventos`, `tareas`, `combustible`,
+  `documentos` y `familia`. Si agregás un módulo, agregá su par de
+  tokens en los tres bloques de color (`:root`, la media query oscura y
+  `.dark`) y su entrada en `MODULES` — no inventes un color suelto en la
+  pantalla.
+- **Modo oscuro automático por `prefers-color-scheme`**, sin script ni
+  flash de tema al abrir la PWA. La variante `dark:` de Tailwind está
+  redefinida en `globals.css` con un `@custom-variant` que cubre a la
+  vez la media query del sistema y la clase `.dark` (con `.light` como
+  anulación), así que los `dark:` que ya traían los componentes de
+  shadcn responden solos. Los valores oscuros están escritos **dos
+  veces** a propósito (media query + `.dark`): si tocás uno, tocá el
+  otro.
+- **Áreas seguras del iPhone.** El layout raíz declara
+  `viewportFit: "cover"`, y `globals.css` expone `--safe-top`,
+  `--safe-bottom` y `--nav-total` (alto del tab bar + inset inferior).
+  Cualquier cosa fija al pie se posiciona contra `--nav-total`, nunca
+  con un `bottom-16`/`bottom-20` a ojo: usá `FloatingAction` o
+  `StickyBottomBar` de `components/app-shell/floating-action.tsx`, y
+  `pb-nav` para el contenido. Sin esto, en un iPhone con indicador de
+  inicio los botones quedan medio tapados.
+- **Componentes compartidos de pantalla**, en vez de que cada página
+  arme su propio encabezado: `PageHeader` y `SectionTitle`
+  (`components/app-shell/page-header.tsx`), `EmptyState`, `NavRow` /
+  `NavGroup`, `Stat` y `ModuleTile`. Una pantalla nueva empieza con
+  `PageHeader`, no con un `<h1>` suelto.
+- **Blancos táctiles de 44px** en móvil (guías de Apple): los tamaños
+  por defecto de `Button`, `Input` y `SelectTrigger` son altos en la
+  pantalla chica y vuelven al alto compacto en `sm:` para arriba. La
+  utilidad `.tap-target` hace lo mismo para filas propias.
 - Moneda: **guaraníes (PYG)**, siempre **sin decimales**. Formatear con
   `Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG', maximumFractionDigits: 0 })`
   o equivalente — ver `lib/format.ts`.
@@ -150,7 +189,9 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   (`month-grid.tsx`) hace aritmética de fecha calendario a mano
   (`addDaysToDateOnly`, `addMonthsToDateOnly`, etc., también en
   `lib/dates.ts`) en vez de usar los helpers locales de `date-fns`, que
-  dependen de la zona horaria del navegador.
+  dependen de la zona horaria del navegador. `hourInFamilyTimezone()`
+  existe por lo mismo: el saludo del inicio no puede usar
+  `new Date().getHours()` del celular.
 
 ## Base de datos — reglas críticas
 
@@ -335,11 +376,18 @@ Tres clientes separados, no los mezcles:
   y `(app)` a propósito.
 - `(app)` — todo lo que requiere sesión. El middleware (`middleware.ts`)
   redirige a `/login` si no hay usuario autenticado.
-  - `/` — dashboard "Hoy" (incluye el bloque de eventos de hoy/mañana)
+  - `/` — inicio: lanzador con un acceso directo por módulo arriba y el
+    resumen del día (eventos, tareas, documentos por vencer, lista
+    abierta) abajo. **No** es un tablero; ver la Fase Extra.
+  - `/config` — índice de configuración (pestaña "Ajustes" del tab bar).
+    Agrupa familia, catálogos, avisos y sesión.
   - `/compras`, `/compras/nueva`, `/compras/[id]`, `/compras/[id]/comprar`,
     `/compras/plantillas`, `/compras/plantillas/[id]`
   - `/eventos` — calendario (grilla mensual + agenda), Fase 2.
   - `/config/familia`, `/config/miembros`, `/config/categorias`
+  - `/mas` — redirect permanente a `/config`. La pestaña "Más" dejó de
+    existir en la Fase Extra; la ruta se mantiene porque puede estar
+    guardada en el historial o en un acceso directo del celular.
   - `/config/miembros/[id]` — ficha del miembro: sus documentos agrupados
     por categoría, próximos eventos y tareas asignadas, Fase 5.
   - `/config/calendario` — link del feed ICS + rotar token, Fase 2.
@@ -349,14 +397,14 @@ Tres clientes separados, no los mezcles:
     definiciones de tareas + historial, Fase 3.
   - `/tareas/activos`, `/tareas/activos/[id]` — ABM de activos del hogar
     (electrodomésticos, instalaciones, vehículos) + historial de
-    mantenimiento, Fase 3. También enlazado desde `/mas`.
+    mantenimiento, Fase 3. También enlazado desde `/config` (catálogos).
   - `/combustible` — listado de vehículos con último rendimiento,
     promedio, costo por km y última carga, Fase 4.
   - `/combustible/nueva` — carga rápida de combustible, Fase 4.
   - `/combustible/vehiculos` — ABM de vehículos, Fase 4.
   - `/combustible/[vehicleId]` — detalle: estadísticas, gráficos,
     historial editable/borrable y tareas de mantenimiento del activo
-    vinculado, Fase 4. También enlazado desde `/mas`.
+    vinculado, Fase 4. También enlazado desde la grilla del inicio.
   - `/documentos` — buscador + fijados + filtros por miembro/categoría,
     sin carpetas, Fase 5.
   - `/documentos/nuevo` — cámara o galería, compresión en el cliente,
@@ -364,7 +412,7 @@ Tres clientes separados, no los mezcles:
   - `/documentos/[id]` — visor (zoom, navegación entre páginas, PDF en
     pestaña nueva), editar metadatos, agregar/quitar páginas, Fase 5.
   - `/config/documentos` — ABM de categorías de documentos + espacio
-    usado, Fase 5. También enlazado desde `/mas`.
+    usado, Fase 5. También enlazado desde `/config` (catálogos).
 - Rutas públicas sin sesión, **fuera** de `(auth)` y `(app)` a propósito
   (ver la lista comentada en `middleware.ts`, y no tocarla sin motivo —
   es el tipo de cosa que se rompe en silencio si alguien toca el
@@ -689,6 +737,98 @@ Tres clientes separados, no los mezcles:
     trabajo); no implementar OCR, versionado de documentos ni carpetas;
     no tocar `lib/recurrence.ts`, `lib/tasks/schedule.ts`,
     `lib/fuel/consumption.ts` ni `lib/ics.ts` por este módulo.
+
+## Fase Extra — Rediseño de interfaz y performance: decisiones a respetar
+
+1. **El inicio es un lanzador, no un tablero.** Arriba van los accesos
+   directos (una tarjeta por módulo, `ModuleTile`), abajo el resumen del
+   día. El orden importa y fue el pedido explícito: con el tablero
+   ocupando toda la pantalla, llegar a combustible o documentos obligaba
+   a pasar por la pestaña "Más". Si agregás algo al inicio, va **debajo**
+   de la grilla, no entre el saludo y las tarjetas.
+2. **Los contadores de las tarjetas solo aparecen cuando reclaman
+   atención** (tareas vencidas, documentos por vencer). Un número que
+   está siempre presente deja de significar algo. Por el mismo motivo
+   **no se muestran datos de combustible en el inicio** — sigue valiendo
+   la regla 10 de la Fase 4.
+3. **`components/app-shell/modules.ts` es la única fuente de verdad del
+   ecosistema.** La grilla del inicio, los encabezados de pantalla, los
+   colores de módulo y el rótulo de sección del header salen todos de
+   ahí. Las clases de color están escritas completas (`text-mod-compras`,
+   no `text-mod-${key}`) porque Tailwind analiza el fuente de forma
+   estática y una plantilla no generaría ninguna clase.
+4. **Cinco pestañas: Inicio, Compras, Calendario, Tareas, Ajustes.**
+   Combustible, documentos y la ficha de miembro no están en el tab bar
+   a propósito: viven en la grilla del inicio, que es un toque desde
+   cualquier lado. Eso es lo que permitió borrar "Más", que mezclaba
+   módulos de uso diario con ajustes y no decía a dónde llevaba ninguna
+   de sus filas. `ROOT_PATHS` (en `modules.ts`) tiene esas cinco rutas y
+   es lo que usan el botón de volver y el header.
+5. **Configuración es una sola sección.** Todo lo que se ajusta una vez
+   y no se toca más está en `/config`, agrupado (familia, catálogos,
+   avisos y sincronización, sesión). Los catálogos que además son
+   pantallas de módulo (`/tareas/activos`, `/tareas/definiciones`,
+   `/combustible/vehiculos`) se listan desde ahí **y** mantienen su
+   atajo contextual dentro del módulo — son dos caminos al mismo lugar,
+   no dos lugares.
+6. **El header ya no tiene engranaje.** Muestra el nombre de la familia
+   en las pantallas del tab bar y el módulo en el que estás parado en
+   cualquier pantalla interna ("Compras" mientras editás una plantilla),
+   que es el dato que se pierde al bajar tres niveles. Tener un
+   engranaje en el header *y* una pestaña de ajustes era parte de la
+   ambigüedad que este rediseño saca.
+7. **Nada de posicionar al pie con números a ojo.** `--nav-total` está
+   en `globals.css` y se usa vía `FloatingAction`, `StickyBottomBar` y
+   `pb-nav` (ver la sección de UI). Antes cada pantalla repetía
+   `bottom-20` / `pb-24`, que en un iPhone con indicador de inicio dejaba
+   los botones parcialmente tapados.
+8. **El modo supermercado bajó de 257 kB a 146 kB de JS inicial**, y es
+   el cambio de performance que más importa porque es la pantalla que
+   más se usa y la que peor red tiene (un súper, con el celular en la
+   mano). Dos cosas lo lograron, y ninguna debería revertirse sin un
+   motivo fuerte:
+   - **Se sacó `framer-motion`** (la dependencia ya no está en
+     `package.json`). Lo único que hacía era animar el reordenamiento de
+     una fila al tildarla; el reordenamiento ahora es instantáneo, que
+     en la práctica se lee igual de bien.
+   - **El cliente de realtime de Supabase se carga con `import()`
+     dinámico dentro del `useEffect`.** Tildar un producto no depende de
+     él (va por Server Action con update optimista), así que la lista
+     queda usable de inmediato y la sincronización con el otro celular
+     se engancha un instante después. El `cancelled` del efecto está
+     para no suscribirse a un canal que ya nadie va a cerrar si el
+     componente se desmonta antes de que resuelva el import.
+9. **Las consultas compartidas están memoizadas con `cache()` de
+   React.** `getCurrentFamilyContext()` lo llamaban el layout de `(app)`
+   y además cada página, y cada llamada cuesta un `auth.getUser()` (round
+   trip a Supabase Auth) más dos consultas. Lo mismo para
+   `listEventsWithDetails`, `listPendingInstancesWithDetails`,
+   `listExpiringDocuments`, etc. **Cualquier consulta nueva que más de un
+   componente del mismo request pueda pedir debería envolverse igual.**
+10. **`listActiveMembers` vive en `lib/members.ts`**, y `lib/events/queries.ts`
+    y `lib/tasks/queries.ts` la reexportan. Estaba duplicada en los dos
+    módulos, y con `cache()` dos copias son dos consultas distintas en el
+    mismo request — exactamente lo que dispara el inicio al pintar el
+    calendario y las tareas juntos. No la vuelvas a definir localmente.
+11. **El inicio se transmite en dos partes con `Suspense`.** El fallback
+    de la grilla es la misma grilla sin contadores, así que los números
+    caen encima sin mover nada de lugar en vez de dejar la pantalla en
+    blanco hasta que responden las cinco consultas.
+12. **`optimizePackageImports` en `next.config.ts`** cubre `lucide-react`,
+    `date-fns` y `date-fns-tz`: sin eso, una pantalla que importa tres
+    íconos arrastra el barrel entero al chunk del cliente.
+13. **El service worker no tiene listener de `fetch`.** Uno vacío no
+    cambia nada funcionalmente pero obliga al navegador a arrancar el
+    service worker antes de cada navegación. Sigue sin haber caché
+    offline, a propósito (igual que antes).
+14. **Qué no hacer:** no volver a meter colores de Tailwind escritos a
+    mano en las pantallas (usá los tokens); no agregar un selector manual
+    de tema (lo decide el sistema); no devolverle datos al inicio que lo
+    conviertan otra vez en un tablero; no reintroducir una pestaña
+    "Más"; no posicionar nada fijo al pie sin `--nav-total`; y no tocar
+    `lib/recurrence.ts`, `lib/tasks/schedule.ts`, `lib/fuel/consumption.ts`,
+    `lib/documents/schedule.ts` ni `lib/ics.ts` por motivos de interfaz —
+    esta fase no cambió ninguna regla de negocio.
 
 ## Comandos útiles
 
