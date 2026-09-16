@@ -63,12 +63,12 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   de Telegram, ni mantenimiento por kilometraje (el service del auto
   sigue siendo una tarea normal de la Fase 3, con recurrencia temporal —
   no se agregaron columnas a `task_definitions`).
-- **Fase 5 (Centro de Documentos): implementada, pendiente de aplicar la
-  migración `010` y de verificar en producción.** Migración `010`
-  escrita — falta que el usuario la aplique a mano desde el SQL Editor
-  (y que cree antes el bucket privado `documentos` en Storage, ver el
-  comentario al inicio del archivo) antes de poder probar el módulo.
-  Cubre: bucket privado `documentos` con políticas propias sobre
+- **Fase 5 (Centro de Documentos): implementada, migración `010`
+  aplicada y bucket `documentos` creado — pendiente de verificar el
+  módulo de punta a punta en producción** (subir un documento real,
+  confirmar aislamiento entre familias, avisos de vencimiento en el
+  cron diario). Cubre: bucket privado `documentos` con políticas propias
+  sobre
   `storage.objects` (aislamiento entre familias resuelto por la base, no
   por el código — ver la sección "Fase 5" más abajo), tablas
   `document_categories`/`documents`/`document_files`, la FK pendiente
@@ -87,10 +87,10 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   una ruta nueva. Ver la sección "Fase 5" más abajo para las decisiones
   de diseño. **No** incluye: OCR, versionado de documentos, carpetas, ni
   compartir fuera de la familia — deliberadamente fuera de alcance.
-- Migraciones `001` a `010` escritas. `001` a `009` aplicadas y
-  confirmadas en producción; `010` (Fase 5) todavía no. Antes de
-  escribir la migración `011`, mirá `supabase/migrations/` para
-  confirmar el próximo número — no lo asumas.
+- Migraciones `001` a `010` aplicadas y confirmadas en la base
+  compartida. Antes de escribir la migración `011`, mirá
+  `supabase/migrations/` para confirmar el próximo número — no lo
+  asumas.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
   siguiente sobre grants de tabla para `authenticated`, la regla 12
@@ -260,11 +260,8 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `009` corridas a mano en Supabase y confirmadas funcionando en
-producción. `010` (Fase 5) está escrita pero **todavía no aplicada** —
-avisale al usuario que tiene que correrla (y crear antes el bucket
-`documentos` en Storage a mano, ver el comentario al inicio del archivo)
-antes de probar cualquier pantalla de documentos.
+`001` a `010` corridas a mano en Supabase y confirmadas funcionando —
+incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 
 | Archivo | Contenido |
 | --- | --- |
