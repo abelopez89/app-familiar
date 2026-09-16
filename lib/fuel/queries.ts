@@ -63,6 +63,24 @@ export async function getLastUsedVehicleId(memberId: string): Promise<string | n
 }
 
 /**
+ * El vehículo (Fase 4) vinculado a un asset (Fase 3), si existe. Cierra
+ * el círculo en el sentido inverso a listPendingTaskDefinitionsForAsset:
+ * desde la ficha del activo, un link directo a los datos propios del
+ * vehículo (odómetro, combustible, tanque) en vez de que la persona
+ * tenga que adivinar que viven en otro módulo.
+ */
+export async function getVehicleByAssetId(assetId: string): Promise<Vehicle | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vehicles")
+    .select("*")
+    .eq("asset_id", assetId)
+    .eq("is_active", true)
+    .maybeSingle();
+  return data ?? null;
+}
+
+/**
  * Activos de tipo 'vehiculo' que todavía no están vinculados a ningún
  * vehículo — son los candidatos para "vincular a un activo existente"
  * en el formulario de vehículos. `excludeVehicleId` deja pasar el activo

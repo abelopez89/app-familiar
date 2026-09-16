@@ -53,18 +53,23 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="flex flex-col gap-4 pb-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{vehicle.name}</h1>
-        <VehicleFormDialog
-          vehicle={vehicle}
-          linkableAssets={linkableAssets}
-          trigger={
-            <Button variant="outline" size="sm">
-              Editar
-            </Button>
-          }
-        />
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="min-w-0 truncate text-xl font-semibold">{vehicle.name}</h1>
+        <div className="flex shrink-0 gap-2">
+          <VehicleFormDialog
+            vehicle={vehicle}
+            linkableAssets={linkableAssets}
+            trigger={
+              <Button variant="outline" size="sm">
+                Editar vehículo
+              </Button>
+            }
+          />
+        </div>
       </div>
+      <Button asChild className="w-full">
+        <Link href={`/combustible/nueva?vehicle=${vehicle.id}`}>Cargar combustible</Link>
+      </Button>
       <p className="text-sm text-muted-foreground">
         {FUEL_TYPES[vehicle.fuel_type].label}
         {vehicle.plate ? ` · ${vehicle.plate}` : ""}

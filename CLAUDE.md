@@ -109,6 +109,15 @@ Restricciones deliberadas — no las repliques ni las "mejores":
 ## UI e internacionalización
 
 - Toda la interfaz está en **español** (es-PY informal, "vos").
+- **Botón de volver global** (`components/app-shell/back-button.tsx`,
+  montado en `AppHeader`): usa `router.back()` y se oculta a sí mismo en
+  las 5 pantallas del tab bar (`/`, `/compras`, `/eventos`, `/tareas`,
+  `/mas`), porque esas son destinos de navegación primaria, no pantallas
+  a las que se "entra". En cualquier otra ruta (formularios, detalles,
+  ABMs) aparece solo. Agregado a pedido del usuario porque forzaba a
+  salir por el tab bar para retroceder un paso. No lo dupliques por
+  pantalla — es un único componente en el header, no algo que cada
+  página tenga que declarar.
 - Moneda: **guaraníes (PYG)**, siempre **sin decimales**. Formatear con
   `Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG', maximumFractionDigits: 0 })`
   o equivalente — ver `lib/format.ts`.
@@ -549,6 +558,22 @@ Tres clientes separados, no los mezcles:
     "completarlo" con datos (último rendimiento, próxima carga
     estimada), pensalo dos veces — el criterio original de este módulo
     fue justamente no meter ruido de combustible en el dashboard.
+11. **`/combustible/nueva` acepta `?vehicle=<id>`** para preseleccionar
+    el vehículo (usado por los botones "Cargar combustible" que aparecen
+    en cada tarjeta de `/combustible` cuando hay más de un vehículo, y
+    en el propio detalle de `/combustible/[vehicleId]`) — sin el query
+    param, sigue priorizando el último vehículo usado por esa persona.
+    El selector de vehículo en el formulario (visible solo si hay más de
+    uno) sigue siendo editable igual; el query param solo cambia el
+    valor por defecto.
+12. **La ficha de un activo de tipo `vehiculo` (`/tareas/activos/[id]`)
+    linkea al vehículo vinculado en `/combustible/[vehicleId]`** (o a
+    `/combustible/vehiculos` si todavía no tiene uno vinculado), vía
+    `getVehicleByAssetId` en `lib/fuel/queries.ts`. Es el sentido
+    inverso de `listPendingTaskDefinitionsForAsset`: los datos propios
+    del vehículo (odómetro inicial, tanque, tipo de combustible) viven
+    en `vehicles`, no en `assets`, y sin este link la persona no tiene
+    forma de adivinar dónde están desde la pantalla de mantenimiento.
 
 ## Comandos útiles
 
