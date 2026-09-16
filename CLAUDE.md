@@ -63,12 +63,10 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   de Telegram, ni mantenimiento por kilometraje (el service del auto
   sigue siendo una tarea normal de la Fase 3, con recurrencia temporal —
   no se agregaron columnas a `task_definitions`).
-- **Fase 5 (Centro de Documentos): implementada, migración `010`
-  aplicada y bucket `documentos` creado — pendiente de verificar el
-  módulo de punta a punta en producción** (subir un documento real,
-  confirmar aislamiento entre familias, avisos de vencimiento en el
-  cron diario). Cubre: bucket privado `documentos` con políticas propias
-  sobre
+- **Fase 5 (Centro de Documentos): implementada y verificada en
+  producción.** Migración `010` aplicada y bucket `documentos` creado;
+  el usuario confirmó el módulo probado de punta a punta. Cubre: bucket
+  privado `documentos` con políticas propias sobre
   `storage.objects` (aislamiento entre familias resuelto por la base, no
   por el código — ver la sección "Fase 5" más abajo), tablas
   `document_categories`/`documents`/`document_files`, la FK pendiente
