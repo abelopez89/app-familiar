@@ -576,6 +576,97 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicles: {
+        Row: {
+          id: string;
+          family_id: string;
+          asset_id: string | null;
+          name: string;
+          plate: string | null;
+          fuel_type: "nafta" | "diesel" | "flex" | "gnv";
+          tank_capacity: number | null;
+          initial_odometer: number | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          asset_id?: string | null;
+          name: string;
+          plate?: string | null;
+          fuel_type?: "nafta" | "diesel" | "flex" | "gnv";
+          tank_capacity?: number | null;
+          initial_odometer?: number | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_id?: string;
+          asset_id?: string | null;
+          name?: string;
+          plate?: string | null;
+          fuel_type?: "nafta" | "diesel" | "flex" | "gnv";
+          tank_capacity?: number | null;
+          initial_odometer?: number | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      fuel_logs: {
+        Row: {
+          id: string;
+          family_id: string;
+          vehicle_id: string;
+          member_id: string | null;
+          filled_at: string;
+          odometer: number;
+          liters: number;
+          total_amount: number | null;
+          price_per_liter: number | null;
+          is_full_tank: boolean;
+          resets_calculation: boolean;
+          station: string | null;
+          fuel_grade: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          vehicle_id: string;
+          member_id?: string | null;
+          filled_at?: string;
+          odometer: number;
+          liters: number;
+          total_amount?: number | null;
+          is_full_tank?: boolean;
+          resets_calculation?: boolean;
+          station?: string | null;
+          fuel_grade?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_id?: string;
+          vehicle_id?: string;
+          member_id?: string | null;
+          filled_at?: string;
+          odometer?: number;
+          liters?: number;
+          total_amount?: number | null;
+          is_full_tank?: boolean;
+          resets_calculation?: boolean;
+          station?: string | null;
+          fuel_grade?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -610,3 +701,6 @@ export type AssetType = Asset["asset_type"];
 export type TaskRecurrenceUnit = NonNullable<TaskDefinition["recurrence_unit"]>;
 export type TaskRecurrenceAnchor = TaskDefinition["recurrence_anchor"];
 export type TaskInstanceStatus = TaskInstance["status"];
+export type Vehicle = Database["hogar"]["Tables"]["vehicles"]["Row"];
+export type FuelLog = Database["hogar"]["Tables"]["fuel_logs"]["Row"];
+export type FuelType = Vehicle["fuel_type"];
