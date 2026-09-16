@@ -541,6 +541,14 @@ Tres clientes separados, no los mezcles:
    corrigiendo un dato a propósito, no cargando parada en la estación.
    Las métricas derivadas se recalculan solas en la próxima lectura,
    porque no hay nada precalculado que actualizar.
+10. **El dashboard "Hoy" tiene un acceso directo a "Cargar combustible"
+    (botón, sin datos), pedido explícitamente por el usuario después de
+    la implementación inicial** — a diferencia de eventos/tareas/compras,
+    no es un bloque con datos pendientes: cargar nafta no vence ni se
+    programa, así que no hay nada que listar ahí. Si se te ocurre
+    "completarlo" con datos (último rendimiento, próxima carga
+    estimada), pensalo dos veces — el criterio original de este módulo
+    fue justamente no meter ruido de combustible en el dashboard.
 
 ## Comandos útiles
 
