@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { ArrowLeft, Check } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import type { ProductCategory, ShoppingListItem } from "@/lib/supabase/types";
 import { formatQuantity } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -58,40 +56,63 @@ export function SupermercadoView({
     };
   }, []);
 
+  /*
+   * El cliente de realtime de Supabase pesa ~70 kB y era la mitad del JS
+   * inicial de esta pantalla. Se carga con `import()` dinámico después de
+   * la hidratación: tildar un producto no depende de él (eso va por
+   * Server Action con update optimista), así que la lista queda usable
+   * de inmediato y la sincronización con el otro celular se engancha un
+   * instante después. En la cola del súper, esa diferencia se nota.
+   */
   useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`shopping_list_items_${listId}`)
-      .on(
+    let cancelled = false;
+    let cleanup: (() => void) | null = null;
+
+    (async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      if (cancelled) return;
+
+      const supabase = createClient();
+      const channel = supabase
+        .channel(`shopping_list_items_${listId}`)
+        .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "hogar",
-          table: "shopping_list_items",
-          filter: `list_id=eq.${listId}`,
-        },
-        (payload) => {
-          if (payload.eventType === "UPDATE") {
-            const updated = payload.new as ShoppingListItem;
-            if (pendingIds.current.has(updated.id)) return;
-            setItems((prev) =>
-              prev.map((item) => (item.id === updated.id ? updated : item)),
-            );
-          } else if (payload.eventType === "INSERT") {
-            const inserted = payload.new as ShoppingListItem;
-            setItems((prev) =>
-              prev.some((i) => i.id === inserted.id) ? prev : [...prev, inserted],
-            );
-          } else if (payload.eventType === "DELETE") {
-            const deletedId = (payload.old as { id: string }).id;
-            setItems((prev) => prev.filter((i) => i.id !== deletedId));
-          }
-        },
-      )
-      .subscribe();
+          {
+            event: "*",
+            schema: "hogar",
+            table: "shopping_list_items",
+            filter: `list_id=eq.${listId}`,
+          },
+          (payload) => {
+            if (payload.eventType === "UPDATE") {
+              const updated = payload.new as ShoppingListItem;
+              if (pendingIds.current.has(updated.id)) return;
+              setItems((prev) =>
+                prev.map((item) => (item.id === updated.id ? updated : item)),
+              );
+            } else if (payload.eventType === "INSERT") {
+              const inserted = payload.new as ShoppingListItem;
+              setItems((prev) =>
+                prev.some((i) => i.id === inserted.id) ? prev : [...prev, inserted],
+              );
+            } else if (payload.eventType === "DELETE") {
+              const deletedId = (payload.old as { id: string }).id;
+              setItems((prev) => prev.filter((i) => i.id !== deletedId));
+            }
+          },
+        )
+        .subscribe();
+
+      cleanup = () => {
+        supabase.removeChannel(channel);
+      };
+    })();
 
     return () => {
-      supabase.removeChannel(channel);
+      // Si el efecto se limpia antes de que resuelva el import, `cancelled`
+      // evita suscribirse a un canal que ya nadie va a cerrar.
+      cancelled = true;
+      cleanup?.();
     };
   }, [listId]);
 
@@ -158,24 +179,24 @@ export function SupermercadoView({
   }
 
   return (
-    <div className="flex flex-col gap-4 pb-28">
-      <div className="sticky top-0 z-20 -mx-4 bg-background px-4 pb-3 pt-1">
-        <div className="flex items-center justify-between text-lg font-semibold">
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" asChild className="-ml-2">
-              <Link href={`/compras/${listId}`} aria-label="Volver a la lista">
-                <ArrowLeft className="size-5" />
-              </Link>
-            </Button>
-            <span>
-              {checkedCount} de {totalCount}
-            </span>
-          </div>
-          <span className="text-sm font-normal text-muted-foreground">{progressPercent}%</span>
+    <div className="flex flex-col gap-5" style={{ paddingBottom: "calc(var(--nav-total) + 4.5rem)" }}>
+      <div className="glass sticky top-0 z-20 -mx-4 px-4 pb-3 pt-1">
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" asChild className="-ml-2 size-10">
+            <Link href={`/compras/${listId}`} aria-label="Volver a la lista">
+              <ArrowLeft className="size-5" />
+            </Link>
+          </Button>
+          <span className="text-lg font-semibold tabular-nums">
+            {checkedCount} <span className="text-muted-foreground">de {totalCount}</span>
+          </span>
+          <span className="ml-auto text-sm font-medium text-muted-foreground tabular-nums">
+            {progressPercent}%
+          </span>
         </div>
         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full bg-primary transition-all duration-300"
+            className="h-full rounded-full bg-mod-compras transition-[width] duration-300"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -189,30 +210,30 @@ export function SupermercadoView({
             : groupItems[0].category_name ?? "Sin categoría";
 
         return (
-          <div key={key} className="flex flex-col gap-1">
+          <div key={key} className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between px-1">
-              <p className="text-base font-semibold">{categoryLabel}</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {categoryLabel}
+              </p>
+              <p className="text-xs text-muted-foreground tabular-nums">
                 {groupChecked}/{groupItems.length}
               </p>
             </div>
-            <div className="overflow-hidden rounded-lg border">
-              <AnimatePresence initial={false}>
-                {groupItems.map((item) => (
-                  <motion.button
+            <div className="overflow-hidden rounded-xl border shadow-sm">
+              {groupItems.map((item) => (
+                  <button
                     key={item.id}
-                    layout
                     type="button"
                     onClick={() => handleToggle(item)}
-                    transition={{ duration: 0.25 }}
+                    aria-pressed={item.is_checked}
                     className={cn(
-                      "flex min-h-14 w-full items-center gap-3 border-b bg-background px-4 py-3 text-left last:border-b-0 active:bg-muted",
-                      item.is_checked && "bg-muted/50",
+                      "flex min-h-16 w-full items-center gap-3 border-b bg-card px-4 py-3 text-left transition-colors duration-150 last:border-b-0 active:bg-muted",
+                      item.is_checked && "bg-muted/60",
                     )}
                   >
                     <span
                       className={cn(
-                        "flex size-7 shrink-0 items-center justify-center rounded-full border-2",
+                        "flex size-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-150",
                         item.is_checked
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-muted-foreground/40",
@@ -236,15 +257,17 @@ export function SupermercadoView({
                     <span className="shrink-0 text-base text-muted-foreground">
                       {formatQuantity(item.quantity, item.unit)}
                     </span>
-                  </motion.button>
+                  </button>
                 ))}
-              </AnimatePresence>
             </div>
           </div>
         );
       })}
 
-      <div className="fixed inset-x-0 bottom-16 z-30 mx-auto max-w-lg border-t bg-background px-4 py-3">
+      <div
+        className="glass fixed inset-x-0 z-30 mx-auto max-w-lg border-t px-4 py-3"
+        style={{ bottom: "var(--nav-total)" }}
+      >
         <CloseListButton listId={listId} />
       </div>
     </div>

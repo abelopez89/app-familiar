@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ClipboardList, Plus, ShoppingCart } from "lucide-react";
+import { ClipboardList, Plus, Receipt, ShoppingCart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader, SectionTitle } from "@/components/app-shell/page-header";
+import { MODULES_BY_KEY } from "@/components/app-shell/modules";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
 
@@ -14,30 +16,39 @@ export default async function ComprasPage() {
 
   const supabase = await createClient();
 
-  const { data: openLists } = await supabase
-    .from("shopping_lists")
-    .select("*")
-    .in("status", ["abierta", "en_curso"])
-    .order("created_at", { ascending: false });
+  const [{ data: openLists }, { data: closedLists }] = await Promise.all([
+    supabase
+      .from("shopping_lists")
+      .select("*")
+      .in("status", ["abierta", "en_curso"])
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("shopping_lists")
+      .select("*")
+      .eq("status", "cerrada")
+      .order("closed_at", { ascending: false })
+      .limit(10),
+  ]);
 
-  const { data: closedLists } = await supabase
-    .from("shopping_lists")
-    .select("*")
-    .eq("status", "cerrada")
-    .order("closed_at", { ascending: false })
-    .limit(10);
+  const { fg, bg } = MODULES_BY_KEY.compras;
+  const abiertas = openLists ?? [];
+  const cerradas = closedLists ?? [];
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Compras</h1>
-        <Button variant="ghost" size="sm" asChild className="gap-1">
-          <Link href="/compras/plantillas">
-            <ClipboardList className="size-4" />
-            Plantillas
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Compras"
+        icon={ShoppingCart}
+        iconFg={fg}
+        iconBg={bg}
+        actions={
+          <Button variant="ghost" size="icon" asChild className="size-10">
+            <Link href="/compras/plantillas" aria-label="Plantillas">
+              <ClipboardList className="size-5" />
+            </Link>
+          </Button>
+        }
+      />
 
       <Button asChild size="lg" className="gap-2">
         <Link href="/compras/nueva">
@@ -46,47 +57,68 @@ export default async function ComprasPage() {
         </Link>
       </Button>
 
-      {openLists && openLists.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-muted-foreground">Abiertas</p>
-          {openLists.map((list) => (
-            <Link key={list.id} href={`/compras/${list.id}`}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <ShoppingCart className="size-4" />
+      {abiertas.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <SectionTitle>Abiertas</SectionTitle>
+          <div className="flex flex-col gap-2">
+            {abiertas.map((list) => (
+              <Link
+                key={list.id}
+                href={`/compras/${list.id}`}
+                className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-transform duration-150 active:scale-[0.99]"
+              >
+                <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${bg}`}>
+                  <ShoppingCart className={`size-5 ${fg}`} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">
                     {list.name ?? "Lista de compras"}
-                  </CardTitle>
-                  <CardDescription>
-                    {list.status === "en_curso" ? "En curso" : "Abierta"} ·{" "}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {list.status === "en_curso" ? "Compra en curso" : "Abierta"} ·{" "}
                     {formatDate(list.shopping_date)}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
-      {closedLists && closedLists.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-muted-foreground">Historial</p>
-          {closedLists.map((list) => (
-            <Card key={list.id}>
-              <CardContent className="flex items-center justify-between py-3">
-                <div>
-                  <p className="text-sm font-medium">{list.name ?? "Lista de compras"}</p>
+      {abiertas.length === 0 && cerradas.length === 0 && (
+        <EmptyState
+          icon={ShoppingCart}
+          title="Todavía no hiciste ninguna lista"
+          description="Armá una a partir de tus plantillas y llevala al súper en el celular."
+        />
+      )}
+
+      {cerradas.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <SectionTitle>Historial</SectionTitle>
+          <div className="divide-y divide-border overflow-hidden rounded-xl border bg-card shadow-sm">
+            {cerradas.map((list) => (
+              <div key={list.id} className="tap-target flex items-center gap-3 px-4 py-3">
+                <Receipt className="size-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">
+                    {list.name ?? "Lista de compras"}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    {list.closed_at ? formatDateTime(list.closed_at) : formatDate(list.shopping_date)}
+                    {list.closed_at
+                      ? formatDateTime(list.closed_at)
+                      : formatDate(list.shopping_date)}
                   </p>
                 </div>
                 {list.total_amount != null && (
-                  <p className="text-sm font-medium">{formatGuaranies(list.total_amount)}</p>
+                  <p className="shrink-0 text-sm font-semibold tabular-nums">
+                    {formatGuaranies(list.total_amount)}
+                  </p>
                 )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

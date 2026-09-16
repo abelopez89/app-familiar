@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatQuantity } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { StickyBottomBar } from "@/components/app-shell/floating-action";
 
 export function NewListWizard({
   templates,
@@ -155,11 +156,11 @@ export function NewListWizard({
         <input key={id} type="hidden" name="itemId" value={id} />
       ))}
 
-      <div className="fixed inset-x-0 bottom-16 z-30 mx-auto max-w-lg border-t bg-background px-4 py-3">
+      <StickyBottomBar>
         <Button type="submit" className="w-full" size="lg" disabled={pending || totalChecked === 0}>
           {pending ? "Creando…" : `Crear lista (${totalChecked})`}
         </Button>
-      </div>
+      </StickyBottomBar>
     </form>
   );
 }

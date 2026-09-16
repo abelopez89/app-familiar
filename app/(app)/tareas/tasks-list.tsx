@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
+import { Check, ChevronDown, PartyPopper } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { MemberFilterChips } from "@/app/(app)/eventos/member-filter-chips";
 import { TaskCompleteDialog } from "./task-complete-dialog";
 import { completeTaskInstance, undoCompleteTaskInstance } from "./actions";
@@ -105,9 +106,16 @@ export function TasksList({
           <button
             type="button"
             onClick={() => setShowUpcoming((v) => !v)}
-            className="text-left text-sm font-semibold text-muted-foreground"
+            aria-expanded={showUpcoming}
+            className="tap-target flex items-center justify-between rounded-xl border bg-card px-4 text-sm font-medium shadow-sm active:bg-muted"
           >
-            Próximas ({upcoming.length}) {showUpcoming ? "▲" : "▼"}
+            <span>Próximas ({upcoming.length})</span>
+            <ChevronDown
+              className={cn(
+                "size-4 text-muted-foreground transition-transform duration-200",
+                showUpcoming && "rotate-180",
+              )}
+            />
           </button>
           {showUpcoming && (
             <TaskGroup
@@ -123,7 +131,11 @@ export function TasksList({
       )}
 
       {overdue.length === 0 && thisWeek.length === 0 && upcoming.length === 0 && (
-        <p className="text-sm text-muted-foreground">No tenés tareas pendientes.</p>
+        <EmptyState
+          icon={PartyPopper}
+          title="No tenés tareas pendientes"
+          description="Cuando venza algo del mantenimiento de la casa, aparece acá."
+        />
       )}
     </div>
   );
@@ -150,11 +162,20 @@ function TaskGroup({
 
   return (
     <div className="flex flex-col gap-2">
-      {title && <p className="px-1 text-sm font-semibold">{title}</p>}
+      {title && (
+        <p
+          className={cn(
+            "px-1 text-xs font-semibold uppercase tracking-wide",
+            emphasize ? "text-destructive" : "text-muted-foreground",
+          )}
+        >
+          {title}
+        </p>
+      )}
       {instances.length === 0 ? (
         <p className="px-1 text-sm text-muted-foreground">{emptyLabel}</p>
       ) : (
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           {instances.map((instance) => (
             <TaskRow
               key={instance.id}
@@ -192,13 +213,21 @@ function TaskRow({
     : 0;
 
   return (
-    <div className="flex min-h-14 items-stretch border-b last:border-b-0">
+    <div
+      className={cn(
+        "flex min-h-16 items-stretch border-b last:border-b-0",
+        isOverdue && emphasize && "border-l-3 border-l-destructive",
+      )}
+    >
       <TaskCompleteDialog
         instance={instance}
         onCompleted={() => onRemove(instance.id)}
         onSkipped={() => onRemove(instance.id)}
         trigger={
-          <button type="button" className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-4 py-2.5 text-left active:bg-muted">
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-4 py-2.5 text-left transition-colors active:bg-muted"
+          >
             <span className="truncate text-base font-medium">{instance.definition.title}</span>
             <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               {instance.asset && <span>{instance.asset.name}</span>}
@@ -227,9 +256,9 @@ function TaskRow({
           e.stopPropagation();
           onQuickComplete(instance);
         }}
-        className="flex w-14 shrink-0 items-center justify-center border-l active:bg-muted"
+        className="flex w-16 shrink-0 items-center justify-center border-l transition-colors active:bg-mod-tareas-soft"
       >
-        <Check className="size-5 text-primary" strokeWidth={3} />
+        <Check className="size-5 text-mod-tareas" strokeWidth={3} />
       </button>
     </div>
   );

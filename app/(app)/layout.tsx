@@ -29,7 +29,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader familyName={context.family.name} />
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 pt-4 pb-24">
+      {/* `pb-nav` deja libre el alto del tab bar más el inset de seguridad
+          del iPhone — un solo número, definido en globals.css, en vez de
+          un `pb-24` distinto por pantalla. */}
+      <main className="mx-auto w-full max-w-lg flex-1 px-4 pt-5 pb-nav">
         {children}
       </main>
       <BottomNav />

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { CategoriesList } from "./categories-list";
 
 export default async function ConfigCategoriasPage() {
@@ -15,13 +16,10 @@ export default async function ConfigCategoriasPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-xl font-semibold">Categorías de productos</h1>
-        <p className="text-sm text-muted-foreground">
-          El orden representa el recorrido físico del supermercado.
-          Arrastrá para reordenar.
-        </p>
-      </div>
+      <PageHeader
+        title="Categorías"
+        description="El orden es el recorrido del súper. Arrastrá para reordenar."
+      />
       <CategoriesList categories={categories ?? []} />
     </div>
   );

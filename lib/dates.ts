@@ -15,6 +15,15 @@ export function formatTime(date: string | Date): string {
   return formatInTimeZone(date, FAMILY_TIMEZONE, "HH:mm", { locale: es });
 }
 
+/**
+ * Hora del día (0-23) en la zona de la familia. La usa el saludo del
+ * inicio: `new Date().getHours()` del navegador daría la hora del
+ * dispositivo, que en un celular en roaming no es la de Asunción.
+ */
+export function hourInFamilyTimezone(): number {
+  return Number(formatInTimeZone(new Date(), FAMILY_TIMEZONE, "H"));
+}
+
 export function todayInFamilyTimezone(): string {
   return formatInTimeZone(new Date(), FAMILY_TIMEZONE, "yyyy-MM-dd");
 }

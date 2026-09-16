@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { Wrench } from "lucide-react";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { listAssets } from "@/lib/tasks/queries";
 import { listDocumentsWithFiles } from "@/lib/documents/queries";
 import { ASSET_TYPES } from "@/lib/tasks/constants";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { NavGroup, NavRow } from "@/components/ui/nav-row";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { AssetFormDialog } from "./asset-form-dialog";
+import { FloatingAction } from "@/components/app-shell/floating-action";
 
 export default async function ActivosPage() {
   const context = await getCurrentFamilyContext();
@@ -14,30 +17,36 @@ export default async function ActivosPage() {
   const [assets, documents] = await Promise.all([listAssets(), listDocumentsWithFiles()]);
 
   return (
-    <div className="flex flex-col gap-4 pb-24">
-      <h1 className="text-xl font-semibold">Activos</h1>
+    <div className="flex flex-col gap-5 pb-20">
+      <PageHeader
+        title="Activos"
+        description="Electrodomésticos, instalaciones y vehículos de la casa"
+      />
 
       {assets.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No tenés activos cargados todavía.</p>
+        <EmptyState
+          icon={Wrench}
+          title="Todavía no cargaste ningún activo"
+          description="Un activo es el heladera, el aire, el auto: lo que después tiene tareas de mantenimiento y garantía."
+        />
       ) : (
-        <Card>
-          <CardContent className="flex flex-col divide-y p-0">
-            {assets.map((asset) => (
-              <Link key={asset.id} href={`/tareas/activos/${asset.id}`} className="flex flex-col gap-1 px-4 py-3.5">
-                <span className="text-sm font-medium">{asset.name}</span>
-                <span className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-                  <span>{ASSET_TYPES[asset.asset_type].label}</span>
-                  {asset.location && <span>{asset.location}</span>}
-                </span>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
+        <NavGroup>
+          {assets.map((asset) => (
+            <NavRow
+              key={asset.id}
+              href={`/tareas/activos/${asset.id}`}
+              label={asset.name}
+              description={[ASSET_TYPES[asset.asset_type].label, asset.location]
+                .filter(Boolean)
+                .join(" · ")}
+            />
+          ))}
+        </NavGroup>
       )}
 
-      <div className="fixed bottom-20 right-4 z-30">
+      <FloatingAction>
         <AssetFormDialog documents={documents} />
-      </div>
+      </FloatingAction>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { MembersList } from "./members-list";
+import { PageHeader } from "@/components/app-shell/page-header";
 
 export default async function ConfigMiembrosPage() {
   const context = await getCurrentFamilyContext();
@@ -16,7 +17,7 @@ export default async function ConfigMiembrosPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Miembros</h1>
+      <PageHeader title="Miembros" description="Tocá un miembro para ver su ficha completa" />
       <MembersList members={members ?? []} />
     </div>
   );

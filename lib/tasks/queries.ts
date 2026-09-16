@@ -1,5 +1,9 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+// Reexportada desde lib/members.ts para que haya una sola instancia
+// memoizada por request (ver el comentario de ese archivo).
+export { listActiveMembers } from "@/lib/members";
 import type { Asset, FamilyMember, TaskDefinition, TaskInstance } from "@/lib/supabase/types";
 
 export type TaskInstanceWithDetails = TaskInstance & {
@@ -8,7 +12,7 @@ export type TaskInstanceWithDetails = TaskInstance & {
   assignedTo: FamilyMember | null;
 };
 
-export async function listAssets(): Promise<Asset[]> {
+export const listAssets = cache(async function listAssets(): Promise<Asset[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("assets")
@@ -16,7 +20,7 @@ export async function listAssets(): Promise<Asset[]> {
     .eq("is_active", true)
     .order("name", { ascending: true });
   return data ?? [];
-}
+});
 
 export async function getAsset(id: string): Promise<Asset | null> {
   const supabase = await createClient();
@@ -24,7 +28,7 @@ export async function getAsset(id: string): Promise<Asset | null> {
   return data ?? null;
 }
 
-export async function listTaskDefinitions(): Promise<TaskDefinition[]> {
+export const listTaskDefinitions = cache(async function listTaskDefinitions(): Promise<TaskDefinition[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("task_definitions")
@@ -32,7 +36,7 @@ export async function listTaskDefinitions(): Promise<TaskDefinition[]> {
     .eq("is_active", true)
     .order("next_due_date", { ascending: true });
   return data ?? [];
-}
+});
 
 export async function getTaskDefinition(id: string): Promise<TaskDefinition | null> {
   const supabase = await createClient();
@@ -80,7 +84,7 @@ export async function listTaskHistoryByAsset(assetId: string): Promise<TaskInsta
  * definición, el activo y el responsable ya resueltos — la usan la
  * pantalla /tareas y el bloque del dashboard, sin duplicar el join.
  */
-export async function listPendingInstancesWithDetails(): Promise<TaskInstanceWithDetails[]> {
+export const listPendingInstancesWithDetails = cache(async function listPendingInstancesWithDetails(): Promise<TaskInstanceWithDetails[]> {
   const supabase = await createClient();
 
   const [instancesRes, definitionsRes, assetsRes, membersRes] = await Promise.all([
@@ -112,14 +116,4 @@ export async function listPendingInstancesWithDetails(): Promise<TaskInstanceWit
     });
   }
   return result;
-}
-
-export async function listActiveMembers(): Promise<FamilyMember[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("family_members")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
-  return data ?? [];
-}
+});

@@ -35,10 +35,14 @@ type Props = {
   event?: EventWithDetails;
   defaultDate?: string;
   trigger?: React.ReactNode;
+  /** Abre el diálogo ya montado — lo usa el acceso rápido del inicio
+   *  (`/eventos?nuevo=1`), para que crear un evento sea un solo toque
+   *  desde la pantalla principal. */
+  defaultOpen?: boolean;
 };
 
-export function EventFormDialog({ members, event, defaultDate, trigger }: Props) {
-  const [open, setOpen] = useState(false);
+export function EventFormDialog({ members, event, defaultDate, trigger, defaultOpen }: Props) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
   const [allDay, setAllDay] = useState(event?.all_day ?? false);
   const [recurrence, setRecurrence] = useState<RecurrenceRule | "none">(
     event?.recurrence ?? "none",
