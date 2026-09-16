@@ -43,10 +43,11 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   de diseño. **No** incluye: documentos, combustible, ni la tabla
   `vehicles` (queda para la Fase 4 — ver la nota sobre
   `assets.asset_type = 'vehiculo'` en esa sección).
-- **Fase 4 (combustible): código escrito, migración `009` pendiente de
-  aplicar.** `vehicles` y `fuel_logs` todavía no existen en la base
-  compartida — avisá al usuario antes de asumir que las pantallas de
-  `/combustible` funcionan contra datos reales. Cubre: ABM de vehículos
+- **Fase 4 (combustible): implementada, migración `009` aplicada.**
+  `vehicles` y `fuel_logs` ya existen en la base compartida. Todavía sin
+  verificación end-to-end en producción (carga real desde celular,
+  alerta de consumo con datos reales) — no la des por confirmada hasta
+  que el usuario la pruebe. Cubre: ABM de vehículos
   (`/combustible/vehiculos`) vinculables a un `asset` de tipo `vehiculo`
   (existente o creado en el mismo formulario), carga rápida optimizada
   para la estación (`/combustible/nueva`), cálculo de rendimiento entre
@@ -60,9 +61,7 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   por kilometraje (el service del auto sigue siendo una tarea normal de
   la Fase 3, con recurrencia temporal — no se agregaron columnas a
   `task_definitions`).
-- Migraciones `001` a `008` aplicadas en la base compartida y
-  confirmadas funcionando; `009` escrita pero todavía no aplicada (ver
-  punto anterior). Antes de escribir la migración `010`, mirá
+- Migraciones `001` a `009` aplicadas en la base compartida. Antes de escribir la migración `010`, mirá
   `supabase/migrations/` para confirmar el próximo número — no lo
   asumas.
 - **Próximo hito: Fase 5 (documentos).** Este repo **no tiene el detalle
@@ -233,7 +232,8 @@ Estas reglas no son opcionales:
 ### Migraciones (referencia rápida)
 
 `001` a `008` corridas a mano en Supabase y confirmadas funcionando en
-producción.
+producción. `009` también aplicada, pendiente de verificación end-to-end
+(ver Fase 4 más arriba).
 
 | Archivo | Contenido |
 | --- | --- |
@@ -245,7 +245,7 @@ producción.
 | `006_eventos.sql` | `events`, `event_participants`, `event_reminders`, `telegram_link_codes`, `reminder_deliveries` + RLS + grants (ver regla 11). |
 | `007_grants_service_role.sql` | `GRANT` de schema/tablas/funciones/secuencias a `service_role` (ver regla 12). |
 | `008_tareas.sql` | `assets`, `task_definitions`, `task_instances` + RLS + grants (ver sección Fase 3 más abajo). |
-| `009_combustible.sql` | `vehicles`, `fuel_logs` + RLS + grants (ver sección Fase 4 más abajo). **Escrita, todavía no aplicada.** |
+| `009_combustible.sql` | `vehicles`, `fuel_logs` + RLS + grants (ver sección Fase 4 más abajo). |
 
 La próxima migración de cualquier fase nueva es `010_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
