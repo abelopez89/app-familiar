@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ListChecks, ShoppingCart } from "lucide-react";
+import { CalendarDays, Fuel, ListChecks, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -151,6 +151,13 @@ export default async function HoyPage() {
           </CardContent>
         </Card>
       )}
+
+      <Button asChild variant="outline" className="w-full gap-2">
+        <Link href="/combustible/nueva">
+          <Fuel className="size-4" />
+          Cargar combustible
+        </Link>
+      </Button>
     </div>
   );
 }
