@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { MoreVertical } from "lucide-react";
 import type { FamilyMember } from "@/lib/supabase/types";
@@ -47,16 +48,18 @@ export function MembersList({ members }: { members: FamilyMember[] }) {
           )}
           {items.map((member) => (
             <div key={member.id} className="flex items-center gap-3 p-4">
-              <span
-                className="size-9 shrink-0 rounded-full"
-                style={{ backgroundColor: member.color }}
-              />
-              <div className="flex flex-1 flex-col">
-                <span className="font-medium">{member.display_name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {member.email ?? "Sin email"}
-                </span>
-              </div>
+              <Link href={`/config/miembros/${member.id}`} className="flex flex-1 items-center gap-3">
+                <span
+                  className="size-9 shrink-0 rounded-full"
+                  style={{ backgroundColor: member.color }}
+                />
+                <div className="flex flex-1 flex-col">
+                  <span className="font-medium">{member.display_name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {member.email ?? "Sin email"}
+                  </span>
+                </div>
+              </Link>
               <Badge variant={member.role === "adulto" ? "secondary" : "outline"}>
                 {member.role === "adulto" ? "Adulto" : "Menor"}
               </Badge>

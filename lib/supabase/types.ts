@@ -667,6 +667,126 @@ export type Database = {
         };
         Relationships: [];
       };
+      document_categories: {
+        Row: {
+          id: string;
+          family_id: string;
+          name: string;
+          kind: "personal" | "medico" | "vehiculo" | "hogar" | "educacion" | "general";
+          icon: string | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          name: string;
+          kind?: "personal" | "medico" | "vehiculo" | "hogar" | "educacion" | "general";
+          icon?: string | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_id?: string;
+          name?: string;
+          kind?: "personal" | "medico" | "vehiculo" | "hogar" | "educacion" | "general";
+          icon?: string | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      documents: {
+        Row: {
+          id: string;
+          family_id: string;
+          category_id: string | null;
+          member_id: string | null;
+          title: string;
+          doc_type: string | null;
+          issued_at: string | null;
+          expires_at: string | null;
+          expiry_lead_days: number;
+          expiry_notified_at: string | null;
+          tags: string[] | null;
+          notes: string | null;
+          is_pinned: boolean;
+          uploaded_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          category_id?: string | null;
+          member_id?: string | null;
+          title: string;
+          doc_type?: string | null;
+          issued_at?: string | null;
+          expires_at?: string | null;
+          expiry_lead_days?: number;
+          expiry_notified_at?: string | null;
+          tags?: string[] | null;
+          notes?: string | null;
+          is_pinned?: boolean;
+          uploaded_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_id?: string;
+          category_id?: string | null;
+          member_id?: string | null;
+          title?: string;
+          doc_type?: string | null;
+          issued_at?: string | null;
+          expires_at?: string | null;
+          expiry_lead_days?: number;
+          expiry_notified_at?: string | null;
+          tags?: string[] | null;
+          notes?: string | null;
+          is_pinned?: boolean;
+          uploaded_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      document_files: {
+        Row: {
+          id: string;
+          document_id: string;
+          family_id: string;
+          storage_path: string;
+          mime_type: string | null;
+          size_bytes: number | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          document_id: string;
+          family_id: string;
+          storage_path: string;
+          mime_type?: string | null;
+          size_bytes?: number | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          document_id?: string;
+          family_id?: string;
+          storage_path?: string;
+          mime_type?: string | null;
+          size_bytes?: number | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -704,3 +824,7 @@ export type TaskInstanceStatus = TaskInstance["status"];
 export type Vehicle = Database["hogar"]["Tables"]["vehicles"]["Row"];
 export type FuelLog = Database["hogar"]["Tables"]["fuel_logs"]["Row"];
 export type FuelType = Vehicle["fuel_type"];
+export type DocumentCategory = Database["hogar"]["Tables"]["document_categories"]["Row"];
+export type FamilyDocument = Database["hogar"]["Tables"]["documents"]["Row"];
+export type DocumentFile = Database["hogar"]["Tables"]["document_files"]["Row"];
+export type DocumentCategoryKind = DocumentCategory["kind"];

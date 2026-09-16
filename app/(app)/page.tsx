@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Fuel, ListChecks, ShoppingCart } from "lucide-react";
+import { CalendarDays, FileText, Fuel, ListChecks, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { listActiveMembers, listEventsWithDetails } from "@/lib/events/queries";
 import { buildDisplayEvents } from "@/lib/events/view-model";
 import { EVENT_CATEGORIES } from "@/lib/events/constants";
 import { listPendingInstancesWithDetails } from "@/lib/tasks/queries";
+import { listExpiringDocuments } from "@/lib/documents/queries";
 import {
   addDaysToDateOnly,
   dateOnlyToFamilyMidnightUtc,
@@ -17,11 +18,12 @@ import {
 } from "@/lib/dates";
 
 export default async function HoyPage() {
-  const [openList, events, members, taskInstances] = await Promise.all([
+  const [openList, events, members, taskInstances, expiringDocuments] = await Promise.all([
     getOpenShoppingList(),
     listEventsWithDetails(),
     listActiveMembers(),
     listPendingInstancesWithDetails(),
+    listExpiringDocuments(),
   ]);
 
   const today = todayInFamilyTimezone();
@@ -117,6 +119,32 @@ export default async function HoyPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {expiringDocuments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="size-5" />
+              Documentos por vencer
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              {expiringDocuments.map((doc) => (
+                <Link key={doc.id} href={`/documentos/${doc.id}`} className="flex items-start gap-3">
+                  <div className="w-14 shrink-0 text-xs text-muted-foreground">
+                    {doc.expires_at! < today ? "Vencido" : formatDate(doc.expires_at!)}
+                  </div>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{doc.title}</span>
+                </Link>
+              ))}
+            </div>
+            <Button asChild variant="outline" className="mt-4 w-full">
+              <Link href="/documentos">Ver documentos</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {openList ? (
         <Card>

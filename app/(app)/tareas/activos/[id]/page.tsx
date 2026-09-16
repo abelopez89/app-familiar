@@ -4,6 +4,7 @@ import { Fuel } from "lucide-react";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { getAsset, listActiveMembers, listTaskDefinitions, listTaskHistoryByAsset } from "@/lib/tasks/queries";
 import { getVehicleByAssetId } from "@/lib/fuel/queries";
+import { listDocumentsWithFiles } from "@/lib/documents/queries";
 import { formatDate } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
 import { ASSET_TYPES } from "@/lib/tasks/constants";
@@ -17,11 +18,12 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ id
   if (!context) redirect("/login");
 
   const { id } = await params;
-  const [asset, definitions, members, history] = await Promise.all([
+  const [asset, definitions, members, history, documents] = await Promise.all([
     getAsset(id),
     listTaskDefinitions(),
     listActiveMembers(),
     listTaskHistoryByAsset(id),
+    listDocumentsWithFiles(),
   ]);
 
   if (!asset) notFound();
@@ -31,6 +33,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ id
   const relatedDefinitions = definitions.filter((d) => d.asset_id === id);
   const membersById = new Map(members.map((m) => [m.id, m]));
   const totalCost = history.reduce((sum, h) => sum + (h.cost ?? 0), 0);
+  const linkedDocument = asset.document_id ? (documents.find((d) => d.id === asset.document_id) ?? null) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -47,9 +50,18 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ id
           {asset.purchased_at && <p>Comprado: {formatDate(asset.purchased_at)}</p>}
           {asset.warranty_until && <p>Garantía hasta: {formatDate(asset.warranty_until)}</p>}
           {asset.notes && <p className="text-muted-foreground">{asset.notes}</p>}
+          {linkedDocument && (
+            <Link href={`/documentos/${linkedDocument.id}`} className="text-primary underline-offset-2 hover:underline">
+              Ver manual/factura: {linkedDocument.title}
+            </Link>
+          )}
 
           <div className="mt-2 flex gap-2">
-            <AssetFormDialog asset={asset} trigger={<Button variant="outline">Editar</Button>} />
+            <AssetFormDialog
+              asset={asset}
+              documents={documents}
+              trigger={<Button variant="outline">Editar</Button>}
+            />
             <DeleteAssetButton id={asset.id} />
           </div>
         </CardContent>

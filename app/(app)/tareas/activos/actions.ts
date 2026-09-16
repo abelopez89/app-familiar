@@ -15,6 +15,7 @@ const assetSchema = z.object({
   location: z.string().trim().optional(),
   purchased_at: z.string().trim().optional(),
   warranty_until: z.string().trim().optional(),
+  document_id: z.string().trim().optional(),
   notes: z.string().trim().optional(),
 });
 
@@ -27,6 +28,7 @@ function parseAssetForm(formData: FormData) {
     location: formData.get("location") ?? "",
     purchased_at: formData.get("purchased_at") ?? "",
     warranty_until: formData.get("warranty_until") ?? "",
+    document_id: formData.get("document_id") ?? "",
     notes: formData.get("notes") ?? "",
   });
   if (!parsed.success) {
@@ -54,6 +56,7 @@ export async function createAsset(_prev: ActionResult, formData: FormData): Prom
       location: parsed.data.location || null,
       purchased_at: parsed.data.purchased_at || null,
       warranty_until: parsed.data.warranty_until || null,
+      document_id: parsed.data.document_id || null,
       notes: parsed.data.notes || null,
     })
     .select("id")
@@ -83,6 +86,7 @@ export async function updateAsset(_prev: ActionResult, formData: FormData): Prom
       location: parsed.data.location || null,
       purchased_at: parsed.data.purchased_at || null,
       warranty_until: parsed.data.warranty_until || null,
+      document_id: parsed.data.document_id || null,
       notes: parsed.data.notes || null,
     })
     .eq("id", id);
