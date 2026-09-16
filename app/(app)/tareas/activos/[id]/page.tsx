@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { Fuel } from "lucide-react";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { getAsset, listActiveMembers, listTaskDefinitions, listTaskHistoryByAsset } from "@/lib/tasks/queries";
+import { getVehicleByAssetId } from "@/lib/fuel/queries";
 import { formatDate } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
 import { ASSET_TYPES } from "@/lib/tasks/constants";
@@ -23,6 +25,8 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ id
   ]);
 
   if (!asset) notFound();
+
+  const vehicle = asset.asset_type === "vehiculo" ? await getVehicleByAssetId(id) : null;
 
   const relatedDefinitions = definitions.filter((d) => d.asset_id === id);
   const membersById = new Map(members.map((m) => [m.id, m]));
@@ -50,6 +54,26 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ id
           </div>
         </CardContent>
       </Card>
+
+      {asset.asset_type === "vehiculo" && (
+        <Card>
+          <CardContent className="flex items-center justify-between gap-3 pt-4 text-sm">
+            <div className="flex items-center gap-2">
+              <Fuel className="size-4 text-muted-foreground" />
+              <span>
+                {vehicle
+                  ? "Kilometraje, tanque y combustible de este vehículo"
+                  : "Este activo todavía no tiene un vehículo vinculado"}
+              </span>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href={vehicle ? `/combustible/${vehicle.id}` : "/combustible/vehiculos"}>
+                {vehicle ? "Ver" : "Vincular"}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

@@ -51,9 +51,9 @@ export default async function CombustiblePage() {
       ) : (
         <div className="flex flex-col gap-3">
           {summaries.map(({ vehicle, last, average, lastLog }) => (
-            <Link key={vehicle.id} href={`/combustible/${vehicle.id}`}>
-              <Card>
-                <CardContent className="flex flex-col gap-2 pt-4">
+            <Card key={vehicle.id}>
+              <CardContent className="flex flex-col gap-2 pt-4">
+                <Link href={`/combustible/${vehicle.id}`} className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{vehicle.name}</span>
                     <span className="text-xs text-muted-foreground">{FUEL_TYPES[vehicle.fuel_type].label}</span>
@@ -76,9 +76,14 @@ export default async function CombustiblePage() {
                       <p>{lastLog ? formatDate(lastLog.filled_at) : "—"}</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                </Link>
+                {summaries.length > 1 && (
+                  <Button asChild variant="outline" size="sm" className="mt-1 self-start">
+                    <Link href={`/combustible/nueva?vehicle=${vehicle.id}`}>Cargar combustible</Link>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
