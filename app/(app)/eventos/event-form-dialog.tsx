@@ -48,7 +48,7 @@ export function EventFormDialog({ members, event, defaultDate, trigger, defaultO
     event?.recurrence ?? "none",
   );
   const [telegram, setTelegram] = useState(
-    event?.reminders.some((r) => r.channel === "telegram") ?? false,
+    event?.reminders.some((r) => r.channel === "telegram") ?? true,
   );
 
   const action = event ? updateEvent : createEvent;
@@ -105,8 +105,8 @@ export function EventFormDialog({ members, event, defaultDate, trigger, defaultO
           </div>
 
           {!allDay && (
-            <div className="flex gap-3">
-              <div className="flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="start_time">Hora</Label>
                 <Input
                   id="start_time"
@@ -116,7 +116,7 @@ export function EventFormDialog({ members, event, defaultDate, trigger, defaultO
                   required={!allDay}
                 />
               </div>
-              <div className="flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="end_time">Hora de fin (opcional)</Label>
                 <Input
                   id="end_time"
