@@ -4,6 +4,7 @@ import type { ShoppingList } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/dates";
 import { DeleteListButton } from "./delete-list-button";
+import { RenameListDialog } from "./rename-list-dialog";
 
 export function ListHeader({ list }: { list: ShoppingList }) {
   return (
@@ -19,7 +20,10 @@ export function ListHeader({ list }: { list: ShoppingList }) {
           <p className="text-sm text-muted-foreground">{formatDate(list.shopping_date)}</p>
         </div>
       </div>
-      <DeleteListButton listId={list.id} />
+      <div className="flex items-center">
+        <RenameListDialog list={list} />
+        <DeleteListButton listId={list.id} />
+      </div>
     </div>
   );
 }
