@@ -19,6 +19,37 @@ export async function deleteShoppingList(listId: string): Promise<ActionResult> 
   redirect("/compras");
 }
 
+const renameListSchema = z.object({
+  name: z.string().trim().min(1, "El nombre no puede estar vacío.").max(80),
+});
+
+export async function renameShoppingList(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const listId = formData.get("list_id");
+  if (typeof listId !== "string" || !listId) return { error: "Lista inválida." };
+
+  const parsed = renameListSchema.safeParse({ name: formData.get("name") });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("shopping_lists")
+    .update({ name: parsed.data.name })
+    .eq("id", listId);
+
+  if (error) return { error: "No se pudo renombrar la lista." };
+
+  revalidatePath(`/compras/${listId}`);
+  revalidatePath(`/compras/${listId}/comprar`);
+  revalidatePath("/compras");
+  revalidatePath("/");
+  return { success: true };
+}
+
 export async function updateItemQuantity(
   itemId: string,
   listId: string,

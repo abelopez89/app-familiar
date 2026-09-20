@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/dates";
 import { formatGuaranies, formatQuantity } from "@/lib/format";
 import { DeleteListButton } from "../delete-list-button";
+import { RenameListDialog } from "../rename-list-dialog";
 
 export function ClosedListSummary({
   list,
@@ -27,7 +28,10 @@ export function ClosedListSummary({
           </Button>
           <h1 className="text-xl font-semibold">{list.name ?? "Lista de compras"}</h1>
         </div>
-        <DeleteListButton listId={list.id} />
+        <div className="flex items-center">
+          <RenameListDialog list={list} />
+          <DeleteListButton listId={list.id} />
+        </div>
       </div>
 
       <Card>
