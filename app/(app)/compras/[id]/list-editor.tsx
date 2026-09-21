@@ -106,14 +106,20 @@ export function ListEditor({
                       )}
                     </div>
                     <Input
+                      key={item.id}
                       type="number"
                       min="0.5"
                       step="0.5"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        handleQuantityChange(item.id, Number(e.target.value) || item.quantity)
-                      }
-                      onBlur={(e) => commitQuantity(item.id, Number(e.target.value) || item.quantity)}
+                      defaultValue={item.quantity}
+                      onBlur={(e) => {
+                        const parsed = Number(e.target.value);
+                        if (!e.target.value || Number.isNaN(parsed) || parsed <= 0) {
+                          e.target.value = String(item.quantity);
+                          return;
+                        }
+                        handleQuantityChange(item.id, parsed);
+                        commitQuantity(item.id, parsed);
+                      }}
                       className="h-8 w-16 text-center"
                     />
                     <span className="w-8 text-xs text-muted-foreground">{item.unit}</span>
