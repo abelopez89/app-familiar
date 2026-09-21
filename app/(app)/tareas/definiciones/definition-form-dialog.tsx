@@ -183,8 +183,15 @@ export function DefinitionFormDialog({ assets, members, definition, trigger }: P
                       name="recurrence_every"
                       type="number"
                       min="1"
-                      value={every}
-                      onChange={(e) => setEvery(Number(e.target.value) || 1)}
+                      defaultValue={every}
+                      onBlur={(e) => {
+                        const parsed = Number(e.target.value);
+                        if (!e.target.value || Number.isNaN(parsed) || parsed <= 0) {
+                          e.target.value = String(every);
+                          return;
+                        }
+                        setEvery(parsed);
+                      }}
                     />
                   </div>
                   <div className="flex flex-1 flex-col gap-2">
