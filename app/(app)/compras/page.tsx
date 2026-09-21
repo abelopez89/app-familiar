@@ -98,7 +98,11 @@ export default async function ComprasPage() {
           <SectionTitle>Historial</SectionTitle>
           <div className="divide-y divide-border overflow-hidden rounded-xl border bg-card shadow-sm">
             {cerradas.map((list) => (
-              <div key={list.id} className="tap-target flex items-center gap-3 px-4 py-3">
+              <Link
+                key={list.id}
+                href={`/compras/${list.id}/comprar`}
+                className="tap-target flex items-center gap-3 px-4 py-3 transition-colors active:bg-muted/50"
+              >
                 <Receipt className="size-4 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
@@ -115,7 +119,7 @@ export default async function ComprasPage() {
                     {formatGuaranies(list.total_amount)}
                   </p>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         </section>
