@@ -8,6 +8,7 @@ import { FUEL_TYPES } from "@/lib/fuel/constants";
 import type { Asset, FuelType, Vehicle } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -99,12 +100,9 @@ export function VehicleFormDialog({
             </div>
             <div className="flex flex-1 flex-col gap-2">
               <Label htmlFor="tank_capacity">Tanque (L, opcional)</Label>
-              <Input
+              <DecimalInput
                 id="tank_capacity"
                 name="tank_capacity"
-                type="number"
-                min="0"
-                step="0.1"
                 defaultValue={vehicle?.tank_capacity ?? ""}
               />
             </div>
@@ -112,12 +110,9 @@ export function VehicleFormDialog({
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="initial_odometer">Odómetro inicial (opcional)</Label>
-            <Input
+            <DecimalInput
               id="initial_odometer"
               name="initial_odometer"
-              type="number"
-              min="0"
-              step="0.1"
               defaultValue={vehicle?.initial_odometer ?? ""}
             />
           </div>

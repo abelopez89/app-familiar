@@ -8,6 +8,7 @@ import type { ProductCategory, TemplateItem } from "@/lib/supabase/types";
 import { createTemplateItem, updateTemplateItem, type ActionResult } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -100,12 +101,9 @@ export function TemplateItemFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="default_quantity">Cantidad</Label>
-              <Input
+              <DecimalInput
                 id="default_quantity"
                 name="default_quantity"
-                type="number"
-                step="0.5"
-                min="0.5"
                 defaultValue={item?.default_quantity ?? 1}
                 required
               />

@@ -12,7 +12,7 @@ import type {
 } from "@/lib/supabase/types";
 import { deleteListItem, updateItemQuantity } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2 } from "lucide-react";
 import { AddItemForm } from "./add-item-form";
@@ -105,11 +105,8 @@ export function ListEditor({
                         <p className="text-xs text-muted-foreground">{item.notes}</p>
                       )}
                     </div>
-                    <Input
+                    <DecimalInput
                       key={item.id}
-                      type="number"
-                      min="0.5"
-                      step="0.5"
                       defaultValue={item.quantity}
                       onBlur={(e) => {
                         const parsed = Number(e.target.value);

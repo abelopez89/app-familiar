@@ -8,6 +8,7 @@ import { formatGuaranies } from "@/lib/format";
 import type { Vehicle } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -123,16 +124,7 @@ export function FuelLogForm({
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="odometer">Kilometraje</Label>
-          <Input
-            id="odometer"
-            name="odometer"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.1"
-            required
-            autoFocus
-          />
+          <DecimalInput id="odometer" name="odometer" required autoFocus />
           {lastOdometer != null && (
             <p className="text-xs text-muted-foreground">última carga: {lastOdometer.toLocaleString("es-PY")} km</p>
           )}
@@ -140,13 +132,9 @@ export function FuelLogForm({
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="liters">Litros</Label>
-          <Input
+          <DecimalInput
             id="liters"
             name="liters"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
             required
             value={liters}
             onChange={(e) => setLiters(e.target.value)}

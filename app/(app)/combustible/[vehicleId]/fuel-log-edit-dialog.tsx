@@ -6,6 +6,7 @@ import { deleteFuelLog, updateFuelLog } from "./actions";
 import type { FuelLog } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,11 +63,11 @@ export function FuelLogEditDialog({ log, trigger }: { log: FuelLog; trigger: Rea
           <div className="flex gap-3">
             <div className="flex flex-1 flex-col gap-2">
               <Label htmlFor="odometer">Kilometraje</Label>
-              <Input id="odometer" name="odometer" type="number" min="0" step="0.1" defaultValue={log.odometer} required />
+              <DecimalInput id="odometer" name="odometer" defaultValue={log.odometer} required />
             </div>
             <div className="flex flex-1 flex-col gap-2">
               <Label htmlFor="liters">Litros</Label>
-              <Input id="liters" name="liters" type="number" min="0" step="0.01" defaultValue={log.liters} required />
+              <DecimalInput id="liters" name="liters" defaultValue={log.liters} required />
             </div>
           </div>
 

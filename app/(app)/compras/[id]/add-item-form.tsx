@@ -7,6 +7,7 @@ import type { ProductCategory, ShoppingListItem, ShoppingTemplate } from "@/lib/
 import { addLooseItem, type ActionResult } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -108,11 +109,8 @@ export function AddItemForm({
               ))}
             </datalist>
           </div>
-          <Input
+          <DecimalInput
             name="quantity"
-            type="number"
-            min="0.5"
-            step="0.5"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             className="w-16"
