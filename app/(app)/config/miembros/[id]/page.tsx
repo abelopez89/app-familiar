@@ -7,6 +7,7 @@ import { listEventsWithDetails, listActiveMembers } from "@/lib/events/queries";
 import { buildDisplayEvents } from "@/lib/events/view-model";
 import { EVENT_CATEGORIES } from "@/lib/events/constants";
 import { listPendingInstancesWithDetails } from "@/lib/tasks/queries";
+import { FEATURES } from "@/lib/features";
 import { formatDate, addDaysToDateOnly, dateOnlyToFamilyMidnightUtc, todayInFamilyTimezone } from "@/lib/dates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
     listDocumentCategories(),
     listEventsWithDetails(),
     listActiveMembers(),
-    listPendingInstancesWithDetails(),
+    FEATURES.tareas ? listPendingInstancesWithDetails() : Promise.resolve([]),
   ]);
 
   const member = memberRes.data;
@@ -100,27 +101,29 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Tareas asignadas</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col divide-y p-0">
-          {assignedTasks.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-muted-foreground">Sin tareas pendientes asignadas.</p>
-          ) : (
-            assignedTasks.map((instance) => (
-              <Link
-                key={instance.id}
-                href={`/tareas/definiciones/${instance.definition.id}`}
-                className="flex items-center justify-between px-4 py-3 text-sm"
-              >
-                <span>{instance.definition.title}</span>
-                <span className="text-xs text-muted-foreground">{formatDate(instance.due_date)}</span>
-              </Link>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      {FEATURES.tareas && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Tareas asignadas</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col divide-y p-0">
+            {assignedTasks.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-muted-foreground">Sin tareas pendientes asignadas.</p>
+            ) : (
+              assignedTasks.map((instance) => (
+                <Link
+                  key={instance.id}
+                  href={`/tareas/definiciones/${instance.definition.id}`}
+                  className="flex items-center justify-between px-4 py-3 text-sm"
+                >
+                  <span>{instance.definition.title}</span>
+                  <span className="text-xs text-muted-foreground">{formatDate(instance.due_date)}</span>
+                </Link>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
