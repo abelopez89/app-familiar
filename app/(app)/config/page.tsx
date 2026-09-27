@@ -4,6 +4,7 @@ import {
   Car,
   UserRound,
   FolderTree,
+  HandCoins,
   Home,
   ListChecks,
   ListTodo,
@@ -73,6 +74,12 @@ const GRUPOS: Array<{
         label: "Categorías de documentos",
         description: "Y el espacio usado en la nube",
         icon: FolderTree,
+      },
+      {
+        href: "/config/gastos",
+        label: "Categorías de gastos",
+        description: "Hotel, comida, peajes…",
+        icon: HandCoins,
       },
       // Los activos no dependen de Tareas: los usan los vehículos (Fase 4)
       // y los manuales adjuntos (Fase 5). `/config/activos` redirige a

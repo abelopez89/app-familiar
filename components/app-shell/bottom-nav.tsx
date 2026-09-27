@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, House, ListChecks, Settings, ShoppingCart } from "lucide-react";
+import { CalendarDays, HandCoins, House, ListChecks, Settings, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FEATURES } from "@/lib/features";
 
 /**
  * Cinco destinos: inicio, los tres módulos que se abren todos los días y
- * configuración (Tareas sale si está apagado en `lib/features.ts`).
+ * configuración. Gastos ocupó el lugar de Tareas en la Fase 6; Tareas
+ * solo aparece si está prendido en `lib/features.ts` (y entonces son
+ * seis).
  * Combustible, documentos y la ficha de cada miembro no
  * están acá a propósito — viven en la grilla del inicio, que ahora es un
  * lanzador y no un tablero. Es lo que permitió borrar la pestaña "Más",
@@ -19,6 +21,7 @@ const items = [
   { href: "/compras", label: "Compras", icon: ShoppingCart },
   { href: "/eventos", label: "Calendario", icon: CalendarDays },
   { href: "/tareas", label: "Tareas", icon: ListChecks },
+  { href: "/gastos", label: "Gastos", icon: HandCoins },
   { href: "/config", label: "Ajustes", icon: Settings },
 ].filter((item) => item.href !== "/tareas" || FEATURES.tareas);
 

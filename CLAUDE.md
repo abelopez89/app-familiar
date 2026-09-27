@@ -96,8 +96,22 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   incluye: ninguna migración, ningún cambio en las reglas de negocio de
   las fases anteriores, ni el selector manual de tema claro/oscuro (el
   sistema decide).
-- Migraciones `001` a `010` aplicadas y confirmadas en la base
-  compartida. Antes de escribir la migración `011`, mirá
+- **Fase 6 (Tareas apagado + Gastos compartidos): implementada.**
+  Migración `011` aplicada a mano desde el SQL Editor. Dos partes:
+  (A) el módulo de Tareas queda **apagado** con una bandera en
+  `lib/features.ts` (`FEATURES.tareas = false`), sin borrar tablas,
+  datos ni rutas; (B) módulo nuevo de **Gastos compartidos** en
+  `/gastos`: grupos con participantes (miembros o invitados por grupo),
+  gastos en varias monedas con cotización editable, división en tres
+  modos con partes materializadas en enteros de guaraníes, balances en
+  vivo con el invariante de suma cero, clearing greedy, registro de
+  pagos y resumen para compartir. Ocupa el lugar de Tareas en el
+  lanzador y en el tab bar. Ver la sección "Fase 6" más abajo. **No**
+  incluye: control de gastos personales ni presupuesto, varios
+  pagadores por gasto, directorio global de invitados, conversión de
+  monedas por API, cron ni avisos de Telegram de gastos.
+- Migraciones `001` a `011` aplicadas y confirmadas en la base
+  compartida. Antes de escribir la migración `012`, mirá
   `supabase/migrations/` para confirmar el próximo número — no lo
   asumas.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
@@ -144,9 +158,9 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   los de shadcn (`background`, `card`, `primary`, `muted`, `border`…)
   más `success`, `warning` y `surface`, y encima de esos hay **un par de
   tokens por módulo**: `--mod-<modulo>` para el color del ícono y
-  `--mod-<modulo>-soft` para el fondo tintado que va detrás. Los seis
+  `--mod-<modulo>-soft` para el fondo tintado que va detrás. Los siete
   módulos son `compras`, `eventos`, `tareas`, `combustible`,
-  `documentos` y `familia`. Si agregás un módulo, agregá su par de
+  `documentos`, `familia` y `gastos` (Fase 6). Si agregás un módulo, agregá su par de
   tokens en los tres bloques de color (`:root`, la media query oscura y
   `.dark`) y su entrada en `MODULES` — no inventes un color suelto en la
   pantalla.
@@ -325,7 +339,7 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `010` corridas a mano en Supabase y confirmadas funcionando —
+`001` a `011` corridas a mano en Supabase y confirmadas funcionando —
 incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 
 | Archivo | Contenido |
@@ -340,8 +354,9 @@ incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 | `008_tareas.sql` | `assets`, `task_definitions`, `task_instances` + RLS + grants (ver sección Fase 3 más abajo). |
 | `009_combustible.sql` | `vehicles`, `fuel_logs` + RLS + grants (ver sección Fase 4 más abajo). |
 | `010_documentos.sql` | `document_categories`, `documents`, `document_files`, FK `assets.document_id`, políticas sobre `storage.objects` (ver sección Fase 5 más abajo). |
+| `011_gastos.sql` | `expense_categories`, `expense_groups`, `group_participants`, `expenses`, `expense_shares`, `settlements` + RLS + grants, función `hogar.save_expense()` y seed de categorías para las familias existentes (ver sección Fase 6 más abajo). |
 
-La próxima migración de cualquier fase nueva es `011_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `012_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
@@ -403,8 +418,9 @@ Tres clientes separados, no los mezcles:
 - `(app)` — todo lo que requiere sesión. El middleware (`middleware.ts`)
   redirige a `/login` si no hay usuario autenticado.
   - `/` — inicio: lanzador con un acceso directo por módulo arriba y el
-    resumen del día (eventos, tareas, documentos por vencer, lista
-    abierta) abajo. **No** es un tablero; ver la Fase Extra.
+    resumen del día (eventos, tareas si el módulo está prendido,
+    documentos por vencer, lista abierta) abajo. **No** es un tablero;
+    ver la Fase Extra.
   - `/config` — índice de configuración (pestaña "Ajustes" del tab bar).
     Agrupa familia, catálogos, avisos y sesión.
   - `/compras`, `/compras/nueva`, `/compras/[id]`, `/compras/[id]/comprar`,
@@ -439,6 +455,20 @@ Tres clientes separados, no los mezcles:
     pestaña nueva), editar metadatos, agregar/quitar páginas, Fase 5.
   - `/config/documentos` — ABM de categorías de documentos + espacio
     usado, Fase 5. También enlazado desde `/config` (catálogos).
+  - `/config/activos` — redirect a `/tareas/activos`, Fase 6. Es la
+    entrada de los activos desde los catálogos de `/config`; las rutas
+    de activos no se movieron.
+  - `/config/gastos` — ABM de categorías de gastos (+ "agregar
+    sugeridas"), Fase 6.
+  - `/gastos` — grupos abiertos (con total y tu balance) y cerrados,
+    Fase 6. `/gastos/nuevo` (alta completa) y `/gastos/nuevo?rapido=1`
+    (grupo rápido).
+  - `/gastos/[id]` — encabezado con total y tu balance + pestaña
+    Gastos; `/gastos/[id]/balances` — pestaña Balances (clearing,
+    registrar pago, historial, compartir resumen);
+    `/gastos/[id]/nuevo` — carga rápida de gasto;
+    `/gastos/[id]/editar/[expenseId]` — editar/eliminar un gasto;
+    `/gastos/[id]/participantes` — sumar/quitar participantes. Fase 6.
 - Rutas públicas sin sesión, **fuera** de `(auth)` y `(app)` a propósito
   (ver la lista comentada en `middleware.ts`, y no tocarla sin motivo —
   es el tipo de cosa que se rompe en silencio si alguien toca el
@@ -809,13 +839,16 @@ Tres clientes separados, no los mezcles:
    ahí. Las clases de color están escritas completas (`text-mod-compras`,
    no `text-mod-${key}`) porque Tailwind analiza el fuente de forma
    estática y una plantilla no generaría ninguna clase.
-4. **Cinco pestañas: Inicio, Compras, Calendario, Tareas, Ajustes.**
+4. **Cinco pestañas: Inicio, Compras, Calendario, Gastos, Ajustes**
+   (desde la Fase 6, Gastos ocupa el lugar de Tareas; con
+   `FEATURES.tareas = true` Tareas vuelve y son seis).
    Combustible, documentos y la ficha de miembro no están en el tab bar
    a propósito: viven en la grilla del inicio, que es un toque desde
    cualquier lado. Eso es lo que permitió borrar "Más", que mezclaba
    módulos de uso diario con ajustes y no decía a dónde llevaba ninguna
-   de sus filas. `ROOT_PATHS` (en `modules.ts`) tiene esas cinco rutas y
-   es lo que usan el botón de volver y el header.
+   de sus filas. `ROOT_PATHS` (en `modules.ts`) tiene esas rutas (filtra
+   `/tareas` según la bandera) y es lo que usan el botón de volver y el
+   header.
 5. **Configuración es una sola sección.** Todo lo que se ajusta una vez
    y no se toca más está en `/config`, agrupado (familia, catálogos,
    avisos y sincronización, sesión). Los catálogos que además son
@@ -881,6 +914,142 @@ Tres clientes separados, no los mezcles:
     `lib/recurrence.ts`, `lib/tasks/schedule.ts`, `lib/fuel/consumption.ts`,
     `lib/documents/schedule.ts` ni `lib/ics.ts` por motivos de interfaz —
     esta fase no cambió ninguna regla de negocio.
+
+## Fase 6 — Tareas apagado y Gastos compartidos: decisiones a respetar
+
+### Parte A — La bandera de Tareas
+
+1. **`lib/features.ts` con `FEATURES.tareas`, una constante en el
+   código.** No es una tabla de configuración ni una variable de
+   entorno, a propósito: prender o apagar es cambiar el valor y
+   desplegar. Una tabla agregaría migración, pantalla de administración
+   y una consulta en cada render para algo que se toca dos veces en la
+   vida del proyecto. No la "mejores" moviéndola a la base.
+2. **Qué apaga exactamente `tareas: false`:** la tarjeta de Tareas en el
+   lanzador (`LAUNCHER_MODULES` en `modules.ts`) y la pestaña del tab
+   bar; el bloque de tareas del resumen del día (ni se consulta); las
+   tareas asignadas en `/config/miembros/[id]`; la fila "Definiciones de
+   tareas" de `/config`; la lista "Tareas de mantenimiento pendientes"
+   de `/combustible/[vehicleId]` y "Tareas asociadas" de
+   `/tareas/activos/[id]` (estas dos a pedido del usuario después de la
+   primera versión); y, en el cron diario, **la generación de
+   instancias y los avisos de tareas**.
+3. **Qué NO apaga:** tablas, datos y rutas de tareas siguen ahí y
+   funcionan por URL directa. Hay una entrada discreta en "Módulos
+   desactivados" al final de `/config` que lleva a `/tareas` y aclara
+   que el módulo no genera tareas ni manda avisos — sin esa línea,
+   dentro de meses alguien ve tareas vencidas y no entiende por qué
+   nunca le avisó. Los **activos del hogar** siguen accesibles como
+   catálogo (`/config/activos` → `/tareas/activos`) porque ya no son
+   solo de Tareas: vehículos (Fase 4) y manuales (Fase 5) los usan. El
+   historial de mantenimiento de un activo se sigue mostrando. **Las
+   garantías de activos y los vencimientos de documentos siguen
+   avisando** en el cron diario.
+4. **El cron no genera mientras está apagado, a propósito.** Si
+   generara en silencio, al reactivar habría una pila de tareas vencidas
+   acumuladas durante meses. Como `next_due_date` no se toca, al volver
+   a `true` el generador retoma solo desde donde corresponde (y
+   `advanceUntilFuture` ya resuelve el catch-up de las de ancla
+   `schedule`). Nada se pierde y nada se acumula. Reactivar es cambiar
+   `false` por `true`, sin migraciones.
+
+### Parte B — Gastos compartidos
+
+5. **Alcance: repartir gastos y saber quién le debe a quién.** No es un
+   control de gastos personales ni un presupuesto — no le agregues
+   reportes por categoría, límites ni nada que lo empuje hacia eso. No
+   aparece en el resumen del día (un gasto no vence) y no tiene cron ni
+   avisos de Telegram.
+6. **Tres columnas de plata por gasto, y hacen falta las tres:**
+   `amount` + `currency` (lo que dice el ticket, para verificar contra
+   el comprobante), `exchange_rate` (hace auditable la conversión) y
+   `amount_pyg` (lo único con lo que se suma un viaje en tres monedas).
+   `amount_pyg` es **columna generada** (`round(amount *
+   exchange_rate)`): no hay código que la mantenga sincronizada.
+7. **La cotización es editable después.** Con tarjeta de crédito el
+   banco liquida días más tarde. El grupo tiene `default_rates` por
+   moneda que se precargan en cada gasto; cada gasto puede
+   sobreescribirla y editarla luego desde `/gastos/[id]/editar/…`. Si
+   un gasto se guarda en una moneda sin cotización por defecto, esa
+   cotización queda como default del grupo (nunca pisa una existente).
+   Sin conversión automática por API.
+8. **Guaraníes enteros y redondeo determinístico
+   (`lib/expenses/split.ts`).** Cada parte es un entero y la suma de las
+   partes es **exactamente** `amount_pyg`. El resto de la división se
+   reparte de a 1 Gs por mayor resto, con empates resueltos por el orden
+   fijo de participantes (`sort_order`, después `created_at`, después
+   `id`); con partes iguales equivale a "el resto a los primeros". Todo
+   con BigInt para no perder un guaraní por punto flotante.
+   `toAmountPyg` reproduce el redondeo de la columna generada, y por eso
+   el importe se rechaza con más de 2 decimales y la cotización con más
+   de 6 (la base los redondearía en silencio y los números dejarían de
+   coincidir). En guaraníes, los campos de importe son solo dígitos
+   (`inputMode="numeric"`), no `DecimalInput`: "150.000" tipeado con
+   punto de miles tiene que ser 150.000, no 150.
+9. **Las partes se materializan SIEMPRE en `expense_shares`**, aunque la
+   división sea en partes iguales. `split_method` y `weight` solo sirven
+   para reabrir el editor en el mismo modo. Mismo principio que los
+   items de compras (Fase 1): sumar un participante el día 5 del viaje
+   no reescribe lo que cada uno debía el día 1. No las calcules al
+   vuelo. En "importes exactos" los montos se escriben en la moneda del
+   gasto; se valida que sumen el importe del ticket (si no, se muestra
+   la diferencia y **no se guarda**) y después se reparte `amount_pyg`
+   en proporción. `weight` no se usa en ese modo (numeric(8,2) no alcanza
+   para importes en guaraníes): el editor reconstruye los importes desde
+   `share_pyg / exchange_rate` (`exactAmountsFromShares`).
+10. **`hogar.save_expense()` guarda gasto y partes en una transacción**
+    (migración 011, `security invoker`, así que RLS aplica adentro).
+    PostgREST no tiene transacciones entre requests: con dos inserts
+    separados, un fallo en el medio deja un gasto sin partes. Y al
+    editar la cotización `amount_pyg` cambia solo, así que las partes
+    tienen que reescribirse en el mismo paso. La función rechaza el
+    gasto (errcode `23514`) si las partes no suman exacto, si el pagador
+    o alguna parte no es del grupo. La división en sí **no** vive en SQL:
+    la calcula `saveExpense` en el servidor con `split.ts` — nunca se
+    confía en partes calculadas por el cliente (el cliente solo muestra
+    una vista previa).
+11. **Balances en vivo e invariante de suma cero
+    (`lib/expenses/settlement.ts`).** `balance = pagado − partes + pagos
+    hechos − pagos recibidos`, sobre los datos actuales, desde el primer
+    gasto. **`status` (`abierto`/`cerrado`) no condiciona ningún
+    cálculo**: es solo archivo, y un grupo cerrado se reabre. La suma de
+    todos los balances de un grupo tiene que dar 0; el encabezado, la
+    lista de grupos y `/gastos/[id]/balances` lo verifican y avisan en
+    vez de mostrar números que no cierran (y en ese caso no se proponen
+    transferencias).
+12. **Clearing greedy (`simplifyDebts`)**: mayor acreedor contra mayor
+    deudor, se salda el menor importe, se repite. Determinístico
+    (empates por orden del grupo). "Registrar pago" crea un
+    `settlement` y todo se recalcula solo en la próxima lectura.
+13. **Participantes: miembro (`member_id`, hereda nombre y color) o
+    invitado por grupo (solo nick).** Sin directorio global de personas
+    externas. `display_name` es snapshot. Quitar un participante lo
+    borra solo si no tiene gastos pagados, partes ni pagos; si tiene, se
+    desactiva (`is_active = false`): no aparece para gastos nuevos pero
+    sigue contando en los balances. Un solo pagador por gasto — si dos
+    pagaron el hotel a medias, son dos gastos.
+14. **Consultas paginadas (`lib/expenses/queries.ts`).** PostgREST corta
+    en 1000 filas por defecto; un viaje largo con cinco personas pasa
+    ese número de partes, y un truncado silencioso rompería el
+    invariante sin que nadie supiera por qué. Todo lo que alimenta un
+    cálculo se trae con `fetchAllPages`.
+15. **El ticket usa el Centro de Documentos (Fase 5).** `saveExpense`
+    llama a `createDocument` tal cual (título "Ticket: …", tipo
+    `factura`) con la imagen ya comprimida en el cliente por
+    `compressDocumentImage`; si después falla el guardado del gasto, se
+    borra el documento recién creado. No hay nada nuevo de storage.
+16. **Categorías de gastos**: sembradas por la migración 011 para las
+    familias existentes; una familia nueva las trae con "Agregar
+    sugeridas" en `/config/gastos`. `icon` guarda un nombre de ícono de
+    lucide que resuelve `categoryIcon` en `lib/expenses/constants.ts`.
+17. **Qué no hacer:** no borrar tablas, datos ni rutas de tareas; no
+    mover la bandera a la base; no permitir varios pagadores; no crear un
+    directorio global de invitados; no calcular partes al vuelo; no
+    condicionar cálculos al `status`; no construir storage propio para
+    tickets; no agregar cron, Telegram ni conversión automática de
+    monedas; no tocar `lib/recurrence.ts`, `lib/tasks/schedule.ts`,
+    `lib/fuel/consumption.ts`, `lib/documents/schedule.ts` ni
+    `lib/ics.ts` por este módulo.
 
 ## Comandos útiles
 

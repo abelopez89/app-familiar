@@ -2,6 +2,7 @@ import {
   CalendarDays,
   FileText,
   Fuel,
+  HandCoins,
   ListChecks,
   ShoppingCart,
   Users,
@@ -13,6 +14,7 @@ export type ModuleKey =
   | "compras"
   | "eventos"
   | "tareas"
+  | "gastos"
   | "combustible"
   | "documentos"
   | "familia";
@@ -31,7 +33,7 @@ export type ModuleDef = {
 };
 
 /**
- * Los seis módulos de la app, en el orden en que aparecen en el inicio.
+ * Los módulos de la app, en el orden en que aparecen en el inicio.
  *
  * Esta lista es la única fuente de verdad del "ecosistema": la grilla de
  * accesos directos del inicio, los encabezados de cada pantalla y los
@@ -66,6 +68,15 @@ export const MODULES: ModuleDef[] = [
     icon: ListChecks,
     fg: "text-mod-tareas",
     bg: "bg-mod-tareas-soft",
+  },
+  {
+    key: "gastos",
+    href: "/gastos",
+    label: "Gastos compartidos",
+    tagline: "Quién le debe a quién",
+    icon: HandCoins,
+    fg: "text-mod-gastos",
+    bg: "bg-mod-gastos-soft",
   },
   {
     key: "combustible",
@@ -121,6 +132,7 @@ const SECTION_LABELS: Array<[prefix: string, label: string]> = [
   ["/compras", "Compras"],
   ["/eventos", "Calendario"],
   ["/tareas", "Tareas"],
+  ["/gastos", "Gastos"],
   ["/combustible", "Combustible"],
   ["/documentos", "Documentos"],
 ];
@@ -133,12 +145,12 @@ export function sectionLabelFor(pathname: string): string | null {
 }
 
 /**
- * Las pantallas del tab bar (cinco, o cuatro con Tareas apagado en
- * `lib/features.ts`). Son destinos de navegación primaria:
+ * Las pantallas del tab bar (cinco con Tareas apagado en
+ * `lib/features.ts`, seis con Tareas prendido). Son destinos de navegación primaria:
  * no llevan botón de volver (no se "entra" a ellas desde ningún lado) y
  * el header muestra el nombre de la familia en vez del rótulo de sección,
  * que ahí sería redundante con el título de la propia pantalla.
  */
 export const ROOT_PATHS = new Set(
-  ["/", "/compras", "/eventos", "/tareas", "/config"].filter((p) => p !== "/tareas" || FEATURES.tareas),
+  ["/", "/compras", "/eventos", "/tareas", "/gastos", "/config"].filter((p) => p !== "/tareas" || FEATURES.tareas),
 );
