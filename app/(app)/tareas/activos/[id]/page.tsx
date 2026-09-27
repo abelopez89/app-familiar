@@ -7,6 +7,7 @@ import { getVehicleByAssetId } from "@/lib/fuel/queries";
 import { listDocumentsWithFiles } from "@/lib/documents/queries";
 import { formatDate } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
+import { FEATURES } from "@/lib/features";
 import { ASSET_TYPES } from "@/lib/tasks/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,27 +88,31 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ id
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Tareas asociadas</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col divide-y p-0">
-          {relatedDefinitions.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-muted-foreground">No tiene tareas asociadas.</p>
-          ) : (
-            relatedDefinitions.map((definition) => (
-              <Link
-                key={definition.id}
-                href={`/tareas/definiciones/${definition.id}`}
-                className="flex items-center justify-between px-4 py-3 text-sm"
-              >
-                <span>{definition.title}</span>
-                <span className="text-xs text-muted-foreground">{formatDate(definition.next_due_date)}</span>
-              </Link>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      {/* Se oculta con Tareas apagado (`lib/features.ts`). El historial de
+          mantenimiento de abajo sí queda: es historia del activo. */}
+      {FEATURES.tareas && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Tareas asociadas</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col divide-y p-0">
+            {relatedDefinitions.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-muted-foreground">No tiene tareas asociadas.</p>
+            ) : (
+              relatedDefinitions.map((definition) => (
+                <Link
+                  key={definition.id}
+                  href={`/tareas/definiciones/${definition.id}`}
+                  className="flex items-center justify-between px-4 py-3 text-sm"
+                >
+                  <span>{definition.title}</span>
+                  <span className="text-xs text-muted-foreground">{formatDate(definition.next_due_date)}</span>
+                </Link>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
