@@ -175,6 +175,32 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   por defecto de `Button`, `Input` y `SelectTrigger` son altos en la
   pantalla chica y vuelven al alto compacto en `sm:` para arriba. La
   utilidad `.tap-target` hace lo mismo para filas propias.
+- **Campos numéricos decimales: nunca `<input type="number">`.** Litros,
+  kilometraje, cantidades — cualquier campo con `step` fraccionario. En
+  iOS/Android con la región en es-PY (coma como separador decimal), el
+  teclado numérico le ofrece al usuario una tecla ",", pero ese
+  elemento solo acepta "." — la coma se descarta en silencio y el
+  usuario no puede escribir el decimal (así se detectó: "no me deja
+  poner decimales" en la carga de combustible). Usá `DecimalInput`
+  (`components/ui/decimal-input.tsx`): un campo de texto con
+  `inputMode="decimal"` que muestra el mismo teclado numérico y
+  normaliza cualquier "," tipeada a "." antes de que el valor llegue a
+  React o a `FormData`. Ya está aplicado en litros/kilometraje
+  (combustible), tanque/odómetro inicial (vehículo) y cantidad
+  (compras) — cualquier campo decimal nuevo va con este componente, no
+  con `type="number"`.
+- **Inputs numéricos controlados: ojo con `Number(e.target.value) ||
+  valorAnterior`.** `Number("")` es `0`, que es falsy — un input
+  controlado que arma su próximo valor así en `onChange` vuelve al
+  anterior apenas el usuario borra el campo para escribir uno nuevo, y
+  nunca lo deja terminar de escribir. Pasó con la cantidad editable de
+  `/compras/[id]` (`list-editor.tsx`) y con el "Cada" de la recurrencia
+  personalizada en `/tareas/definiciones`
+  (`definition-form-dialog.tsx`). La solución en los dos: volverlo no
+  controlado (`defaultValue` + `key={id}` para remontar si cambia el
+  dato externo) y confirmar/validar recién en `onBlur`, revirtiendo ahí
+  si quedó vacío o inválido — mientras se escribe, el campo no se pisa
+  solo.
 - Moneda: **guaraníes (PYG)**, siempre **sin decimales**. Formatear con
   `Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG', maximumFractionDigits: 0 })`
   o equivalente — ver `lib/format.ts`.
@@ -451,6 +477,16 @@ Tres clientes separados, no los mezcles:
    confirmación previa. Cubre el caso de una ida al súper que no se
    concretó. El `on delete cascade` de `shopping_list_items.list_id` se
    encarga de los items, no hace falta borrarlos a mano.
+6. **Renombrar una lista** (`renameShoppingList` en
+   `app/(app)/compras/[id]/actions.ts`, `RenameListDialog`) está en el
+   mismo lugar que eliminar: edición de lista y resumen de lista
+   cerrada. Pensado para cuando hay varias listas abiertas a la vez (ej.
+   "Súper semanal" vs "Farmacia") y hace falta diferenciarlas de un
+   vistazo en `/compras`.
+7. **El historial de listas cerradas en `/compras` es clickeable.** Cada
+   fila linkea a `/compras/[id]/comprar`, que ya mostraba el detalle de
+   la compra (`ClosedListSummary`, productos y total) pero no tenía
+   forma de llegar ahí desde el historial.
 
 ## Fase 2 — Eventos, calendario y Telegram: decisiones a respetar
 
@@ -493,6 +529,16 @@ Tres clientes separados, no los mezcles:
    tras una caída del cron. Por qué `reminder_deliveries` (y no un
    `sent_at`) hace esto idempotente: ver regla 11 de la sección de base
    de datos.
+9. **El aviso por Telegram arranca activado al crear un evento nuevo**
+   (`EventFormDialog`). Antes arrancaba apagado, lo cual era fácil de
+   pasar por alto — editar un evento existente sigue respetando lo que
+   ya tenía guardado, activado o no.
+10. **Los campos de hora y hora de fin van apilados, no lado a lado.**
+    Un `<input type="time">` tiene un ancho intrínseco de contenido que
+    un flex item no reduce por debajo salvo `min-width: 0` explícito —
+    dos columnas al 50% dentro del diálogo (~313px de ancho útil)
+    hacían que cada campo se desbordara de su columna y pisara al de al
+    lado.
 
 ## Fase 3 — Tareas del hogar: decisiones a respetar
 
@@ -561,6 +607,12 @@ Tres clientes separados, no los mezcles:
     definición (`CompleteResult.undo` en `app/(app)/tareas/actions.ts`)
     para poder revertir tanto la instancia como la definición desde el
     toast de "Deshacer" sin volver a consultar la base.
+13. **El campo "Cada" de la recurrencia personalizada**
+    (`recurrence_every` en `definition-form-dialog.tsx`) es un input no
+    controlado que confirma en `onBlur`, mismo patrón que la cantidad
+    editable de compras — ver "Inputs numéricos controlados" en la
+    sección de UI. Es un entero ("cada N meses"), no un decimal, así que
+    no usa `DecimalInput`.
 
 ## Fase 4 — Combustible: decisiones a respetar
 
