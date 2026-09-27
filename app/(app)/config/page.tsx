@@ -4,7 +4,9 @@ import {
   Car,
   UserRound,
   FolderTree,
+  HandCoins,
   Home,
+  ListChecks,
   ListTodo,
   LogOut,
   Send,
@@ -17,6 +19,7 @@ import { NavGroup, NavRow } from "@/components/ui/nav-row";
 import { PageHeader, SectionTitle } from "@/components/app-shell/page-header";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { logout } from "@/app/(auth)/actions";
+import { FEATURES } from "@/lib/features";
 
 /**
  * Configuración: una sola sección para todo lo que se ajusta una vez y
@@ -73,17 +76,30 @@ const GRUPOS: Array<{
         icon: FolderTree,
       },
       {
-        href: "/tareas/activos",
+        href: "/config/gastos",
+        label: "Categorías de gastos",
+        description: "Hotel, comida, peajes…",
+        icon: HandCoins,
+      },
+      // Los activos no dependen de Tareas: los usan los vehículos (Fase 4)
+      // y los manuales adjuntos (Fase 5). `/config/activos` redirige a
+      // `/tareas/activos`, que es donde siguen viviendo las rutas.
+      {
+        href: "/config/activos",
         label: "Activos del hogar",
         description: "Electrodomésticos, instalaciones, vehículos",
         icon: Wrench,
       },
-      {
-        href: "/tareas/definiciones",
-        label: "Definiciones de tareas",
-        description: "Qué se hace cada cuánto",
-        icon: ListTodo,
-      },
+      ...(FEATURES.tareas
+        ? [
+            {
+              href: "/tareas/definiciones",
+              label: "Definiciones de tareas",
+              description: "Qué se hace cada cuánto",
+              icon: ListTodo,
+            },
+          ]
+        : []),
       {
         href: "/combustible/vehiculos",
         label: "Vehículos",
@@ -157,6 +173,26 @@ export default async function ConfigPage() {
           </Button>
         </form>
       </section>
+
+      {/*
+       * Acceso escondido a los módulos apagados en `lib/features.ts`. La
+       * aclaración de que no avisa es a propósito: sin ella, quien entre
+       * dentro de meses ve tareas vencidas y no entiende por qué nunca le
+       * llegó nada por Telegram.
+       */}
+      {!FEATURES.tareas && (
+        <section className="flex flex-col gap-2">
+          <SectionTitle>Módulos desactivados</SectionTitle>
+          <NavGroup>
+            <NavRow
+              href="/tareas"
+              label="Tareas del hogar"
+              description="Apagado: no genera tareas nuevas ni manda avisos"
+              icon={ListChecks}
+            />
+          </NavGroup>
+        </section>
+      )}
     </div>
   );
 }

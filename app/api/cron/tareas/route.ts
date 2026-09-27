@@ -5,6 +5,7 @@ import { formatDate, todayInFamilyTimezone } from "@/lib/dates";
 import { escapeTelegramHtml, sendTelegramMessage } from "@/lib/telegram";
 import { daysOverdue, shouldGenerateInstance, shouldNotifyTaskInstance, shouldNotifyWarranty } from "@/lib/tasks/schedule";
 import { shouldNotifyDocumentExpiry } from "@/lib/documents/schedule";
+import { FEATURES } from "@/lib/features";
 import type { Asset, FamilyDocument, FamilyMember, TaskDefinition, TaskInstance } from "@/lib/supabase/types";
 
 /**
@@ -25,6 +26,12 @@ import type { Asset, FamilyDocument, FamilyMember, TaskDefinition, TaskInstance 
  * tiene pendiente de avisar (tareas + garantías + documentos por
  * vencer). Si no hay nada para avisar, no manda nada — misma regla que
  * el cron de eventos.
+ *
+ * Con `FEATURES.tareas` en `false` (`lib/features.ts`) se saltean las dos
+ * partes de tareas — generar y avisar — y siguen corriendo garantías y
+ * documentos. Que no genere es lo importante: como `next_due_date` no se
+ * toca, al reactivar el módulo el generador retoma desde donde
+ * corresponde en vez de encontrarse una pila de vencidas acumuladas.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -36,33 +43,35 @@ export async function GET(request: NextRequest) {
   const today = todayInFamilyTimezone();
 
   // ============ 1. Generar instancias ============
-  const { data: activeDefinitions } = await supabase
-    .from("task_definitions")
-    .select("*")
-    .eq("is_active", true);
-
-  const { data: pendingForGeneration } = await supabase
-    .from("task_instances")
-    .select("definition_id")
-    .eq("status", "pendiente");
-
-  const pendingDefinitionIds = new Set((pendingForGeneration ?? []).map((i) => i.definition_id));
-
   let generadas = 0;
-  for (const definition of activeDefinitions ?? []) {
-    if (!shouldGenerateInstance(definition, pendingDefinitionIds.has(definition.id), today)) continue;
+  if (FEATURES.tareas) {
+    const { data: activeDefinitions } = await supabase
+      .from("task_definitions")
+      .select("*")
+      .eq("is_active", true);
 
-    const { error } = await supabase.from("task_instances").insert({
-      definition_id: definition.id,
-      family_id: definition.family_id,
-      due_date: definition.next_due_date,
-    });
+    const { data: pendingForGeneration } = await supabase
+      .from("task_instances")
+      .select("definition_id")
+      .eq("status", "pendiente");
 
-    // 23505: choque contra unique(definition_id, due_date) — ya existía,
-    // idempotente por construcción (mismo principio que reminder_deliveries).
-    if (!error) generadas += 1;
-    else if (error.code !== "23505") {
-      console.error("[cron/tareas] error generando instancia:", error);
+    const pendingDefinitionIds = new Set((pendingForGeneration ?? []).map((i) => i.definition_id));
+
+    for (const definition of activeDefinitions ?? []) {
+      if (!shouldGenerateInstance(definition, pendingDefinitionIds.has(definition.id), today)) continue;
+
+      const { error } = await supabase.from("task_instances").insert({
+        definition_id: definition.id,
+        family_id: definition.family_id,
+        due_date: definition.next_due_date,
+      });
+
+      // 23505: choque contra unique(definition_id, due_date) — ya existía,
+      // idempotente por construcción (mismo principio que reminder_deliveries).
+      if (!error) generadas += 1;
+      else if (error.code !== "23505") {
+        console.error("[cron/tareas] error generando instancia:", error);
+      }
     }
   }
 
@@ -74,8 +83,12 @@ export async function GET(request: NextRequest) {
     { data: members },
     { data: expiringDocuments },
   ] = await Promise.all([
-    supabase.from("task_instances").select("*").eq("status", "pendiente"),
-    supabase.from("task_definitions").select("*"),
+    FEATURES.tareas
+      ? supabase.from("task_instances").select("*").eq("status", "pendiente")
+      : Promise.resolve({ data: [] as TaskInstance[] }),
+    FEATURES.tareas
+      ? supabase.from("task_definitions").select("*")
+      : Promise.resolve({ data: [] as TaskDefinition[] }),
     supabase.from("assets").select("*").eq("is_active", true),
     supabase.from("family_members").select("*").eq("is_active", true),
     supabase.from("documents").select("*").not("expires_at", "is", null),

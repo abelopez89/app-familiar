@@ -2,16 +2,19 @@ import {
   CalendarDays,
   FileText,
   Fuel,
+  HandCoins,
   ListChecks,
   ShoppingCart,
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { FEATURES } from "@/lib/features";
 
 export type ModuleKey =
   | "compras"
   | "eventos"
   | "tareas"
+  | "gastos"
   | "combustible"
   | "documentos"
   | "familia";
@@ -30,7 +33,7 @@ export type ModuleDef = {
 };
 
 /**
- * Los seis módulos de la app, en el orden en que aparecen en el inicio.
+ * Los módulos de la app, en el orden en que aparecen en el inicio.
  *
  * Esta lista es la única fuente de verdad del "ecosistema": la grilla de
  * accesos directos del inicio, los encabezados de cada pantalla y los
@@ -67,6 +70,15 @@ export const MODULES: ModuleDef[] = [
     bg: "bg-mod-tareas-soft",
   },
   {
+    key: "gastos",
+    href: "/gastos",
+    label: "Gastos compartidos",
+    tagline: "Quién le debe a quién",
+    icon: HandCoins,
+    fg: "text-mod-gastos",
+    bg: "bg-mod-gastos-soft",
+  },
+  {
     key: "combustible",
     href: "/combustible",
     label: "Combustible",
@@ -95,6 +107,14 @@ export const MODULES: ModuleDef[] = [
   },
 ];
 
+/**
+ * Los módulos que aparecen en la grilla del inicio: `MODULES` menos los
+ * apagados en `lib/features.ts`. `MODULES_BY_KEY` sigue teniéndolos a
+ * todos, porque las rutas de un módulo apagado siguen funcionando por URL
+ * directa y necesitan su color y su rótulo.
+ */
+export const LAUNCHER_MODULES = MODULES.filter((m) => m.key !== "tareas" || FEATURES.tareas);
+
 export const MODULES_BY_KEY = Object.fromEntries(
   MODULES.map((m) => [m.key, m]),
 ) as Record<ModuleKey, ModuleDef>;
@@ -106,10 +126,13 @@ export const MODULES_BY_KEY = Object.fromEntries(
  * parado es lo que evita la ambigüedad al navegar en profundidad.
  */
 const SECTION_LABELS: Array<[prefix: string, label: string]> = [
+  // Con Tareas apagado, los activos se abren desde `/config` (catálogos).
+  ["/tareas/activos", FEATURES.tareas ? "Tareas" : "Configuración"],
   ["/config", "Configuración"],
   ["/compras", "Compras"],
   ["/eventos", "Calendario"],
   ["/tareas", "Tareas"],
+  ["/gastos", "Gastos"],
   ["/combustible", "Combustible"],
   ["/documentos", "Documentos"],
 ];
@@ -122,9 +145,12 @@ export function sectionLabelFor(pathname: string): string | null {
 }
 
 /**
- * Las cinco pantallas del tab bar. Son destinos de navegación primaria:
+ * Las pantallas del tab bar (cinco con Tareas apagado en
+ * `lib/features.ts`, seis con Tareas prendido). Son destinos de navegación primaria:
  * no llevan botón de volver (no se "entra" a ellas desde ningún lado) y
  * el header muestra el nombre de la familia en vez del rótulo de sección,
  * que ahí sería redundante con el título de la propia pantalla.
  */
-export const ROOT_PATHS = new Set(["/", "/compras", "/eventos", "/tareas", "/config"]);
+export const ROOT_PATHS = new Set(
+  ["/", "/compras", "/eventos", "/tareas", "/gastos", "/config"].filter((p) => p !== "/tareas" || FEATURES.tareas),
+);

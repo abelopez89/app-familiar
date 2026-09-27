@@ -11,6 +11,7 @@ import { computeFuelIntervals } from "@/lib/fuel/consumption";
 import { FUEL_TYPES } from "@/lib/fuel/constants";
 import { formatDate, todayInFamilyTimezone } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
+import { FEATURES } from "@/lib/features";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { VehicleFormDialog } from "../vehiculos/vehicle-form-dialog";
@@ -31,7 +32,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   if (!vehicle) notFound();
 
-  const pendingTasks = vehicle.asset_id ? await listPendingTaskDefinitionsForAsset(vehicle.asset_id) : [];
+  const pendingTasks = FEATURES.tareas && vehicle.asset_id ? await listPendingTaskDefinitionsForAsset(vehicle.asset_id) : [];
 
   const intervals = computeFuelIntervals(logs);
   const logDates = Object.fromEntries(logs.map((l) => [l.id, l.filled_at]));
@@ -125,7 +126,8 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         </CardContent>
       </Card>
 
-      {vehicle.asset_id && (
+      {/* Se oculta con Tareas apagado (`lib/features.ts`). */}
+      {FEATURES.tareas && vehicle.asset_id && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Tareas de mantenimiento pendientes</CardTitle>

@@ -14,7 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionTitle } from "@/components/app-shell/page-header";
 import { ModuleTile } from "@/components/app-shell/module-tile";
-import { MODULES, MODULES_BY_KEY, type ModuleKey } from "@/components/app-shell/modules";
+import { LAUNCHER_MODULES, MODULES_BY_KEY, type ModuleKey } from "@/components/app-shell/modules";
+import { FEATURES } from "@/lib/features";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { getOpenShoppingList } from "@/lib/shopping/queries";
 import { listEventsWithDetails } from "@/lib/events/queries";
@@ -112,7 +113,7 @@ function QuickActions() {
 function ModuleGrid({ badges }: { badges?: Partial<Record<ModuleKey, { count: number; tone: "default" | "alert"; hint?: string }>> }) {
   return (
     <div className="grid grid-cols-2 gap-3">
-      {MODULES.map((module) => {
+      {LAUNCHER_MODULES.map((module) => {
         const badge = badges?.[module.key];
         return (
           <ModuleTile
@@ -136,7 +137,8 @@ async function ModuleGridWithBadges() {
     getOpenShoppingList(),
     listEventsWithDetails(),
     listActiveMembers(),
-    listPendingInstancesWithDetails(),
+    // Con Tareas apagado (`lib/features.ts`) ni se consulta.
+    FEATURES.tareas ? listPendingInstancesWithDetails() : Promise.resolve([]),
     listExpiringDocuments(),
   ]);
 
@@ -195,7 +197,8 @@ async function Resumen() {
     getOpenShoppingList(),
     listEventsWithDetails(),
     listActiveMembers(),
-    listPendingInstancesWithDetails(),
+    // Con Tareas apagado (`lib/features.ts`) ni se consulta.
+    FEATURES.tareas ? listPendingInstancesWithDetails() : Promise.resolve([]),
     listExpiringDocuments(),
   ]);
 
@@ -223,7 +226,11 @@ async function Resumen() {
         <EmptyState
           icon={Sparkles}
           title="Todo al día"
-          description="No hay eventos, tareas ni vencimientos pendientes para hoy."
+          description={
+            FEATURES.tareas
+              ? "No hay eventos, tareas ni vencimientos pendientes para hoy."
+              : "No hay eventos ni vencimientos pendientes para hoy."
+          }
         />
       </section>
     );

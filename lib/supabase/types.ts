@@ -787,12 +787,262 @@ export type Database = {
         };
         Relationships: [];
       };
+      expense_categories: {
+        Row: {
+          id: string;
+          family_id: string;
+          name: string;
+          icon: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          name: string;
+          icon?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_id?: string;
+          name?: string;
+          icon?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      expense_groups: {
+        Row: {
+          id: string;
+          family_id: string;
+          name: string;
+          description: string | null;
+          kind: "viaje" | "evento" | "otro";
+          starts_on: string | null;
+          ends_on: string | null;
+          status: "abierto" | "cerrado";
+          default_rates: Record<string, number> | null;
+          created_by: string | null;
+          closed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          name: string;
+          description?: string | null;
+          kind?: "viaje" | "evento" | "otro";
+          starts_on?: string | null;
+          ends_on?: string | null;
+          status?: "abierto" | "cerrado";
+          default_rates?: Record<string, number> | null;
+          created_by?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_id?: string;
+          name?: string;
+          description?: string | null;
+          kind?: "viaje" | "evento" | "otro";
+          starts_on?: string | null;
+          ends_on?: string | null;
+          status?: "abierto" | "cerrado";
+          default_rates?: Record<string, number> | null;
+          created_by?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      group_participants: {
+        Row: {
+          id: string;
+          group_id: string;
+          family_id: string;
+          member_id: string | null;
+          display_name: string;
+          color: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          family_id: string;
+          member_id?: string | null;
+          display_name: string;
+          color?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          family_id?: string;
+          member_id?: string | null;
+          display_name?: string;
+          color?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      expenses: {
+        Row: {
+          id: string;
+          group_id: string;
+          family_id: string;
+          paid_by: string;
+          category_id: string | null;
+          description: string;
+          spent_on: string;
+          amount: number;
+          currency: string;
+          exchange_rate: number;
+          /** Columna generada: round(amount * exchange_rate). */
+          amount_pyg: number;
+          payment_method: "efectivo" | "transferencia" | "tarjeta_credito" | "tarjeta_debito" | "otro";
+          split_method: "iguales" | "partes" | "exactos";
+          receipt_document_id: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          family_id: string;
+          paid_by: string;
+          category_id?: string | null;
+          description: string;
+          spent_on?: string;
+          amount: number;
+          currency?: string;
+          exchange_rate?: number;
+          payment_method?: "efectivo" | "transferencia" | "tarjeta_credito" | "tarjeta_debito" | "otro";
+          split_method?: "iguales" | "partes" | "exactos";
+          receipt_document_id?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          family_id?: string;
+          paid_by?: string;
+          category_id?: string | null;
+          description?: string;
+          spent_on?: string;
+          amount?: number;
+          currency?: string;
+          exchange_rate?: number;
+          payment_method?: "efectivo" | "transferencia" | "tarjeta_credito" | "tarjeta_debito" | "otro";
+          split_method?: "iguales" | "partes" | "exactos";
+          receipt_document_id?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      expense_shares: {
+        Row: {
+          expense_id: string;
+          participant_id: string;
+          family_id: string;
+          share_pyg: number;
+          weight: number | null;
+        };
+        Insert: {
+          expense_id: string;
+          participant_id: string;
+          family_id: string;
+          share_pyg: number;
+          weight?: number | null;
+        };
+        Update: {
+          expense_id?: string;
+          participant_id?: string;
+          family_id?: string;
+          share_pyg?: number;
+          weight?: number | null;
+        };
+        Relationships: [];
+      };
+      settlements: {
+        Row: {
+          id: string;
+          group_id: string;
+          family_id: string;
+          from_participant: string;
+          to_participant: string;
+          amount_pyg: number;
+          settled_on: string;
+          payment_method: string;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          family_id: string;
+          from_participant: string;
+          to_participant: string;
+          amount_pyg: number;
+          settled_on?: string;
+          payment_method?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          family_id?: string;
+          from_participant?: string;
+          to_participant?: string;
+          amount_pyg?: number;
+          settled_on?: string;
+          payment_method?: string;
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       ensure_family_membership: {
         Args: Record<string, never>;
         Returns: void;
+      };
+      save_expense: {
+        Args: {
+          p_expense_id: string | null;
+          p_expense: Record<string, string | number | null>;
+          p_shares: { participant_id: string; share_pyg: number; weight: number | null }[];
+        };
+        Returns: string;
       };
     };
     Enums: Record<string, never>;
@@ -828,3 +1078,12 @@ export type DocumentCategory = Database["hogar"]["Tables"]["document_categories"
 export type FamilyDocument = Database["hogar"]["Tables"]["documents"]["Row"];
 export type DocumentFile = Database["hogar"]["Tables"]["document_files"]["Row"];
 export type DocumentCategoryKind = DocumentCategory["kind"];
+export type ExpenseCategory = Database["hogar"]["Tables"]["expense_categories"]["Row"];
+export type ExpenseGroup = Database["hogar"]["Tables"]["expense_groups"]["Row"];
+export type GroupParticipant = Database["hogar"]["Tables"]["group_participants"]["Row"];
+export type Expense = Database["hogar"]["Tables"]["expenses"]["Row"];
+export type ExpenseShare = Database["hogar"]["Tables"]["expense_shares"]["Row"];
+export type Settlement = Database["hogar"]["Tables"]["settlements"]["Row"];
+export type ExpenseGroupKind = ExpenseGroup["kind"];
+export type ExpensePaymentMethod = Expense["payment_method"];
+export type ExpenseSplitMethod = Expense["split_method"];
