@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import type { ProductCategory, ShoppingListItem, ShoppingTemplate } from "@/lib/supabase/types";
 import { addLooseItem, type ActionResult } from "./actions";
+import { defaultProductCategoryId } from "@/lib/normalize";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
@@ -31,7 +32,8 @@ export function AddItemForm({
   knownNames: string[];
   onItemAdded: (item: ShoppingListItem) => void;
 }) {
-  const [categoryId, setCategoryId] = useState("none");
+  const defaultCategoryId = defaultProductCategoryId(categories) ?? "none";
+  const [categoryId, setCategoryId] = useState(defaultCategoryId);
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("un");
@@ -73,7 +75,7 @@ export function AddItemForm({
       setName("");
       setQuantity("1");
       setUnit("un");
-      setCategoryId("none");
+      setCategoryId(defaultCategoryId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);

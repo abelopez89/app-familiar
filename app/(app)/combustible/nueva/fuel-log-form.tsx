@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { createFuelLog, type CreateFuelLogResult } from "./actions";
 import { formatGuaranies } from "@/lib/format";
+import { formatEfficiency, type FuelUnit } from "@/lib/fuel/efficiency";
 import type { Vehicle } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,10 +26,12 @@ export function FuelLogForm({
   vehicles,
   defaultVehicleId,
   lastOdometerByVehicle,
+  unit,
 }: {
   vehicles: Vehicle[];
   defaultVehicleId: string;
   lastOdometerByVehicle: Record<string, number | null>;
+  unit: FuelUnit;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -236,7 +239,7 @@ export function FuelLogForm({
           <CardContent className="flex flex-col gap-2 pt-4 text-sm">
             {result.interval ? (
               <>
-                <p className="font-medium">Rendimiento del tramo: {result.interval.kmPerLiter.toFixed(1)} km/L</p>
+                <p className="font-medium">Rendimiento del tramo: {formatEfficiency(result.interval.kmPerLiter, unit)}</p>
                 <p className="text-muted-foreground">
                   {result.interval.km.toLocaleString("es-PY")} km · {formatGuaranies(result.interval.costPerKm)} por km
                 </p>
@@ -250,8 +253,8 @@ export function FuelLogForm({
               <div className="mt-2 rounded-lg bg-amber-100 p-3 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                 <p className="font-medium">Consumo más alto de lo normal</p>
                 <p className="mt-1">
-                  Este tramo dio {result.dropAlert.last.kmPerLiter.toFixed(1)} km/L, contra un promedio de{" "}
-                  {result.dropAlert.averagePrevious.toFixed(1)} km/L en los tramos anteriores. Puede valer la pena
+                  Este tramo dio {formatEfficiency(result.dropAlert.last.kmPerLiter, unit)}, contra un promedio de{" "}
+                  {formatEfficiency(result.dropAlert.averagePrevious, unit)} en los tramos anteriores. Puede valer la pena
                   revisar la presión de los neumáticos, el filtro de aire, el estilo de manejo, o si hubo un viaje
                   fuera de lo común.
                 </p>

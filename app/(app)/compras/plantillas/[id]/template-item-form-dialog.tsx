@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import type { ProductCategory, TemplateItem } from "@/lib/supabase/types";
 import { createTemplateItem, updateTemplateItem, type ActionResult } from "../actions";
+import { defaultProductCategoryId } from "@/lib/normalize";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
@@ -38,7 +39,10 @@ export function TemplateItemFormDialog({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [categoryId, setCategoryId] = useState(item?.category_id ?? "none");
+  // Producto nuevo: "Almacén" por defecto. Al editar, la que ya tenía.
+  const [categoryId, setCategoryId] = useState(
+    item ? (item.category_id ?? "none") : (defaultProductCategoryId(categories) ?? "none"),
+  );
   const action = item ? updateTemplateItem : createTemplateItem;
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     action,

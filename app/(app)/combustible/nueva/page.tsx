@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { getLastFuelLog, getLastUsedVehicleId, listVehicles } from "@/lib/fuel/queries";
+import { getFuelUnit } from "@/lib/fuel/unit";
 import { FuelLogForm } from "./fuel-log-form";
 
 export default async function NuevaCargaPage({
@@ -16,9 +17,10 @@ export default async function NuevaCargaPage({
 
   const { vehicle: vehicleFromQuery } = await searchParams;
 
-  const [lastUsedVehicleId, lastLogs] = await Promise.all([
+  const [lastUsedVehicleId, lastLogs, unit] = await Promise.all([
     getLastUsedVehicleId(context.member.id),
     Promise.all(vehicles.map((v) => getLastFuelLog(v.id))),
+    getFuelUnit(),
   ]);
 
   const lastOdometerByVehicle: Record<string, number | null> = {};
@@ -40,6 +42,7 @@ export default async function NuevaCargaPage({
         vehicles={vehicles}
         defaultVehicleId={defaultVehicleId}
         lastOdometerByVehicle={lastOdometerByVehicle}
+        unit={unit}
       />
     </div>
   );

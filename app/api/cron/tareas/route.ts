@@ -27,11 +27,13 @@ import type { Asset, FamilyDocument, FamilyMember, TaskDefinition, TaskInstance 
  * vencer). Si no hay nada para avisar, no manda nada — misma regla que
  * el cron de eventos.
  *
- * Con `FEATURES.tareas` en `false` (`lib/features.ts`) se saltean las dos
- * partes de tareas — generar y avisar — y siguen corriendo garantías y
- * documentos. Que no genere es lo importante: como `next_due_date` no se
- * toca, al reactivar el módulo el generador retoma desde donde
- * corresponde en vez de encontrarse una pila de vencidas acumuladas.
+ * Con `FEATURES.tareasAvisos` en `false` (`lib/features.ts`) se saltean
+ * las dos partes de tareas — generar y avisar — y siguen corriendo
+ * garantías y documentos. Que no genere es lo importante: como
+ * `next_due_date` no se toca, al reactivar el generador retoma desde
+ * donde corresponde en vez de encontrarse una pila de vencidas
+ * acumuladas. No depende de `FEATURES.tareas` (si el módulo está a la
+ * vista en el inicio): puede estar oculto y seguir avisando.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -44,7 +46,7 @@ export async function GET(request: NextRequest) {
 
   // ============ 1. Generar instancias ============
   let generadas = 0;
-  if (FEATURES.tareas) {
+  if (FEATURES.tareasAvisos) {
     const { data: activeDefinitions } = await supabase
       .from("task_definitions")
       .select("*")
@@ -83,10 +85,10 @@ export async function GET(request: NextRequest) {
     { data: members },
     { data: expiringDocuments },
   ] = await Promise.all([
-    FEATURES.tareas
+    FEATURES.tareasAvisos
       ? supabase.from("task_instances").select("*").eq("status", "pendiente")
       : Promise.resolve({ data: [] as TaskInstance[] }),
-    FEATURES.tareas
+    FEATURES.tareasAvisos
       ? supabase.from("task_definitions").select("*")
       : Promise.resolve({ data: [] as TaskDefinition[] }),
     supabase.from("assets").select("*").eq("is_active", true),

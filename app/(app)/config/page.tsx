@@ -149,6 +149,38 @@ export default async function ConfigPage() {
         </section>
       ))}
 
+      {/*
+       * Tareas fuera del inicio (`FEATURES.tareas = false`): este es su
+       * acceso. La línea que dice si avisa o no es a propósito — sin ella,
+       * quien entre dentro de meses ve tareas vencidas y no entiende por
+       * qué nunca le llegó nada por Telegram.
+       */}
+      {!FEATURES.tareas && (
+        <section className="flex flex-col gap-2">
+          <SectionTitle>Tareas del hogar</SectionTitle>
+          <p className="px-1 text-xs text-muted-foreground">
+            No aparece en el inicio.{" "}
+            {FEATURES.tareasAvisos
+              ? "Sigue generando vencimientos y avisando por Telegram."
+              : "Está apagado: no genera tareas nuevas ni manda avisos."}
+          </p>
+          <NavGroup>
+            <NavRow
+              href="/tareas"
+              label="Tareas"
+              description="Vencidas, de esta semana y próximas"
+              icon={ListChecks}
+            />
+            <NavRow
+              href="/tareas/definiciones"
+              label="Definiciones de tareas"
+              description="Qué se hace cada cuánto"
+              icon={ListTodo}
+            />
+          </NavGroup>
+        </section>
+      )}
+
       <section className="flex flex-col gap-2">
         <SectionTitle>Sesión</SectionTitle>
         <NavGroup>
@@ -174,25 +206,6 @@ export default async function ConfigPage() {
         </form>
       </section>
 
-      {/*
-       * Acceso escondido a los módulos apagados en `lib/features.ts`. La
-       * aclaración de que no avisa es a propósito: sin ella, quien entre
-       * dentro de meses ve tareas vencidas y no entiende por qué nunca le
-       * llegó nada por Telegram.
-       */}
-      {!FEATURES.tareas && (
-        <section className="flex flex-col gap-2">
-          <SectionTitle>Módulos desactivados</SectionTitle>
-          <NavGroup>
-            <NavRow
-              href="/tareas"
-              label="Tareas del hogar"
-              description="Apagado: no genera tareas nuevas ni manda avisos"
-              icon={ListChecks}
-            />
-          </NavGroup>
-        </section>
-      )}
     </div>
   );
 }
