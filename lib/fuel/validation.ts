@@ -1,5 +1,6 @@
 import { PLAUSIBLE_KM_PER_LITER_RANGE, averageOdometerJump, computeFuelIntervals, type FuelLogLike } from "@/lib/fuel/consumption";
 import { TANK_CAPACITY_OVERFILL_MARGIN } from "@/lib/fuel/constants";
+import { formatEfficiency } from "@/lib/fuel/efficiency";
 
 const IMPLAUSIBLE_JUMP_MULTIPLIER = 3;
 const CANDIDATE_ID = "__candidate__";
@@ -58,7 +59,7 @@ export function buildFuelLogWarnings(
       (interval.kmPerLiter < PLAUSIBLE_KM_PER_LITER_RANGE.min || interval.kmPerLiter > PLAUSIBLE_KM_PER_LITER_RANGE.max)
     ) {
       warnings.push(
-        `El rendimiento resultante (${interval.kmPerLiter.toFixed(1)} km/L) es muy distinto al normal. Si te olvidaste de registrar una carga anterior, activá esa opción.`,
+        `El rendimiento resultante (${formatEfficiency(interval.kmPerLiter, "l100km")}, ${formatEfficiency(interval.kmPerLiter, "kml")}) es muy distinto al normal. Si te olvidaste de registrar una carga anterior, activá esa opción.`,
       );
     }
   }

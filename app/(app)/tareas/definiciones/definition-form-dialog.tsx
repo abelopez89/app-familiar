@@ -79,7 +79,7 @@ export function DefinitionFormDialog({ assets, members, definition, trigger }: P
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button size="icon" className="size-14 rounded-full shadow-lg">
+          <Button size="icon" className="size-14 rounded-full shadow-lg" aria-label="Nueva tarea">
             <Plus className="size-6" />
           </Button>
         )}

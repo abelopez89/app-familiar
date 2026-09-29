@@ -1,5 +1,6 @@
 import type { FuelInterval } from "@/lib/fuel/consumption";
 import { formatDate } from "@/lib/dates";
+import { FUEL_UNITS, efficiencyValue, type FuelUnit } from "@/lib/fuel/efficiency";
 
 const WIDTH = 320;
 const HEIGHT = 140;
@@ -13,23 +14,27 @@ const PADDING = 24;
 export function PerformanceChart({
   intervals,
   logDates,
+  unit,
 }: {
   intervals: FuelInterval[];
   logDates: Record<string, string>;
+  unit: FuelUnit;
 }) {
   if (intervals.length < 2) {
     return <p className="text-sm text-muted-foreground">Hace falta más de un tramo para graficar la tendencia.</p>;
   }
 
-  const values = intervals.map((i) => i.kmPerLiter);
+  // Se grafica en la unidad elegida. Con L/100 km, más arriba es más
+  // consumo (peor); con km/L, más arriba es mejor.
+  const values = intervals.map((i) => efficiencyValue(i.kmPerLiter, unit));
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
 
-  const points = intervals.map((interval, i) => {
+  const points = values.map((value, i) => {
     const x = PADDING + (i / (intervals.length - 1)) * (WIDTH - PADDING * 2);
-    const y = HEIGHT - PADDING - ((interval.kmPerLiter - min) / range) * (HEIGHT - PADDING * 2);
-    return { x, y, interval };
+    const y = HEIGHT - PADDING - ((value - min) / range) * (HEIGHT - PADDING * 2);
+    return { x, y };
   });
 
   const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
@@ -53,7 +58,7 @@ export function PerformanceChart({
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>{formatDate(logDates[intervals[0].toLogId] ?? "")}</span>
         <span>
-          {min.toFixed(1)}–{max.toFixed(1)} km/L
+          {min.toFixed(1)}–{max.toFixed(1)} {FUEL_UNITS[unit].short}
         </span>
         <span>{formatDate(logDates[intervals[intervals.length - 1].toLogId] ?? "")}</span>
       </div>

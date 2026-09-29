@@ -7,6 +7,9 @@ import { computeFuelIntervals } from "@/lib/fuel/consumption";
 import { formatDate } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
 import { FUEL_TYPES } from "@/lib/fuel/constants";
+import { formatEfficiency } from "@/lib/fuel/efficiency";
+import { getFuelUnit } from "@/lib/fuel/unit";
+import { FuelUnitToggle } from "./fuel-unit-toggle";
 import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -20,7 +23,7 @@ export default async function CombustiblePage() {
   const context = await getCurrentFamilyContext();
   if (!context) redirect("/login");
 
-  const vehicles = await listVehicles();
+  const [vehicles, unit] = await Promise.all([listVehicles(), getFuelUnit()]);
   const logsByVehicle = await Promise.all(vehicles.map((v) => listFuelLogs(v.id)));
 
   const summaries = vehicles.map((vehicle, i) => {
@@ -53,6 +56,8 @@ export default async function CombustiblePage() {
         }
       />
 
+      {summaries.length > 0 && <FuelUnitToggle unit={unit} />}
+
       {summaries.length === 0 ? (
         <EmptyState
           icon={Fuel}
@@ -84,9 +89,9 @@ export default async function CombustiblePage() {
                 <div className="grid grid-cols-2 gap-x-3 gap-y-3 border-t pt-3">
                   <Stat
                     label="Último rendimiento"
-                    value={last ? `${last.kmPerLiter.toFixed(1)} km/L` : "—"}
+                    value={last ? formatEfficiency(last.kmPerLiter, unit) : "—"}
                   />
-                  <Stat label="Promedio" value={average ? `${average.toFixed(1)} km/L` : "—"} />
+                  <Stat label="Promedio" value={average ? formatEfficiency(average, unit) : "—"} />
                   <Stat
                     label="Costo por km"
                     value={last ? formatGuaranies(last.costPerKm) : "—"}

@@ -96,7 +96,8 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   incluye: ninguna migración, ningún cambio en las reglas de negocio de
   las fases anteriores, ni el selector manual de tema claro/oscuro (el
   sistema decide).
-- **Fase 6 (Tareas apagado + Gastos compartidos): implementada.**
+- **Fase 6 (Tareas apagado + Gastos compartidos): implementada y
+  verificada en producción** (el usuario lo probó desde el celular).
   Migración `011` aplicada a mano desde el SQL Editor. Dos partes:
   (A) el módulo de Tareas queda **apagado** con una bandera en
   `lib/features.ts` (`FEATURES.tareas = false`), sin borrar tablas,
@@ -110,6 +111,14 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   incluye: control de gastos personales ni presupuesto, varios
   pagadores por gasto, directorio global de invitados, conversión de
   monedas por API, cron ni avisos de Telegram de gastos.
+- **Mejoras post-Fase 6** (sin migraciones): rendimiento de combustible
+  en L/100 km por defecto con selector a km/L; listas de compras sin
+  plantilla; "Almacén" como categoría por defecto de un producto nuevo;
+  plantillas ordenadas por categoría y nombre; día explícito ("Hoy",
+  "Mañana") en los eventos del resumen del inicio; y Tareas vuelve a
+  avisar por Telegram (bandera `tareasAvisos`) y se puede crear una
+  tarea desde `/tareas`, sin volver al inicio. Ver "Mejoras post-Fase 6"
+  más abajo.
 - Migraciones `001` a `011` aplicadas y confirmadas en la base
   compartida. Antes de escribir la migración `012`, mirá
   `supabase/migrations/` para confirmar el próximo número — no lo
@@ -925,27 +934,31 @@ Tres clientes separados, no los mezcles:
    desplegar. Una tabla agregaría migración, pantalla de administración
    y una consulta en cada render para algo que se toca dos veces en la
    vida del proyecto. No la "mejores" moviéndola a la base.
-2. **Qué apaga exactamente `tareas: false`:** la tarjeta de Tareas en el
+2. **Dos banderas desde las mejoras post-Fase 6:** `tareas` (si el
+   módulo está a la vista en el inicio) y `tareasAvisos` (si el cron
+   genera instancias y avisa por Telegram). Hoy están en `false` y
+   `true`: fuera del inicio, pero avisando. Lo que sigue en este punto
+   describe `tareas`; el corte del cron es `tareasAvisos`.
+   **Qué apaga exactamente `tareas: false`:** la tarjeta de Tareas en el
    lanzador (`LAUNCHER_MODULES` en `modules.ts`) y la pestaña del tab
    bar; el bloque de tareas del resumen del día (ni se consulta); las
    tareas asignadas en `/config/miembros/[id]`; la fila "Definiciones de
    tareas" de `/config`; la lista "Tareas de mantenimiento pendientes"
    de `/combustible/[vehicleId]` y "Tareas asociadas" de
    `/tareas/activos/[id]` (estas dos a pedido del usuario después de la
-   primera versión); y, en el cron diario, **la generación de
-   instancias y los avisos de tareas**.
+   primera versión). El cron diario **ya no** depende de esta bandera
+   sino de `tareasAvisos`.
 3. **Qué NO apaga:** tablas, datos y rutas de tareas siguen ahí y
-   funcionan por URL directa. Hay una entrada discreta en "Módulos
-   desactivados" al final de `/config` que lleva a `/tareas` y aclara
-   que el módulo no genera tareas ni manda avisos — sin esa línea,
-   dentro de meses alguien ve tareas vencidas y no entiende por qué
-   nunca le avisó. Los **activos del hogar** siguen accesibles como
+   funcionan por URL directa. `/config` tiene una sección "Tareas del
+   hogar" (Tareas + Definiciones) con una línea que dice si el módulo
+   avisa o no según `tareasAvisos` — sin esa línea, dentro de meses
+   alguien ve tareas vencidas y no entiende por qué nunca le avisó. Los **activos del hogar** siguen accesibles como
    catálogo (`/config/activos` → `/tareas/activos`) porque ya no son
    solo de Tareas: vehículos (Fase 4) y manuales (Fase 5) los usan. El
    historial de mantenimiento de un activo se sigue mostrando. **Las
    garantías de activos y los vencimientos de documentos siguen
    avisando** en el cron diario.
-4. **El cron no genera mientras está apagado, a propósito.** Si
+4. **Con `tareasAvisos: false` el cron no genera, a propósito.** Si
    generara en silencio, al reactivar habría una pila de tareas vencidas
    acumuladas durante meses. Como `next_due_date` no se toca, al volver
    a `true` el generador retoma solo desde donde corresponde (y
@@ -1050,6 +1063,52 @@ Tres clientes separados, no los mezcles:
     monedas; no tocar `lib/recurrence.ts`, `lib/tasks/schedule.ts`,
     `lib/fuel/consumption.ts`, `lib/documents/schedule.ts` ni
     `lib/ics.ts` por este módulo.
+
+## Mejoras post-Fase 6: decisiones a respetar
+
+1. **Rendimiento en L/100 km por defecto, configurable a km/L.** El
+   cálculo sigue en km/L dentro de `lib/fuel/consumption.ts` (que no se
+   tocó: intervalos, promedio y alerta de consumo excesivo siguen igual);
+   la conversión es solo de presentación, en `lib/fuel/efficiency.ts`
+   (`formatEfficiency`, `efficiencyValue`). L/100 km es la inversa exacta
+   de km/L, así que el mejor y el peor tramo siguen siendo los mismos
+   (con L/100 km el mejor es el número más bajo, y en el gráfico más
+   arriba es más consumo). La preferencia es **por dispositivo**, en la
+   cookie `fuel_unit` (selector en `/combustible`, Server Action
+   `setFuelUnit`, lectura con `getFuelUnit` en `lib/fuel/unit.ts`): una
+   preferencia de lectura no justifica una columna ni una migración.
+2. **Lista de compras sin plantilla.** `/compras/nueva` permite crear la
+   lista vacía (botón "Crear lista vacía" cuando no hay productos
+   tildados) y se llena desde `/compras/[id]` con el producto suelto de
+   siempre. `source_template_ids` queda en `null` en ese caso.
+3. **"Almacén" es la categoría por defecto de un producto nuevo**, en la
+   lista (`add-item-form.tsx`) y en la plantilla
+   (`template-item-form-dialog.tsx`), vía `defaultProductCategoryId` en
+   `lib/normalize.ts`: se busca por nombre normalizado ("almacen")
+   porque las categorías son de cada familia y no hay un id fijo. Si no
+   existe, "Sin categoría". Editar un producto respeta la que ya tenía.
+4. **La vista de una plantilla se agrupa por categoría (en el orden del
+   recorrido, `sort_order`) y dentro por nombre** (`localeCompare` en
+   español). Se sacó el arrastrar y soltar de los productos de plantilla
+   (y la acción `reorderTemplateItems`): con varias plantillas ese orden
+   manual se volvía arbitrario. El modo supermercado no cambió: ya
+   agrupaba por categoría.
+5. **Eventos del resumen del inicio con el día explícito** ("Hoy",
+   "Mañana") arriba de la hora, calculado en la zona de la familia
+   (`dateOnlyInFamilyTimezone`). Un evento de varios días que empezó
+   antes cuenta como "Hoy".
+6. **Tareas: avisos de nuevo y alta visible.** `FEATURES.tareasAvisos =
+   true` reactiva la generación y los avisos del cron sin volver a
+   mostrar el módulo en el inicio. `/tareas` tiene botón flotante de
+   "Nueva tarea" (antes solo se creaba desde el engranaje, en
+   `/tareas/definiciones`). Crear o editar una definición genera su
+   instancia en el momento si ya corresponde (`generateInstanceIfDue`
+   en `app/(app)/tareas/definiciones/actions.ts`, misma regla
+   `shouldGenerateInstance` que el cron): sin eso, una tarea recién
+   creada no aparecía hasta la corrida de las 07:00 del día siguiente
+   (o nunca, con el cron apagado) y parecía que no se había guardado.
+   El `unique(definition_id, due_date)` hace inofensivo el choque con el
+   cron. `lib/tasks/schedule.ts` no se tocó.
 
 ## Comandos útiles
 

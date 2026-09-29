@@ -293,23 +293,6 @@ export async function deleteTemplateItem(id: string, templateId: string): Promis
   return { success: true };
 }
 
-export async function reorderTemplateItems(
-  templateId: string,
-  orderedIds: string[],
-): Promise<ActionResult> {
-  const supabase = await createClient();
-
-  const updates = orderedIds.map((id, index) =>
-    supabase.from("template_items").update({ sort_order: index }).eq("id", id),
-  );
-  const results = await Promise.all(updates);
-  const failed = results.find((r) => r.error);
-  if (failed) return { error: "No se pudo guardar el nuevo orden." };
-
-  revalidatePath(`/compras/plantillas/${templateId}`);
-  return { success: true };
-}
-
 export async function moveOrCopyTemplateItem(
   itemId: string,
   targetTemplateId: string,

@@ -109,11 +109,11 @@ export function NewListWizard({
             );
           })}
         </div>
-        {templates.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Todavía no tenés plantillas. Creá una en Plantillas.
-          </p>
-        )}
+        <p className="text-sm text-muted-foreground">
+          {templates.length === 0
+            ? "Todavía no tenés plantillas: creá la lista vacía y agregá los productos a mano."
+            : "O creá la lista vacía y agregá los productos a mano."}
+        </p>
       </div>
 
       {selectedTemplates.map((template) => {
@@ -157,8 +157,8 @@ export function NewListWizard({
       ))}
 
       <StickyBottomBar>
-        <Button type="submit" className="w-full" size="lg" disabled={pending || totalChecked === 0}>
-          {pending ? "Creando…" : `Crear lista (${totalChecked})`}
+        <Button type="submit" className="w-full" size="lg" disabled={pending}>
+          {pending ? "Creando…" : totalChecked === 0 ? "Crear lista vacía" : `Crear lista (${totalChecked})`}
         </Button>
       </StickyBottomBar>
     </form>

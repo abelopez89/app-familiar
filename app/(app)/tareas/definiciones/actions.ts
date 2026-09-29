@@ -4,8 +4,39 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
+import { shouldGenerateInstance } from "@/lib/tasks/schedule";
+import { todayInFamilyTimezone } from "@/lib/dates";
 
 export type ActionResult = { error?: string; success?: boolean; id?: string };
+
+/**
+ * Genera la instancia pendiente de una definición si ya corresponde, con
+ * la misma regla que el cron diario (`shouldGenerateInstance`). Sin esto,
+ * una tarea recién creada no aparece en `/tareas` hasta la corrida de las
+ * 07:00 del día siguiente, y parece que no se guardó. El
+ * `unique(definition_id, due_date)` hace que un choque con el cron sea
+ * inofensivo (23505).
+ */
+async function generateInstanceIfDue(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  definition: { id: string; family_id: string; next_due_date: string; lead_days: number },
+) {
+  const { count } = await supabase
+    .from("task_instances")
+    .select("id", { count: "exact", head: true })
+    .eq("definition_id", definition.id)
+    .eq("status", "pendiente");
+  if (!shouldGenerateInstance(definition, (count ?? 0) > 0, todayInFamilyTimezone())) return;
+
+  const { error } = await supabase.from("task_instances").insert({
+    definition_id: definition.id,
+    family_id: definition.family_id,
+    due_date: definition.next_due_date,
+  });
+  if (error && error.code !== "23505") {
+    console.error("[tareas] no se pudo generar la instancia:", error);
+  }
+}
 
 const definitionSchema = z.object({
   title: z.string().trim().min(1, "El título es obligatorio."),
@@ -81,6 +112,13 @@ export async function createTaskDefinition(
 
   if (error || !data) return { error: "No se pudo crear la tarea." };
 
+  await generateInstanceIfDue(supabase, {
+    id: data.id,
+    family_id: context.family.id,
+    next_due_date: parsed.data.next_due_date,
+    lead_days: parsed.data.lead_days,
+  });
+
   revalidatePath("/tareas/definiciones");
   revalidatePath("/tareas");
   return { success: true, id: data.id };
@@ -97,7 +135,7 @@ export async function updateTaskDefinition(
   if ("error" in parsed) return { error: parsed.error };
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("task_definitions")
     .update({
       title: parsed.data.title,
@@ -111,9 +149,14 @@ export async function updateTaskDefinition(
       lead_days: parsed.data.lead_days,
       notify_telegram: parsed.data.notify_telegram,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id, family_id, next_due_date, lead_days, is_active")
+    .maybeSingle();
 
   if (error) return { error: "No se pudo actualizar la tarea." };
+  // Si se adelantó el vencimiento de una tarea sin instancia pendiente,
+  // que aparezca ya (misma regla que al crear).
+  if (updated?.is_active) await generateInstanceIfDue(supabase, updated);
 
   revalidatePath("/tareas/definiciones");
   revalidatePath(`/tareas/definiciones/${id}`);

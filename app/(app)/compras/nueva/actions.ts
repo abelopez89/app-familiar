@@ -10,10 +10,16 @@ import { todayInFamilyTimezone } from "@/lib/dates";
 export type ActionResult = { error?: string };
 
 const schema = z.object({
-  templateIds: z.array(z.string().uuid()).min(1, "Elegí al menos una plantilla."),
+  templateIds: z.array(z.string().uuid()),
   itemIds: z.array(z.string().uuid()),
 });
 
+/**
+ * Crea una lista a partir de las plantillas elegidas, o vacía si no se
+ * eligió ningún producto: para una compra suelta ("farmacia") no hace
+ * falta pasar por una plantilla. La lista vacía se llena después desde
+ * `/compras/[id]`, con el mismo campo de producto suelto de siempre.
+ */
 export async function createShoppingListFromTemplates(
   _prev: ActionResult,
   formData: FormData,
@@ -27,19 +33,14 @@ export async function createShoppingListFromTemplates(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  if (parsed.data.itemIds.length === 0) {
-    return { error: "Seleccioná al menos un producto." };
-  }
-
   const context = await getCurrentFamilyContext();
   if (!context) return { error: "No se encontró tu familia." };
 
   const supabase = await createClient();
 
-  const { data: items, error: itemsError } = await supabase
-    .from("template_items")
-    .select("*")
-    .in("id", parsed.data.itemIds);
+  const { data: items, error: itemsError } = parsed.data.itemIds.length
+    ? await supabase.from("template_items").select("*").in("id", parsed.data.itemIds)
+    : { data: [], error: null };
 
   if (itemsError || !items) return { error: "No se pudieron cargar los productos." };
 
@@ -69,13 +70,16 @@ export async function createShoppingListFromTemplates(
       family_id: context.family.id,
       shopping_date: todayInFamilyTimezone(),
       status: "abierta",
-      source_template_ids: parsed.data.templateIds,
+      // Solo las plantillas de las que efectivamente salió algún producto.
+      source_template_ids: dedupedItems.length ? parsed.data.templateIds : null,
       created_by: context.member.id,
     })
     .select("id")
     .single();
 
   if (listError || !list) return { error: "No se pudo crear la lista." };
+
+  if (dedupedItems.length === 0) redirect(`/compras/${list.id}`);
 
   const { error: insertError } = await supabase.from("shopping_list_items").insert(
     dedupedItems.map((item, index) => ({

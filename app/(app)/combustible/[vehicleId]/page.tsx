@@ -9,6 +9,8 @@ import {
 } from "@/lib/fuel/queries";
 import { computeFuelIntervals } from "@/lib/fuel/consumption";
 import { FUEL_TYPES } from "@/lib/fuel/constants";
+import { formatEfficiency } from "@/lib/fuel/efficiency";
+import { getFuelUnit } from "@/lib/fuel/unit";
 import { formatDate, todayInFamilyTimezone } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
 import { FEATURES } from "@/lib/features";
@@ -24,10 +26,11 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   if (!context) redirect("/login");
 
   const { vehicleId } = await params;
-  const [vehicle, logs, linkableAssets] = await Promise.all([
+  const [vehicle, logs, linkableAssets, unit] = await Promise.all([
     getVehicle(vehicleId),
     listFuelLogs(vehicleId),
     listLinkableVehicleAssets(vehicleId),
+    getFuelUnit(),
   ]);
 
   if (!vehicle) notFound();
@@ -83,7 +86,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         <CardContent className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">Rendimiento promedio</p>
-            <p>{averageKmPerLiter ? `${averageKmPerLiter.toFixed(1)} km/L` : "—"}</p>
+            <p>{averageKmPerLiter ? formatEfficiency(averageKmPerLiter, unit) : "—"}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Costo por km</p>
@@ -91,11 +94,11 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Mejor tramo</p>
-            <p>{best ? `${best.kmPerLiter.toFixed(1)} km/L` : "—"}</p>
+            <p>{best ? formatEfficiency(best.kmPerLiter, unit) : "—"}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Peor tramo</p>
-            <p>{worst ? `${worst.kmPerLiter.toFixed(1)} km/L` : "—"}</p>
+            <p>{worst ? formatEfficiency(worst.kmPerLiter, unit) : "—"}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Litros en {currentYear}</p>
@@ -113,7 +116,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           <CardTitle className="text-base">Rendimiento por carga</CardTitle>
         </CardHeader>
         <CardContent>
-          <PerformanceChart intervals={intervals} logDates={logDates} />
+          <PerformanceChart intervals={intervals} logDates={logDates} unit={unit} />
         </CardContent>
       </Card>
 

@@ -26,6 +26,7 @@ import { listPendingInstancesWithDetails } from "@/lib/tasks/queries";
 import { listExpiringDocuments } from "@/lib/documents/queries";
 import {
   addDaysToDateOnly,
+  dateOnlyInFamilyTimezone,
   dateOnlyToFamilyMidnightUtc,
   formatDate,
   formatTime,
@@ -271,8 +272,16 @@ async function Resumen() {
         >
           {todayAndTomorrow.map((event) => (
             <li key={event.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-              <span className="w-16 shrink-0 pt-0.5 text-xs font-medium text-muted-foreground tabular-nums">
-                {event.all_day ? "Todo el día" : formatTime(event.starts_at)}
+              {/*
+               * El día va explícito arriba de la hora: con eventos de hoy y
+               * de mañana mezclados, "18:00" sola no dice cuál es cuál. Un
+               * evento de varios días que empezó antes cuenta como "Hoy".
+               */}
+              <span className="w-16 shrink-0 pt-0.5 text-xs tabular-nums">
+                <span className="block font-semibold">{dayLabel(event.starts_at, today)}</span>
+                <span className="block font-medium text-muted-foreground">
+                  {event.all_day ? "Todo el día" : formatTime(event.starts_at)}
+                </span>
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{event.title}</span>
@@ -362,6 +371,14 @@ async function Resumen() {
       )}
     </section>
   );
+}
+
+/** "Hoy", "Mañana" o la fecha, en la zona de la familia (nunca la del celular). */
+function dayLabel(startsAt: string | Date, today: string): string {
+  const day = dateOnlyInFamilyTimezone(startsAt);
+  if (day <= today) return "Hoy";
+  if (day === addDaysToDateOnly(today, 1)) return "Mañana";
+  return formatDate(day, "EEE d");
 }
 
 function ResumenBloque({
