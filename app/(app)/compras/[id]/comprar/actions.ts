@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
+import { markListInProgress as markListInProgressService, setItemChecked } from "@/lib/services/compras";
 
 export type ActionResult = { error?: string };
 
@@ -16,26 +17,22 @@ export async function toggleItemChecked(
   if (!context) return { error: "No se encontró tu familia." };
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("shopping_list_items")
-    .update({
-      is_checked: isChecked,
-      checked_at: isChecked ? new Date().toISOString() : null,
-      checked_by: isChecked ? context.member.id : null,
-    })
-    .eq("id", itemId);
+  const result = await setItemChecked(
+    supabase,
+    { familyId: context.family.id, memberId: context.member.id },
+    itemId,
+    isChecked,
+  );
 
-  if (error) return { error: "No se pudo guardar el cambio." };
+  if (!result.ok) return { error: result.error };
   return {};
 }
 
 export async function markListInProgress(listId: string): Promise<void> {
+  const context = await getCurrentFamilyContext();
+  if (!context) return;
   const supabase = await createClient();
-  await supabase
-    .from("shopping_lists")
-    .update({ status: "en_curso" })
-    .eq("id", listId)
-    .eq("status", "abierta");
+  await markListInProgressService(supabase, context.family.id, listId);
 }
 
 const closeSchema = z.object({

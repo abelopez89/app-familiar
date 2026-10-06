@@ -4,8 +4,8 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
-import { checkConsumptionDrop, computeFuelIntervals, type FuelInterval } from "@/lib/fuel/consumption";
-import { buildFuelLogWarnings } from "@/lib/fuel/validation";
+import type { FuelInterval } from "@/lib/fuel/consumption";
+import { createFuelLog as createFuelLogService } from "@/lib/services/combustible";
 
 const fuelLogSchema = z.object({
   vehicle_id: z.string().trim().min(1, "Elegí un vehículo."),
@@ -61,67 +61,28 @@ export async function createFuelLog(
   if (!context) return { error: "No se encontró tu familia." };
 
   const supabase = await createClient();
-
-  const { data: vehicle } = await supabase
-    .from("vehicles")
-    .select("*")
-    .eq("id", data.vehicle_id)
-    .maybeSingle();
-  if (!vehicle) return { error: "Vehículo no encontrado." };
-
-  const { data: existingLogs } = await supabase
-    .from("fuel_logs")
-    .select("*")
-    .eq("vehicle_id", data.vehicle_id);
-
-  const candidate = {
-    odometer: data.odometer,
-    liters: data.liters,
-    total_amount: data.total_amount ?? null,
-    is_full_tank: data.is_full_tank,
-    resets_calculation: data.resets_calculation,
-  };
-
-  if (!data.confirmed) {
-    const warnings = buildFuelLogWarnings(existingLogs ?? [], candidate, vehicle.tank_capacity);
-    if (warnings.length > 0) return { warnings };
-  }
-
-  const { data: inserted, error } = await supabase
-    .from("fuel_logs")
-    .insert({
-      family_id: context.family.id,
-      vehicle_id: data.vehicle_id,
-      member_id: context.member.id,
+  const outcome = await createFuelLogService(
+    supabase,
+    { familyId: context.family.id, memberId: context.member.id },
+    {
+      vehicleId: data.vehicle_id,
       odometer: data.odometer,
       liters: data.liters,
-      total_amount: data.total_amount ?? null,
-      is_full_tank: data.is_full_tank,
-      resets_calculation: data.resets_calculation,
-      station: data.station || null,
-      fuel_grade: data.fuel_grade || null,
-      notes: data.notes || null,
-    })
-    .select("id")
-    .single();
+      totalAmount: data.total_amount ?? null,
+      isFullTank: data.is_full_tank,
+      resetsCalculation: data.resets_calculation,
+      station: data.station,
+      fuelGrade: data.fuel_grade,
+      notes: data.notes,
+      confirmed: data.confirmed,
+    },
+  );
 
-  if (error || !inserted) {
-    if (error?.code === "23505") {
-      return { error: "Ya cargaste una carga con ese kilometraje para este vehículo." };
-    }
-    return { error: "No se pudo guardar la carga." };
-  }
+  if (outcome.status === "error") return { error: outcome.error };
+  if (outcome.status === "warnings") return { warnings: outcome.warnings.map((w) => w.message) };
 
   revalidatePath("/combustible");
   revalidatePath(`/combustible/${data.vehicle_id}`);
 
-  const allLogs = [...(existingLogs ?? []), { id: inserted.id, ...candidate }];
-  const intervals = computeFuelIntervals(allLogs);
-  const interval = intervals.find((i) => i.toLogId === inserted.id);
-  const drop = checkConsumptionDrop(intervals);
-  const dropAlert = drop?.shouldAlert && drop.last.toLogId === inserted.id
-    ? { averagePrevious: drop.averagePrevious, last: drop.last }
-    : undefined;
-
-  return { success: true, id: inserted.id, interval, dropAlert };
+  return { success: true, id: outcome.id, interval: outcome.interval, dropAlert: outcome.dropAlert };
 }

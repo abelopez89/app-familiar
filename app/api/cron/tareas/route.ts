@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCronSecret } from "@/lib/env";
 import { formatDate, todayInFamilyTimezone } from "@/lib/dates";
-import { escapeTelegramHtml, sendTelegramMessage } from "@/lib/telegram";
+import { escapeTelegramHtml, sendTelegramMessage } from "@/lib/telegram/client";
+import { button, keyboard, shortLabel } from "@/lib/telegram/keyboards";
 import { daysOverdue, shouldGenerateInstance, shouldNotifyTaskInstance, shouldNotifyWarranty } from "@/lib/tasks/schedule";
 import { shouldNotifyDocumentExpiry } from "@/lib/documents/schedule";
 import { FEATURES } from "@/lib/features";
@@ -105,7 +106,7 @@ export async function GET(request: NextRequest) {
     membersByFamily.set(member.family_id, list);
   }
 
-  const taskLinesByChatId = new Map<number, { text: string; overdueDays: number }[]>();
+  const taskLinesByChatId = new Map<number, { text: string; overdueDays: number; instanceId: string; title: string }[]>();
   const notifiedInstanceIds: string[] = [];
 
   for (const instance of (pendingInstances ?? []) as TaskInstance[]) {
@@ -129,7 +130,7 @@ export async function GET(request: NextRequest) {
     for (const member of recipients) {
       if (!member.telegram_user_id) continue;
       const list = taskLinesByChatId.get(member.telegram_user_id) ?? [];
-      list.push({ text, overdueDays: overdue });
+      list.push({ text, overdueDays: overdue, instanceId: instance.id, title: definition.title });
       taskLinesByChatId.set(member.telegram_user_id, list);
       notifiedSomeone = true;
     }
@@ -218,9 +219,18 @@ export async function GET(request: NextRequest) {
       parts.push(...documentLines.map((line) => `• ${line}`));
     }
 
+    // Un botón "Marcar hecha" por tarea (Fase 7): lo atiende el router
+    // del bot (`th:<instanceId>`), que la completa con el mismo servicio
+    // que /tareas y edita este mensaje. Garantías y documentos no tienen
+    // acción posible desde el chat.
+    const markup =
+      taskLines.length > 0
+        ? keyboard(taskLines.map((line) => [button(`✓ Hecha: ${shortLabel(line.title, 26)}`, `th:${line.instanceId}`)]))
+        : undefined;
+
     let sent = false;
     try {
-      sent = await sendTelegramMessage(chatId, parts.join("\n"));
+      sent = await sendTelegramMessage(chatId, parts.join("\n"), markup);
     } catch (error) {
       console.error("[cron/tareas] error enviando a un destinatario:", error);
     }
@@ -249,6 +259,15 @@ export async function GET(request: NextRequest) {
       .update({ expiry_notified_at: new Date().toISOString() })
       .in("id", notifiedDocumentIds);
   }
+
+  // ============ 3. Limpieza del bot (Fase 7) ============
+  // `telegram_updates` solo sirve para deduplicar reintentos de Telegram,
+  // que llegan en minutos: con 7 días sobra. Sin esto crece para siempre.
+  const { error: cleanupError } = await supabase
+    .from("telegram_updates")
+    .delete()
+    .lt("received_at", new Date(Date.now() - 7 * 86_400_000).toISOString());
+  if (cleanupError) console.error("[cron/tareas] error limpiando telegram_updates:", cleanupError);
 
   return NextResponse.json({ generadas, enviados, errores });
 }

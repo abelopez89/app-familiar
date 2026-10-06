@@ -429,6 +429,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      telegram_sessions: {
+        Row: {
+          telegram_user_id: number;
+          member_id: string;
+          family_id: string;
+          state: string | null;
+          context: Record<string, unknown>;
+          chat_id: number | null;
+          last_message_id: number | null;
+          expires_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          telegram_user_id: number;
+          member_id: string;
+          family_id: string;
+          state?: string | null;
+          context?: Record<string, unknown>;
+          chat_id?: number | null;
+          last_message_id?: number | null;
+          expires_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          telegram_user_id?: number;
+          member_id?: string;
+          family_id?: string;
+          state?: string | null;
+          context?: Record<string, unknown>;
+          chat_id?: number | null;
+          last_message_id?: number | null;
+          expires_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      telegram_updates: {
+        Row: {
+          update_id: number;
+          received_at: string;
+        };
+        Insert: {
+          update_id: number;
+          received_at?: string;
+        };
+        Update: {
+          update_id?: number;
+          received_at?: string;
+        };
+        Relationships: [];
+      };
       assets: {
         Row: {
           id: string;
@@ -1062,6 +1113,7 @@ export type EventParticipant = Database["hogar"]["Tables"]["event_participants"]
 export type EventReminder = Database["hogar"]["Tables"]["event_reminders"]["Row"];
 export type TelegramLinkCode = Database["hogar"]["Tables"]["telegram_link_codes"]["Row"];
 export type ReminderDelivery = Database["hogar"]["Tables"]["reminder_deliveries"]["Row"];
+export type TelegramSessionRow = Database["hogar"]["Tables"]["telegram_sessions"]["Row"];
 export type Asset = Database["hogar"]["Tables"]["assets"]["Row"];
 export type TaskDefinition = Database["hogar"]["Tables"]["task_definitions"]["Row"];
 export type TaskInstance = Database["hogar"]["Tables"]["task_instances"]["Row"];

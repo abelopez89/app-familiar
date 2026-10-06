@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentFamilyContext } from "@/lib/family";
-import { getTelegramBotUsername } from "@/lib/telegram";
+import { getTelegramBotUsername } from "@/lib/telegram/client";
 import { TelegramLinkCard } from "./telegram-link-card";
 import { PageHeader } from "@/components/app-shell/page-header";
 

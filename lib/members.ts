@@ -1,10 +1,13 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentFamilyContext } from "@/lib/family";
+import { listActiveMembers as listActiveMembersService } from "@/lib/services/eventos";
 import type { FamilyMember } from "@/lib/supabase/types";
 
 /**
- * Miembros activos de la familia (RLS filtra por family_id).
+ * Miembros activos de la familia del usuario (la consulta vive en
+ * `lib/services/eventos.ts`, compartida con el bot de Telegram).
  *
  * Vive acá y no dentro de `lib/events` o `lib/tasks` porque los dos
  * módulos la necesitaban y cada uno tenía su propia copia: con `cache()`
@@ -13,11 +16,8 @@ import type { FamilyMember } from "@/lib/supabase/types";
  * tareas juntos. Una sola definición, un solo viaje a la base.
  */
 export const listActiveMembers = cache(async function listActiveMembers(): Promise<FamilyMember[]> {
+  const context = await getCurrentFamilyContext();
+  if (!context) return [];
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("family_members")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
-  return data ?? [];
+  return listActiveMembersService(supabase, context.family.id);
 });

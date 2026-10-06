@@ -2,8 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCronSecret } from "@/lib/env";
 import { expandOccurrences } from "@/lib/recurrence";
-import { escapeTelegramHtml, sendTelegramMessage } from "@/lib/telegram";
-import { formatDate, formatDateTime } from "@/lib/dates";
+import { escapeTelegramHtml, sendTelegramMessage } from "@/lib/telegram/client";
+import { dateOnlyInFamilyTimezone, formatDate, formatDateTime } from "@/lib/dates";
+import { button, keyboard } from "@/lib/telegram/keyboards";
 import type { Event, FamilyMember } from "@/lib/supabase/types";
 
 const WINDOW_FORWARD_HOURS = 72;
@@ -113,7 +114,14 @@ export async function GET(request: NextRequest) {
 
         let sent = false;
         try {
-          sent = await sendTelegramMessage(member.telegram_user_id, text);
+          // Botón "Ver agenda del día" (Fase 7): lo atiende el router del
+          // bot (`ag:<fecha>`). La fecha es la de la ocurrencia, en la zona
+          // de la familia.
+          sent = await sendTelegramMessage(
+            member.telegram_user_id,
+            text,
+            keyboard([[button("📅 Ver agenda del día", `ag:${dateOnlyInFamilyTimezone(occ.starts_at)}`)]]),
+          );
         } catch (error) {
           console.error("[cron/recordatorios] error enviando a un destinatario:", error);
         }
