@@ -13,6 +13,9 @@ export type FuelLogCandidate = {
   resets_calculation: boolean;
 };
 
+export type FuelLogWarningCode = "retroactive" | "overfill" | "odometer_jump" | "implausible_efficiency";
+export type FuelLogWarning = { code: FuelLogWarningCode; message: string };
+
 /**
  * Advertencias que piden confirmación pero dejan seguir (a diferencia de
  * las bloqueantes: litros <= 0 y odómetro duplicado, que se validan
@@ -24,17 +27,35 @@ export function buildFuelLogWarnings(
   candidate: FuelLogCandidate,
   tankCapacity: number | null,
 ): string[] {
-  const warnings: string[] = [];
+  return buildFuelLogWarningDetails(existingLogs, candidate, tankCapacity).map((w) => w.message);
+}
+
+/**
+ * Las mismas advertencias, con un código: el bot de Telegram necesita
+ * saber cuál es la de rendimiento implausible para ofrecer el botón de
+ * "me olvidé de registrar una carga anterior".
+ */
+export function buildFuelLogWarningDetails(
+  existingLogs: FuelLogLike[],
+  candidate: FuelLogCandidate,
+  tankCapacity: number | null,
+): FuelLogWarning[] {
+  const warnings: FuelLogWarning[] = [];
 
   const maxOdometer = existingLogs.reduce((max, l) => Math.max(max, l.odometer), -Infinity);
   if (existingLogs.length > 0 && candidate.odometer < maxOdometer) {
-    warnings.push(
-      "Estás cargando una carga anterior a la última registrada (¿te olvidaste de cargar una anterior?). ¿Es correcto?",
-    );
+    warnings.push({
+      code: "retroactive",
+      message:
+        "Estás cargando una carga anterior a la última registrada (¿te olvidaste de cargar una anterior?). ¿Es correcto?",
+    });
   }
 
   if (tankCapacity && candidate.liters > tankCapacity * (1 + TANK_CAPACITY_OVERFILL_MARGIN)) {
-    warnings.push(`Cargaste más litros de los que entran en el tanque (${tankCapacity} L). Revisá el dato.`);
+    warnings.push({
+      code: "overfill",
+      message: `Cargaste más litros de los que entran en el tanque (${tankCapacity} L). Revisá el dato.`,
+    });
   }
 
   const avgJump = averageOdometerJump(existingLogs);
@@ -47,7 +68,10 @@ export function buildFuelLogWarnings(
   if (avgJump && prevLog) {
     const jump = candidate.odometer - prevLog.odometer;
     if (jump > avgJump * IMPLAUSIBLE_JUMP_MULTIPLIER) {
-      warnings.push("El salto de kilometraje es mucho mayor al habitual de este vehículo. Revisá el dato.");
+      warnings.push({
+        code: "odometer_jump",
+        message: "El salto de kilometraje es mucho mayor al habitual de este vehículo. Revisá el dato.",
+      });
     }
   }
 
@@ -58,9 +82,10 @@ export function buildFuelLogWarnings(
       interval &&
       (interval.kmPerLiter < PLAUSIBLE_KM_PER_LITER_RANGE.min || interval.kmPerLiter > PLAUSIBLE_KM_PER_LITER_RANGE.max)
     ) {
-      warnings.push(
-        `El rendimiento resultante (${formatEfficiency(interval.kmPerLiter, "l100km")}, ${formatEfficiency(interval.kmPerLiter, "kml")}) es muy distinto al normal. Si te olvidaste de registrar una carga anterior, activá esa opción.`,
-      );
+      warnings.push({
+        code: "implausible_efficiency",
+        message: `El rendimiento resultante (${formatEfficiency(interval.kmPerLiter, "l100km")}, ${formatEfficiency(interval.kmPerLiter, "kml")}) es muy distinto al normal. Si te olvidaste de registrar una carga anterior, activá esa opción.`,
+      });
     }
   }
 

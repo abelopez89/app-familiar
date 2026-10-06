@@ -8,7 +8,9 @@ familia.
 Este repositorio implementa **Fase 0 (base)**, **Fase 1 (compras)**,
 **Fase 2 (eventos, calendario y notificaciones de Telegram)**, **Fase 3
 (tareas del hogar)**, **Fase 4 (combustible)**, **Fase 5 (centro de
-documentos)** y la **Fase Extra (rediseño de interfaz y performance)**.
+documentos)**, la **Fase Extra (rediseño de interfaz y performance)**,
+la **Fase 6 (gastos compartidos)** y la **Fase 7 (bot conversacional de
+Telegram)**.
 Ver [`CLAUDE.md`](./CLAUDE.md) para las convenciones del proyecto y el
 detalle de qué está implementado y qué no.
 
@@ -71,7 +73,12 @@ Orden de aplicación:
     archivos y políticas sobre `storage.objects` (Fase 5). Requiere
     además crear a mano el bucket privado `documentos` desde el
     dashboard de Supabase.
-11. (Opcional) `supabase/seed/categorias.sql` — categorías típicas de
+11. `supabase/migrations/011_gastos.sql` — gastos compartidos (Fase 6).
+12. `supabase/migrations/012_telegram_bot.sql` — sesiones y
+    deduplicación del bot conversacional de Telegram (Fase 7).
+13. `supabase/migrations/013_save_expense_bot.sql` — `save_expense()`
+    utilizable desde el bot, sin sesión (Fase 7).
+14. (Opcional) `supabase/seed/categorias.sql` — categorías típicas de
     supermercado. Reemplazar el `family_id` de ejemplo por el real antes
     de ejecutarlo.
 

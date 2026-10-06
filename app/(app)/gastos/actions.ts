@@ -7,17 +7,8 @@ import { getCurrentFamilyContext } from "@/lib/family";
 import { todayInFamilyTimezone } from "@/lib/dates";
 import { createDocument, deleteDocument } from "@/app/(app)/documentos/actions";
 import { CURRENCY_CODES, GUEST_COLORS } from "@/lib/expenses/constants";
-import {
-  checkExactAmounts,
-  parseScaledDecimal,
-  splitByWeights,
-  splitEqual,
-  splitExact,
-  toAmountPyg,
-  type Share,
-  MAX_RATE_DECIMALS,
-} from "@/lib/expenses/split";
-import type { GroupParticipant } from "@/lib/supabase/types";
+import { parseScaledDecimal, MAX_RATE_DECIMALS } from "@/lib/expenses/split";
+import { persistExpense, prepareExpense, type ExpenseSplitInput } from "@/lib/services/gastos";
 
 export type ActionResult = { error?: string; success?: boolean; id?: string };
 
@@ -26,11 +17,6 @@ function revalidateGroup(groupId: string) {
   revalidatePath(`/gastos/${groupId}`, "layout");
 }
 
-function sortParticipants(participants: GroupParticipant[]): GroupParticipant[] {
-  return [...participants].sort(
-    (a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),
-  );
-}
 
 /** Lee `rate_<MONEDA>` del formulario. Vacío = sin cotización por defecto. */
 function parseDefaultRates(formData: FormData): { rates: Record<string, number> | null; error?: string } {
@@ -329,62 +315,29 @@ export async function saveExpense(formData: FormData): Promise<ActionResult> {
 
   const context = await getCurrentFamilyContext();
   if (!context) return { error: "No se encontró tu familia." };
-
-  // --- Importe y cotización ---
-  const amount = data.amount.replace(",", ".");
-  if (data.currency === "PYG" && !/^\d+$/.test(amount)) {
-    return { error: "En guaraníes el importe va sin decimales." };
-  }
-  const rate = data.currency === "PYG" ? "1" : (data.exchange_rate ?? "").replace(",", ".");
-  if (data.currency !== "PYG" && !rate) return { error: `Falta la cotización de ${data.currency}.` };
-  const amountPyg = toAmountPyg(amount, rate);
-  if (amountPyg === null) return { error: "Revisá el importe y la cotización (hasta 2 y 6 decimales)." };
-  if (amountPyg < 1) return { error: "El gasto tiene que ser de al menos 1 Gs." };
+  const actor = { familyId: context.family.id, memberId: context.member.id };
 
   const supabase = await createClient();
 
-  const [{ data: group }, { data: participantRows }] = await Promise.all([
-    supabase.from("expense_groups").select("*").eq("id", data.group_id).maybeSingle(),
-    supabase.from("group_participants").select("*").eq("group_id", data.group_id),
-  ]);
-  if (!group) return { error: "Grupo no encontrado." };
-  const participants = sortParticipants(participantRows ?? []);
-  const inGroup = new Set(participants.map((p) => p.id));
-  if (!inGroup.has(data.paid_by)) return { error: "Quien pagó no participa de este grupo." };
+  // --- Importe, cotización y división (lib/services/gastos.ts) ---
+  // La misma función que usa el bot de Telegram: la división en enteros
+  // de guaraníes con resto determinístico no puede divergir entre los dos.
+  const split: ExpenseSplitInput =
+    data.split_method === "iguales"
+      ? { method: "iguales", participantIds: formData.getAll("split_ids").map(String) }
+      : data.split_method === "partes"
+        ? { method: "partes", weights: prefixedFields(formData, "weight_") }
+        : { method: "exactos", exacts: prefixedFields(formData, "exact_") };
 
-  // --- División ---
-  let shares: Share[];
-  try {
-    if (data.split_method === "iguales") {
-      const selected = new Set(formData.getAll("split_ids").map(String));
-      const ids = participants.filter((p) => selected.has(p.id)).map((p) => p.id);
-      if (ids.length === 0) return { error: "Elegí entre quiénes se divide." };
-      shares = splitEqual(amountPyg, ids);
-    } else if (data.split_method === "partes") {
-      const weights = participants
-        .filter((p) => formData.has(`weight_${p.id}`))
-        .map((p) => ({ participantId: p.id, weight: String(formData.get(`weight_${p.id}`) ?? "").trim() || "0" }));
-      if (weights.some((w) => parseScaledDecimal(w.weight, 2) === null)) {
-        return { error: "Los pesos tienen que ser números (hasta 2 decimales)." };
-      }
-      shares = splitByWeights(amountPyg, weights);
-    } else {
-      const exacts = participants
-        .filter((p) => formData.has(`exact_${p.id}`))
-        .map((p) => ({ participantId: p.id, amount: String(formData.get(`exact_${p.id}`) ?? "").replace(",", ".") }));
-      const check = checkExactAmounts(amount, exacts);
-      if (!check.ok) {
-        if (check.difference === 0) return { error: "Revisá los importes: hay uno que no es un número válido." };
-        const diff = Math.abs(check.difference).toLocaleString("es-PY", { maximumFractionDigits: 2 });
-        return {
-          error: `Los importes suman ${check.assigned.toLocaleString("es-PY", { maximumFractionDigits: 2 })} y el gasto es de ${Number(amount).toLocaleString("es-PY", { maximumFractionDigits: 2 })}: ${check.difference > 0 ? "faltan" : "sobran"} ${diff}.`,
-        };
-      }
-      shares = splitExact(amountPyg, amount, exacts);
-    }
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "No se pudo dividir el gasto." };
-  }
+  const prepared = await prepareExpense(supabase, actor.familyId, {
+    groupId: data.group_id,
+    amount: data.amount,
+    currency: data.currency,
+    exchangeRate: data.exchange_rate,
+    paidBy: data.paid_by,
+    split,
+  });
+  if (!prepared.ok) return { error: prepared.error };
 
   // --- Ticket (Centro de Documentos, Fase 5) ---
   // Se reutiliza `createDocument` tal cual: misma compresión (ya hecha en
@@ -398,7 +351,7 @@ export async function saveExpense(formData: FormData): Promise<ActionResult> {
     const docForm = new FormData();
     docForm.set("title", `Ticket: ${data.description}`);
     docForm.set("doc_type", "factura");
-    docForm.set("notes", `Gasto compartido del grupo "${group.name}".`);
+    docForm.set("notes", `Gasto compartido del grupo "${prepared.group.name}".`);
     docForm.append("files", receipt, receipt.name);
     const doc = await createDocument({}, docForm);
     if (doc.error || !doc.id) return { error: doc.error ?? "No se pudo guardar el ticket." };
@@ -406,43 +359,35 @@ export async function saveExpense(formData: FormData): Promise<ActionResult> {
     receiptDocumentId = doc.id;
   }
 
-  const { data: savedId, error } = await supabase.rpc("save_expense", {
-    p_expense_id: data.expense_id ?? null,
-    p_expense: {
-      group_id: data.group_id,
-      paid_by: data.paid_by,
-      category_id: data.category_id ?? null,
-      description: data.description,
-      spent_on: data.spent_on || todayInFamilyTimezone(),
-      amount,
-      currency: data.currency,
-      exchange_rate: rate,
-      payment_method: data.payment_method,
-      split_method: data.split_method,
-      receipt_document_id: receiptDocumentId,
-      notes: data.notes || null,
-    },
-    p_shares: shares.map((s) => ({ participant_id: s.participantId, share_pyg: s.sharePyg, weight: s.weight })),
+  const saved = await persistExpense(supabase, actor, prepared, {
+    expenseId: data.expense_id,
+    paidBy: data.paid_by,
+    categoryId: data.category_id ?? null,
+    description: data.description,
+    spentOn: data.spent_on,
+    currency: data.currency,
+    paymentMethod: data.payment_method,
+    splitMethod: data.split_method,
+    receiptDocumentId,
+    notes: data.notes || null,
   });
 
-  if (error || !savedId) {
+  if (!saved.ok) {
     if (createdReceiptId) await deleteDocument(createdReceiptId);
-    console.error("[gastos] save_expense falló:", error);
-    return { error: error?.code === "23514" ? error.message : "No se pudo guardar el gasto." };
-  }
-
-  // Si el grupo todavía no tenía cotización por defecto para esta moneda,
-  // queda la que se acaba de usar: el próximo gasto en reales ya la trae
-  // precargada. Nunca pisa una cotización por defecto existente.
-  if (data.currency !== "PYG" && !(group.default_rates ?? {})[data.currency]) {
-    await supabase
-      .from("expense_groups")
-      .update({ default_rates: { ...(group.default_rates ?? {}), [data.currency]: Number(rate) } })
-      .eq("id", group.id);
+    return { error: saved.error };
   }
 
   revalidateGroup(data.group_id);
-  return { success: true, id: savedId };
+  return { success: true, id: saved.id };
+}
+
+/** `weight_<id>` / `exact_<id>` del formulario → { id: valor } (solo los que vinieron). */
+function prefixedFields(formData: FormData, prefix: string): Record<string, string> {
+  const fields: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith(prefix) && typeof value === "string") fields[key.slice(prefix.length)] = value;
+  }
+  return fields;
 }
 
 export async function deleteExpense(id: string): Promise<ActionResult> {

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
+import { addLooseItem as addLooseItemService } from "@/lib/services/compras";
 
 export type ActionResult = { error?: string; success?: boolean; id?: string };
 
@@ -111,34 +112,23 @@ export async function addLooseItem(
   if (!context) return { error: "No se encontró tu familia." };
 
   const supabase = await createClient();
-
-  const { data: last } = await supabase
-    .from("shopping_list_items")
-    .select("sort_order")
-    .eq("list_id", listId)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const { data: created, error } = await supabase
-    .from("shopping_list_items")
-    .insert({
-      list_id: listId,
-      family_id: context.family.id,
+  const result = await addLooseItemService(
+    supabase,
+    { familyId: context.family.id, memberId: context.member.id },
+    {
+      listId,
       name: parsed.data.name,
-      category_id: parsed.data.category_id,
-      category_name: parsed.data.category_name,
+      categoryId: parsed.data.category_id,
+      categoryName: parsed.data.category_name,
       quantity: parsed.data.quantity,
       unit: parsed.data.unit,
-      sort_order: (last?.sort_order ?? 0) + 1,
-    })
-    .select("id")
-    .single();
+    },
+  );
 
-  if (error || !created) return { error: "No se pudo agregar el producto." };
+  if (!result.ok) return { error: result.error };
 
   revalidatePath(`/compras/${listId}`);
-  return { success: true, id: created.id };
+  return { success: true, id: result.id };
 }
 
 const addToTemplateSchema = z.object({

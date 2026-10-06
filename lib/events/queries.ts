@@ -1,6 +1,8 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentFamilyContext } from "@/lib/family";
+import { listEventsWithDetails as listEventsWithDetailsService } from "@/lib/services/eventos";
 // Reexportada desde lib/members.ts para que haya una sola instancia
 // memoizada por request (ver el comentario de ese archivo).
 export { listActiveMembers } from "@/lib/members";
@@ -21,26 +23,10 @@ export type EventWithDetails = Event & {
  * problema de escala en este proyecto.
  */
 export const listEventsWithDetails = cache(async function listEventsWithDetails(): Promise<EventWithDetails[]> {
+  const context = await getCurrentFamilyContext();
+  if (!context) return [];
   const supabase = await createClient();
-
-  const [eventsRes, participantsRes, remindersRes] = await Promise.all([
-    supabase.from("events").select("*").order("starts_at", { ascending: true }),
-    supabase.from("event_participants").select("*"),
-    supabase.from("event_reminders").select("*"),
-  ]);
-
-  if (eventsRes.error) throw eventsRes.error;
-
-  const participants = participantsRes.data ?? [];
-  const reminders = remindersRes.data ?? [];
-
-  return (eventsRes.data ?? []).map((event) => ({
-    ...event,
-    participant_ids: participants
-      .filter((p) => p.event_id === event.id)
-      .map((p) => p.member_id),
-    reminders: reminders.filter((r) => r.event_id === event.id),
-  }));
+  return listEventsWithDetailsService(supabase, context.family.id);
 });
 
 export async function getEventWithDetails(id: string): Promise<EventWithDetails | null> {

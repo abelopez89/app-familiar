@@ -80,6 +80,8 @@ export function TelegramLinkCard({
           <CardDescription>
             Vas a recibir por Telegram los recordatorios que marques con la
             opción &quot;Avisar también por Telegram&quot; al crear un evento.
+            Desde el chat también podés usar la lista de compras y cargar
+            gastos o combustible: escribile /menu al bot.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -99,8 +101,8 @@ export function TelegramLinkCard({
           Vincular Telegram
         </CardTitle>
         <CardDescription>
-          Recibí los recordatorios de tus eventos por Telegram, además del
-          calendario.
+          Recibí los recordatorios de tus eventos por Telegram y usá la lista
+          de compras, gastos y combustible desde el chat, sin abrir la app.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

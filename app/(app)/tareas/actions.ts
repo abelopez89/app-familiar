@@ -3,17 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
-import { dateOnlyToFamilyMidnightUtc, todayInFamilyTimezone } from "@/lib/dates";
-import { computeNextDueDateOnComplete, computeNextDueDateOnSkip } from "@/lib/tasks/schedule";
+import { todayInFamilyTimezone } from "@/lib/dates";
+import { computeNextDueDateOnSkip } from "@/lib/tasks/schedule";
+import {
+  completeTaskInstance as completeTaskInstanceService,
+  type UndoCompleteState,
+} from "@/lib/services/tareas";
 
 export type ActionResult = { error?: string; success?: boolean };
 
-export type UndoCompleteState = {
-  instanceId: string;
-  definitionId: string;
-  previousNextDueDate: string;
-  previousIsActive: boolean;
-};
+export type { UndoCompleteState };
 
 export type CompleteResult = ActionResult & { undo?: UndoCompleteState };
 
@@ -21,7 +20,8 @@ export type CompleteResult = ActionResult & { undo?: UndoCompleteState };
  * Marca una instancia como hecha y recalcula next_due_date en la
  * definición (o la desactiva si era una tarea única). Devuelve el estado
  * previo de la definición para poder deshacer desde la UI (quick-complete
- * con toast de deshacer).
+ * con toast de deshacer). La lógica vive en `lib/services/tareas.ts`,
+ * compartida con el botón "Marcar hecha" de los avisos de Telegram.
  */
 export async function completeTaskInstance(
   instanceId: string,
@@ -31,58 +31,19 @@ export async function completeTaskInstance(
   if (!context) return { error: "No se encontró tu familia." };
 
   const supabase = await createClient();
-
-  const { data: instance } = await supabase
-    .from("task_instances")
-    .select("*")
-    .eq("id", instanceId)
-    .maybeSingle();
-  if (!instance) return { error: "Tarea no encontrada." };
-
-  const { data: definition } = await supabase
-    .from("task_definitions")
-    .select("*")
-    .eq("id", instance.definition_id)
-    .maybeSingle();
-  if (!definition) return { error: "Definición no encontrada." };
-
-  const today = todayInFamilyTimezone();
-  const completedAtDate = options.completedAt ?? today;
-
-  const nextDueDate = computeNextDueDateOnComplete(definition, completedAtDate, instance.due_date, today);
-
-  const { error: instanceError } = await supabase
-    .from("task_instances")
-    .update({
-      status: "hecha",
-      completed_at: dateOnlyToFamilyMidnightUtc(completedAtDate).toISOString(),
-      completed_by: context.member.id,
-      notes: options.notes ?? null,
-      cost: options.cost ?? null,
-    })
-    .eq("id", instanceId);
-
-  if (instanceError) return { error: "No se pudo completar la tarea." };
-
-  if (nextDueDate === null) {
-    await supabase.from("task_definitions").update({ is_active: false }).eq("id", definition.id);
-  } else {
-    await supabase.from("task_definitions").update({ next_due_date: nextDueDate }).eq("id", definition.id);
-  }
+  const result = await completeTaskInstanceService(
+    supabase,
+    { familyId: context.family.id, memberId: context.member.id },
+    instanceId,
+    options,
+  );
+  if (!result.ok) return { error: result.error };
 
   revalidatePath("/tareas");
   revalidatePath("/");
-  revalidatePath(`/tareas/definiciones/${definition.id}`);
+  revalidatePath(`/tareas/definiciones/${result.definition.id}`);
 
-  return {
-    success: true,
-    undo: {
-      instanceId,
-      definitionId: definition.id,
-      previousNextDueDate: definition.next_due_date,
-      previousIsActive: definition.is_active,
-    },
-  };
+  return { success: true, undo: result.undo };
 }
 
 /**

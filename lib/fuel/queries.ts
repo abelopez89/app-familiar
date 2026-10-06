@@ -1,16 +1,19 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentFamilyContext } from "@/lib/family";
+import {
+  getLastFuelLog as getLastFuelLogService,
+  getLastUsedVehicleId as getLastUsedVehicleIdService,
+  listVehicles as listVehiclesService,
+} from "@/lib/services/combustible";
 import type { Asset, FuelLog, TaskDefinition, Vehicle } from "@/lib/supabase/types";
 
 export const listVehicles = cache(async function listVehicles(): Promise<Vehicle[]> {
+  const context = await getCurrentFamilyContext();
+  if (!context) return [];
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("vehicles")
-    .select("*")
-    .eq("is_active", true)
-    .order("name", { ascending: true });
-  return data ?? [];
+  return listVehiclesService(supabase, context.family.id);
 });
 
 export async function getVehicle(id: string): Promise<Vehicle | null> {
@@ -36,15 +39,10 @@ export async function listFuelLogs(vehicleId: string): Promise<FuelLog[]> {
 }
 
 export async function getLastFuelLog(vehicleId: string): Promise<FuelLog | null> {
+  const context = await getCurrentFamilyContext();
+  if (!context) return null;
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("fuel_logs")
-    .select("*")
-    .eq("vehicle_id", vehicleId)
-    .order("odometer", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data ?? null;
+  return getLastFuelLogService(supabase, context.family.id, vehicleId);
 }
 
 /**
@@ -52,15 +50,10 @@ export async function getLastFuelLog(vehicleId: string): Promise<FuelLog | null>
  * odómetro) — sirve para preseleccionar el campo en /combustible/nueva.
  */
 export async function getLastUsedVehicleId(memberId: string): Promise<string | null> {
+  const context = await getCurrentFamilyContext();
+  if (!context) return null;
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("fuel_logs")
-    .select("vehicle_id")
-    .eq("member_id", memberId)
-    .order("filled_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data?.vehicle_id ?? null;
+  return getLastUsedVehicleIdService(supabase, context.family.id, memberId);
 }
 
 /**

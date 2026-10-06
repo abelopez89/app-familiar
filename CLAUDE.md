@@ -120,10 +120,22 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   avisar por Telegram (bandera `tareasAvisos`) y se puede crear una
   tarea desde `/tareas`, sin volver al inicio. Ver "Mejoras post-Fase 6"
   más abajo.
-- Migraciones `001` a `011` aplicadas y confirmadas en la base
-  compartida. Antes de escribir la migración `012`, mirá
-  `supabase/migrations/` para confirmar el próximo número — no lo
-  asumas.
+- **Fase 7 (bot conversacional de Telegram): implementada, pendiente
+  de verificación en producción.** Migraciones `012` (tablas
+  `telegram_sessions` y `telegram_updates`) y `013` (`save_expense()`
+  usable sin sesión) aplicadas y confirmadas en la base. Cubre: capa de servicios compartida entre
+  Server Actions y bot (`lib/services/`), `lib/telegram/` (cliente,
+  router, sesiones, teclados, flujos), comandos `/menu`, `/hoy`,
+  `/compra`, `/gasto`, `/nafta`, `/cancelar`, botón "Marcar hecha" en el
+  aviso diario de tareas y "Ver agenda del día" en los recordatorios de
+  eventos, y la limpieza de `telegram_updates` en el cron diario. Ver la
+  sección "Fase 7" más abajo. **No** incluye: crear eventos por chat,
+  subir documentos por foto, divisiones de gastos por pesos o importes
+  exactos por chat, ni chats de grupo.
+- Migraciones `001` a `013` aplicadas y confirmadas en la base
+  compartida. Antes de escribir la
+  migración `014`, mirá `supabase/migrations/` para confirmar el próximo
+  número — no lo asumas.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
   siguiente sobre grants de tabla para `authenticated`, la regla 12
@@ -153,6 +165,10 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `app/api/telegram/webhook/route.ts` (POST, lo llama Telegram),
   `app/api/cron/recordatorios/route.ts` (GET, lo llama cron-job.org) y
   `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3).
+  Desde la Fase 7 la lógica de negocio de esas mutaciones vive en
+  `lib/services/` (ver "Fase 7"): la Server Action resuelve familia y
+  miembro desde la sesión y delega; el bot hace lo mismo desde
+  `telegram_user_id`.
 - Sin librerías de estado global (Redux, Zustand). Alcanza con Server
   Components + estado local de React.
 - Sin tests automatizados en esta etapa.
@@ -349,7 +365,7 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `011` corridas a mano en Supabase y confirmadas funcionando —
+`001` a `013` corridas en Supabase y confirmadas funcionando —
 incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 
 | Archivo | Contenido |
@@ -365,8 +381,10 @@ incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 | `009_combustible.sql` | `vehicles`, `fuel_logs` + RLS + grants (ver sección Fase 4 más abajo). |
 | `010_documentos.sql` | `document_categories`, `documents`, `document_files`, FK `assets.document_id`, políticas sobre `storage.objects` (ver sección Fase 5 más abajo). |
 | `011_gastos.sql` | `expense_categories`, `expense_groups`, `group_participants`, `expenses`, `expense_shares`, `settlements` + RLS + grants, función `hogar.save_expense()` y seed de categorías para las familias existentes (ver sección Fase 6 más abajo). |
+| `012_telegram_bot.sql` | `telegram_sessions` y `telegram_updates`: RLS con política `using (false)`, **sin** grants a `authenticated`/`anon` (revocados explícitos, porque el default privilege de la 005 se los daría), grants solo a `service_role` (ver sección Fase 7). |
+| `013_save_expense_bot.sql` | `hogar.save_expense()` acepta `family_id`/`created_by` en el payload **solo** si quien llama es `service_role` y no hay sesión; verifica que el grupo y el miembro sean de esa familia. Para `authenticated` no cambia nada (ver sección Fase 7). |
 
-La próxima migración de cualquier fase nueva es `012_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `014_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
@@ -415,6 +433,14 @@ Tres clientes separados, no los mezcles:
   de recordatorios usan el admin client por el mismo motivo (sin
   sesión), pero ahí no hay riesgo de fuga entre familias porque operan
   sobre filas ya resueltas por id.
+
+  **El bot conversacional (Fase 7) es el segundo lugar con el mismo
+  riesgo que el feed ICS**: corre con el admin client y sin RLS, sobre
+  ids que llegan en `callback_data` (los manda Telegram, pero los puede
+  fabricar cualquiera que le escriba al bot). Por eso todo pasa por
+  `lib/services/`, donde **cada consulta filtra por `family_id` a mano**,
+  con la familia resuelta desde `telegram_user_id`. Ver la sección
+  "Fase 7".
 
 ## Estructura de rutas
 
@@ -553,10 +579,10 @@ Tres clientes separados, no los mezcles:
    `lib/ics.ts` (`foldIcsLine`, `escapeIcsText`) — el folding corta por
    bytes UTF-8, no por caracteres, para no partir una tilde o una ñ a la
    mitad a los 75 octetos.
-6. **El notificador de Telegram es de una vía.** No agregues comandos
-   conversacionales, sesiones con estado ni inline keyboards al webhook
-   (`app/api/telegram/webhook/route.ts`) — entiende únicamente `/start`
-   y `/vincular <código>`. Eso es una fase futura sin spec en este repo.
+6. ~~El notificador de Telegram es de una vía.~~ Superado por la Fase 7:
+   el webhook ahora delega en el router del bot conversacional
+   (`lib/telegram/router.ts`). `/vincular <código>` sigue igual (se movió
+   a `lib/telegram/flows/vincular.ts` sin cambios).
 7. **La vinculación de Telegram se resuelve contra `member_id`, nunca
    contra email.** `auth.users` es compartida entre las 4 apps del
    proyecto — no asumas nada sobre "usuario nuevo" a partir de esa
@@ -1113,6 +1139,174 @@ variables de entorno; la próxima migración sigue siendo la `012`.
    (o nunca, con el cron apagado) y parecía que no se había guardado.
    El `unique(definition_id, due_date)` hace inofensivo el choque con el
    cron. `lib/tasks/schedule.ts` no se tocó.
+
+## Fase 7 — Bot conversacional de Telegram: decisiones a respetar
+
+### La capa de servicios (`lib/services/`)
+
+1. **Por qué existe.** Antes de esta fase toda mutación vivía en una
+   Server Action que derivaba la familia de la sesión vía RLS. El bot no
+   tiene sesión: llega por webhook, se identifica por `telegram_user_id`
+   y trabaja con el admin client. Reimplementar en el webhook "agregar un
+   producto", "dividir un gasto" o "validar una carga" dejaría dos
+   versiones de cada regla, y la del bot se quedaría atrás sin que nadie
+   se entere (un gasto sin el reparto determinístico del resto rompe el
+   invariante de suma cero). Por eso la lógica se movió a funciones que
+   reciben **`db`, `familyId` y `memberId` como parámetros explícitos**
+   (`Actor`, `Db` y `ServiceResult` en `lib/services/types.ts`).
+2. **Las Server Actions son envoltorios finos**: validan el formulario,
+   resuelven `familyId`/`memberId` con `getCurrentFamilyContext()`, le
+   pasan el cliente de sesión al servicio y hacen `revalidatePath` /
+   `redirect`. El refactor fue **movimiento de código**: mismos mensajes
+   de error, mismo orden de validaciones, misma respuesta. El bot llama
+   a los mismos servicios con el admin client.
+3. **Cada consulta de un servicio filtra por `family_id` en el código**,
+   aunque con el cliente de sesión RLS ya lo haga. Con el admin client
+   ese `.eq("family_id", familyId)` es lo único que separa a una familia
+   de otra — mismo cuidado que el feed ICS. Un servicio nuevo que se
+   olvide de ese filtro es una fuga entre familias por el bot.
+4. **Qué se movió (solo lo que el bot usa, módulo por módulo):**
+   - `compras.ts`: lista abierta, ítems, categorías, plantillas, crear
+     lista (dedup + snapshot), tildar, pasar a "en curso", producto
+     suelto, y `productCategoryGuesser` (categoría de un producto escrito
+     a mano: la de la plantilla si existe, si no "Almacén").
+   - `gastos.ts`: `prepareExpense` (importe, cotización, división con
+     `split.ts`) y `persistExpense` (`save_expense()` + cotización por
+     defecto del grupo), `listGroupSummaries`, `fetchAllPages`,
+     `sortParticipants`. `saveExpense` (la acción) hace prepare → ticket
+     → persist, igual que antes.
+   - `combustible.ts`: `createFuelLog` (devuelve `error` / `warnings` /
+     `saved`) y lecturas de vehículos y cargas.
+     `lib/fuel/validation.ts` ganó `buildFuelLogWarningDetails` (la misma
+     lista con un código por advertencia, para que el bot sepa cuándo
+     ofrecer "me olvidé de una carga"); `buildFuelLogWarnings` sigue
+     devolviendo los mismos textos.
+   - `tareas.ts`: `completeTaskInstance` y las instancias pendientes.
+   - `eventos.ts`: eventos con participantes/recordatorios y miembros
+     activos (lecturas para `/hoy`).
+   Las consultas memoizadas de la app (`lib/*/queries.ts`,
+   `lib/members.ts`) delegan en estos servicios en vez de repetir la
+   consulta. **No** se tocaron módulos que el bot no usa (documentos,
+   eventos ABM, activos, vehículos ABM, plantillas, etc.).
+5. **`hogar.save_expense()` y el service role (migración 013).** La
+   función tomaba la familia de `current_family_id()`, que es `null` sin
+   sesión. La 013 la deja tomar `family_id`/`created_by` del payload
+   **solo** si `current_user = 'service_role'` (el rol al que cambia
+   PostgREST; un usuario autenticado no puede hacerse pasar por él), y
+   agrega las verificaciones que RLS hacía sola: el grupo y el miembro
+   son de esa familia, la edición filtra por `family_id`. Para la app no
+   cambia nada. Se descartó insertar gasto y partes por separado desde
+   el bot: se perdería la transacción.
+
+### El bot (`lib/telegram/`)
+
+6. **Estructura.** `client.ts` (absorbió el viejo `lib/telegram.ts`:
+   `sendTelegramMessage` y `escapeTelegramHtml` se comportan igual, y
+   `sendTelegramMessage` acepta botones opcionales), `router.ts`,
+   `session.ts`, `keyboards.ts`, `context.ts` (`show`: editar o mandar)
+   y `flows/` (`compras`, `gastos`, `combustible`, `hoy`, `vincular`).
+   **Los flujos no consultan la base para lógica de negocio**: llaman a
+   `lib/services/`. Sin dependencias de bot (nada de Telegraf/grammY):
+   `fetch` contra la Bot API.
+7. **Orden del router, y por qué:** (1) solo chats privados — en un
+   grupo no se sabe quién pide qué, y se cargarían gastos a nombre
+   equivocado; un update de grupo se ignora sin responder. (2)
+   Deduplicación por `update_id`: se inserta en `telegram_updates`
+   **antes** de procesar; si choca contra la primary key, ya se procesó
+   (Telegram reintenta si tardás, y un reintento de "guardar gasto"
+   duplicaría el gasto). (3) `answerCallbackQuery` enseguida en cada
+   toque, en paralelo con el trabajo (si no, el botón queda con el reloj
+   girando y la persona toca de nuevo). (4) Vinculación: `/start` y
+   `/vincular` andan siempre; cualquier otra cosa de alguien no
+   vinculado recibe la instrucción de vincularse y nada más. (5) Un
+   comando descarta el diálogo en curso; un texto suelto se interpreta
+   según el paso del diálogo.
+8. **El miembro sale SIEMPRE de `family_members.telegram_user_id`** en
+   cada update, nunca de la sesión ni de `auth.users`. La sesión guarda
+   `member_id`/`family_id` como caché; si no coinciden con la
+   vinculación actual (se desvinculó, se vinculó a otra familia), el
+   diálogo se descarta.
+9. **`callback_data` tiene un límite duro de 64 bytes.** Un UUID son
+   36: entra uno con un prefijo corto, dos nunca. Todo payload es
+   `acción:identificador` (a lo sumo un número chico extra, como la
+   página de la lista: `lp:<listId>:<n>`). El resto del contexto (grupo
+   elegido, monto, borrador) va en `telegram_sessions.context`.
+   `button()` en `keyboards.ts` revienta si un payload se pasa de 64
+   bytes — es un error de programación, mejor verlo en el primer
+   intento. Prefijos: `l*` compras, `g*` gastos, `f*` combustible,
+   `th`/`ag`/`hl` avisos y `/hoy`, `m:` menú, `x` cancelar, `nop` rótulo.
+10. **Sesiones de 10 minutos** (`SESSION_TTL_MS`). Un diálogo abandonado
+    no puede tomar un mensaje suelto de mañana como "el monto del gasto".
+    El paso vence; el "mensaje vivo" (`last_message_id`) no — los
+    botones de la lista de compras no dependen de la sesión y siguen
+    andando en un mensaje viejo.
+11. **Guardar es atómico (`claimDialog`).** Dos toques de "Guardar" son
+    dos updates distintos, así que la deduplicación por `update_id` no
+    los frena. `claimDialog` limpia el estado con un
+    `UPDATE … WHERE state = 'gasto:confirmar'` y solo el que gana guarda.
+    Ojo: ese `UPDATE` **no** vacía `context` — `RETURNING` devuelve la
+    fila ya actualizada y se perdería el borrador (pasó en la primera
+    versión).
+12. **Botones, no sintaxis.** Texto libre solo donde no hay
+    alternativa: importe, kilometraje, litros, nombre de producto. Al
+    tocar un botón se **edita** el mensaje existente (`show` en
+    `context.ts`); cuando el paso lo dispara un texto, al mensaje
+    anterior se le sacan los botones y el paso nuevo va abajo. Tildar un
+    producto no pide confirmación (mismo criterio que el modo
+    supermercado).
+13. **Compras.** Paginado por categoría en el orden del recorrido, con
+    la misma agrupación que el modo supermercado; tachado con U+0336 en
+    el botón (los botones no admiten HTML). Tildar desde el bot pasa la
+    lista a "en curso", igual que abrir el modo supermercado. "Agregar"
+    acepta `leche 2` (cantidad al final) y varios productos, uno por
+    línea; la categoría sale de la plantilla si el producto ya existe, si
+    no "Almacén". Cerrar la compra (con total) sigue siendo de la app.
+14. **Gastos.** Defaults agresivos para que el camino rápido sea dos
+    textos y dos toques: paga quien escribe (si participa; si no, se
+    pregunta), partes iguales entre los participantes activos, fecha de
+    hoy, método de pago del último gasto del grupo. `45000 cena` toma
+    importe y descripción juntos; en guaraníes "150.000" es 150000. Las
+    monedas que se ofrecen son guaraníes más las que tienen cotización
+    por defecto en el grupo. La confirmación muestra las partes que
+    calculó `prepareExpense` — las mismas que se guardan. Por pesos o
+    importes exactos: en la app.
+15. **Combustible.** Mismas validaciones que la pantalla vía
+    `createFuelLog`; las advertencias se muestran con "Guardar igual",
+    "Corregir km" y, si el rendimiento da implausible, "Me olvidé de
+    registrar una carga anterior" (`resets_calculation`). En el chat el
+    kilometraje acepta punto de miles ("45.320"); los litros, coma o
+    punto decimal. El rendimiento se muestra en L/100 km con km/L entre
+    paréntesis (la preferencia por cookie de la app no existe en el bot).
+16. **`/hoy`** es de solo lectura y sin estado: eventos de hoy y mañana
+    (vía `buildDisplayEvents`, sin duplicar la expansión de
+    recurrencia), tareas vencidas (si `FEATURES.tareas` o
+    `tareasAvisos`), lista abierta con lo que falta y el balance propio
+    en cada grupo de gastos abierto. Todo en una sola tanda de consultas
+    en paralelo.
+17. **Botones en los avisos de los crons.** El aviso diario agrega un
+    "✓ Hecha: …" por tarea (`th:<instanceId>`): completa con el mismo
+    servicio que `/tareas` y edita los botones del mensaje. Si la tarea
+    ya no está pendiente (la marcó otro, doble toque) no la vuelve a
+    completar — completar dos veces correría el vencimiento dos veces.
+    Los recordatorios de eventos traen "📅 Ver agenda del día"
+    (`ag:<yyyy-MM-dd>`, fecha de la ocurrencia en la zona de la
+    familia). Garantías y documentos no tienen acción por chat.
+18. **`telegram_updates` se limpia en el cron diario**
+    (`/api/cron/tareas`): filas de más de 7 días. Los reintentos de
+    Telegram llegan en minutos.
+19. **Menú de comandos**: se registra a mano con `setMyCommands` (no hay
+    código que lo haga en cada deploy): `menu`, `hoy`, `compra`,
+    `gasto`, `nafta`, `cancelar`. El router acepta además `/start`,
+    `/compras`, `/combustible` y `/vincular`.
+20. **Qué no hacer:** no reimplementar lógica de negocio en el webhook ni
+    en `lib/telegram/flows/` (todo pasa por `lib/services/`); no usar el
+    admin client sin filtrar por `familyId`; no meter dos UUIDs en un
+    `callback_data`; no responder a chats de grupo; no crear eventos por
+    chat ni subir documentos por foto (fuera de alcance a propósito); no
+    implementar divisiones avanzadas de gastos por chat; no agregar
+    librerías de bot; no tocar `lib/recurrence.ts`,
+    `lib/tasks/schedule.ts`, `lib/fuel/consumption.ts` ni `lib/ics.ts`
+    por este módulo.
 
 ## Comandos útiles
 
