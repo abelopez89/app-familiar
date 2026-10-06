@@ -121,10 +121,9 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   tarea desde `/tareas`, sin volver al inicio. Ver "Mejoras post-Fase 6"
   más abajo.
 - **Fase 7 (bot conversacional de Telegram): implementada, pendiente
-  de verificación en producción.** Migración `012` aplicada (tablas
-  `telegram_sessions` y `telegram_updates`); la `013` (`save_expense()`
-  usable sin sesión) está escrita y **hay que aplicarla antes de que el
-  bot pueda guardar gastos**. Cubre: capa de servicios compartida entre
+  de verificación en producción.** Migraciones `012` (tablas
+  `telegram_sessions` y `telegram_updates`) y `013` (`save_expense()`
+  usable sin sesión) aplicadas y confirmadas en la base. Cubre: capa de servicios compartida entre
   Server Actions y bot (`lib/services/`), `lib/telegram/` (cliente,
   router, sesiones, teclados, flujos), comandos `/menu`, `/hoy`,
   `/compra`, `/gasto`, `/nafta`, `/cancelar`, botón "Marcar hecha" en el
@@ -133,8 +132,8 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   sección "Fase 7" más abajo. **No** incluye: crear eventos por chat,
   subir documentos por foto, divisiones de gastos por pesos o importes
   exactos por chat, ni chats de grupo.
-- Migraciones `001` a `012` aplicadas y confirmadas en la base
-  compartida; `013` escrita, pendiente de aplicar. Antes de escribir la
+- Migraciones `001` a `013` aplicadas y confirmadas en la base
+  compartida. Antes de escribir la
   migración `014`, mirá `supabase/migrations/` para confirmar el próximo
   número — no lo asumas.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
@@ -366,9 +365,8 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `012` corridas en Supabase y confirmadas funcionando —
+`001` a `013` corridas en Supabase y confirmadas funcionando —
 incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
-`013` pendiente de aplicar.
 
 | Archivo | Contenido |
 | --- | --- |
