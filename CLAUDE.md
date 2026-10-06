@@ -111,7 +111,8 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   incluye: control de gastos personales ni presupuesto, varios
   pagadores por gasto, directorio global de invitados, conversión de
   monedas por API, cron ni avisos de Telegram de gastos.
-- **Mejoras post-Fase 6** (sin migraciones): rendimiento de combustible
+- **Mejoras post-Fase 6: implementadas y verificadas en producción**
+  (el usuario las probó desde el celular), sin migraciones: rendimiento de combustible
   en L/100 km por defecto con selector a km/L; listas de compras sin
   plantilla; "Almacén" como categoría por defecto de un producto nuevo;
   plantillas ordenadas por categoría y nombre; día explícito ("Hoy",
@@ -1065,6 +1066,9 @@ Tres clientes separados, no los mezcles:
     `lib/ics.ts` por este módulo.
 
 ## Mejoras post-Fase 6: decisiones a respetar
+
+Implementadas y verificadas en producción. Ninguna agregó migraciones ni
+variables de entorno; la próxima migración sigue siendo la `012`.
 
 1. **Rendimiento en L/100 km por defecto, configurable a km/L.** El
    cálculo sigue en km/L dentro de `lib/fuel/consumption.ts` (que no se
