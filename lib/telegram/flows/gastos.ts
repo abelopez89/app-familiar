@@ -2,7 +2,7 @@ import "server-only";
 import { escapeTelegramHtml } from "@/lib/telegram/client";
 import { button, CANCEL_BUTTON, chunk, keyboard, shortLabel } from "@/lib/telegram/keyboards";
 import { claimDialog, clearDialog, setDialog } from "@/lib/telegram/session";
-import { show, type BotContext } from "@/lib/telegram/context";
+import { show, showSaved, type BotContext } from "@/lib/telegram/context";
 import { expiredDialog } from "@/lib/telegram/router";
 import { addDaysToDateOnly, formatDate, todayInFamilyTimezone } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
@@ -467,7 +467,7 @@ async function saveGasto(ctx: BotContext, group: ExpenseGroup) {
       ? `\nEn ${escapeTelegramHtml(group.name)} ${describeBalance(summary.myBalance, formatGuaranies)}.`
       : "";
 
-  await show(
+  await showSaved(
     ctx,
     `✅ Guardado: <b>${escapeTelegramHtml(draft.description ?? "")}</b> — ${formatGuaranies(prepared.amountPyg)}` +
       (draft.currency !== "PYG" ? ` (${currencySymbol(draft.currency)} ${Number(prepared.amount).toLocaleString("es-PY")})` : "") +

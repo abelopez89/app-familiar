@@ -2,7 +2,7 @@ import "server-only";
 import { escapeTelegramHtml } from "@/lib/telegram/client";
 import { button, CANCEL_BUTTON, keyboard, shortLabel } from "@/lib/telegram/keyboards";
 import { claimDialog, clearDialog, setDialog } from "@/lib/telegram/session";
-import { show, type BotContext } from "@/lib/telegram/context";
+import { show, showSaved, type BotContext } from "@/lib/telegram/context";
 import { expiredDialog } from "@/lib/telegram/router";
 import { formatGuaranies } from "@/lib/format";
 import { formatEfficiency } from "@/lib/fuel/efficiency";
@@ -216,7 +216,7 @@ async function save(ctx: BotContext, vehicle: Vehicle, draft: NaftaDraft, confir
         "la presión de los neumáticos, el filtro de aire, el estilo de manejo, o si hubo un viaje fuera de lo común.",
     );
   }
-  await show(ctx, lines.join("\n"));
+  await showSaved(ctx, lines.join("\n"));
 }
 
 export async function handleNaftaCallback(ctx: BotContext, data: string): Promise<void> {

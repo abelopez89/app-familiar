@@ -71,3 +71,25 @@ export async function settleLiveMessage(ctx: BotContext, text: string): Promise<
     await editMessageText(chatId, lastMessageId, text);
   }
 }
+
+/**
+ * Muestra el resultado de un guardado y anota en la sesión qué mensaje lo
+ * muestra. Con mala señal, un segundo toque de "Guardar" puede llegar
+ * después de que el primero ya guardó y editó el mensaje: `claimDialog`
+ * evita el duplicado, y esta marca hace que ese toque tardío se ignore en
+ * vez de pisar el "✅ Guardado" con "este diálogo venció".
+ */
+export async function showSaved(ctx: BotContext, text: string, replyMarkup?: InlineKeyboardMarkup): Promise<void> {
+  await show(ctx, text, replyMarkup);
+  ctx.session.state = null;
+  ctx.session.context = { savedMessageId: ctx.session.lastMessageId };
+}
+
+/** ¿Este toque es sobre el mensaje que ya muestra un guardado? */
+export function isAlreadySavedMessage(ctx: BotContext): boolean {
+  return (
+    ctx.trigger.kind === "callback" &&
+    ctx.session.state === null &&
+    ctx.session.context.savedMessageId === ctx.trigger.messageId
+  );
+}
