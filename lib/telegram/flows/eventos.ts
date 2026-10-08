@@ -52,7 +52,7 @@ type EventoDraft = {
 /** Pedido del usuario: el aviso por Telegram arranca 1 día antes. */
 const DEFAULT_REMINDER_MINUTES = 1440;
 
-const EXAMPLES = "<i>Dentista jueves 15:30</i>, <i>Cumple de Ana 20/10</i> o <i>Reunión de padres mañana a las 19</i>";
+const EXAMPLES = "<i>Dentista jueves 15:30</i>, <i>Cumple de Rafa 20/10</i> o <i>Reunión de padres mañana a las 19</i>";
 
 function draftOf(ctx: BotContext): EventoDraft {
   return ctx.session.context as unknown as EventoDraft;
