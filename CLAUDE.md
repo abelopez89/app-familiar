@@ -126,12 +126,14 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   usable sin sesión) aplicadas y confirmadas en la base. Cubre: capa de servicios compartida entre
   Server Actions y bot (`lib/services/`), `lib/telegram/` (cliente,
   router, sesiones, teclados, flujos), comandos `/menu`, `/hoy`,
-  `/compra`, `/gasto`, `/nafta`, `/cancelar`, botón "Marcar hecha" en el
+  `/compra`, `/gasto`, `/nafta`, `/evento`, `/cancelar`, botón "Marcar hecha" en el
   aviso diario de tareas y "Ver agenda del día" en los recordatorios de
   eventos, y la limpieza de `telegram_updates` en el cron diario. Ver la
-  sección "Fase 7" más abajo. **No** incluye: crear eventos por chat,
-  subir documentos por foto, divisiones de gastos por pesos o importes
-  exactos por chat, ni chats de grupo.
+  sección "Fase 7" más abajo. El alta de eventos por chat (`/evento`) se
+  sumó después, a pedido del usuario (punto 21 de esa sección). **No**
+  incluye: eventos que se repiten por chat, subir documentos por foto,
+  divisiones de gastos por pesos o importes exactos por chat, ni chats
+  de grupo.
 - Migraciones `001` a `013` aplicadas y confirmadas en la base
   compartida. Antes de escribir la
   migración `014`, mirá `supabase/migrations/` para confirmar el próximo
@@ -1183,7 +1185,9 @@ variables de entorno; la próxima migración sigue siendo la `012`.
      devolviendo los mismos textos.
    - `tareas.ts`: `completeTaskInstance` y las instancias pendientes.
    - `eventos.ts`: eventos con participantes/recordatorios y miembros
-     activos (lecturas para `/hoy`).
+     activos (lecturas para `/hoy`), y desde el punto 21 `createEvent` y
+     `saveParticipantsAndReminders` (la acción `createEvent` y
+     `updateEvent` delegan ahí).
    Las consultas memoizadas de la app (`lib/*/queries.ts`,
    `lib/members.ts`) delegan en estos servicios en vez de repetir la
    consulta. **No** se tocaron módulos que el bot no usa (documentos,
@@ -1234,7 +1238,8 @@ variables de entorno; la próxima migración sigue siendo la `012`.
    `button()` en `keyboards.ts` revienta si un payload se pasa de 64
    bytes — es un error de programación, mejor verlo en el primer
    intento. Prefijos: `l*` compras, `g*` gastos, `f*` combustible,
-   `th`/`ag`/`hl` avisos y `/hoy`, `m:` menú, `x` cancelar, `nop` rótulo.
+   `e*` eventos, `th`/`ag`/`hl` avisos y `/hoy`, `m:` menú, `x`
+   cancelar, `nop` rótulo.
 10. **Sesiones de 10 minutos** (`SESSION_TTL_MS`). Un diálogo abandonado
     no puede tomar un mensaje suelto de mañana como "el monto del gasto".
     El paso vence; el "mensaje vivo" (`last_message_id`) no — los
@@ -1246,7 +1251,10 @@ variables de entorno; la próxima migración sigue siendo la `012`.
     `UPDATE … WHERE state = 'gasto:confirmar'` y solo el que gana guarda.
     Ojo: ese `UPDATE` **no** vacía `context` — `RETURNING` devuelve la
     fila ya actualizada y se perdería el borrador (pasó en la primera
-    versión).
+    versión). El resultado se muestra con `showSaved` (`context.ts`), que
+    anota qué mensaje muestra el guardado: un toque tardío de "Guardar"
+    sobre ese mensaje se ignora en vez de pisar el "✅ Guardado" con
+    "este diálogo venció".
 12. **Botones, no sintaxis.** Texto libre solo donde no hay
     alternativa: importe, kilometraje, litros, nombre de producto. Al
     tocar un botón se **edita** el mensaje existente (`show` en
@@ -1296,17 +1304,40 @@ variables de entorno; la próxima migración sigue siendo la `012`.
     Telegram llegan en minutos.
 19. **Menú de comandos**: se registra a mano con `setMyCommands` (no hay
     código que lo haga en cada deploy): `menu`, `hoy`, `compra`,
-    `gasto`, `nafta`, `cancelar`. El router acepta además `/start`,
-    `/compras`, `/combustible` y `/vincular`.
+    `gasto`, `nafta`, `evento`, `cancelar`. El router acepta además
+    `/start`, `/compras`, `/combustible` y `/vincular`.
 20. **Qué no hacer:** no reimplementar lógica de negocio en el webhook ni
     en `lib/telegram/flows/` (todo pasa por `lib/services/`); no usar el
     admin client sin filtrar por `familyId`; no meter dos UUIDs en un
-    `callback_data`; no responder a chats de grupo; no crear eventos por
-    chat ni subir documentos por foto (fuera de alcance a propósito); no
+    `callback_data`; no responder a chats de grupo; no crear eventos que
+    se repiten por chat ni subir documentos por foto (fuera de alcance a
+    propósito); no
     implementar divisiones avanzadas de gastos por chat; no agregar
     librerías de bot; no tocar `lib/recurrence.ts`,
     `lib/tasks/schedule.ts`, `lib/fuel/consumption.ts` ni `lib/ics.ts`
     por este módulo.
+
+21. **Alta de eventos por chat (`/evento`), agregada después de la
+    primera versión a pedido del usuario.** Todo en un mensaje
+    ("Dentista jueves 15:30"): lo interpreta `parseEventText`
+    (`lib/events/parse.ts`), función pura que recibe "hoy" en la zona de
+    la familia y devuelve fecha y hora como texto — la conversión a
+    instante sigue pasando por `dateOnlyToFamilyMidnightUtc` /
+    `dateTimeToFamilyUtc`. Entiende hoy / mañana / pasado mañana, día de
+    la semana (si hoy es ese día, es el de la semana que viene: para hoy
+    se dice "hoy"), `15/10`, `15 de octubre`, `15 oct`, horas `15:30`,
+    `15.30`, `a las 19`, `19hs`, `7pm`, `mediodía` y rangos `de 10 a 12`
+    / `15:30-17:00`; lo que no entiende queda en el título, que se ve en
+    la confirmación. Si no dice el día se pregunta (botones o texto); si
+    no dice la hora, es de todo el día. Después: categoría (botones,
+    "Familiar" primero) y participantes (ninguno = toda la familia).
+    **Aviso por Telegram 1 día antes por defecto** (pedido del usuario),
+    cambiable o "sin aviso" desde la confirmación; como en el
+    formulario, un aviso genera el recordatorio de calendario y el de
+    Telegram. **Solo eventos únicos**: la repetición se configura en la
+    app. Guarda con `createEvent` de `lib/services/eventos.ts`, que
+    además descarta participantes que no sean de la familia (con el admin
+    client no hay RLS que lo impida).
 
 ## Comandos útiles
 

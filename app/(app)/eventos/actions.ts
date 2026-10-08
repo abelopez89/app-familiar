@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { dateOnlyToFamilyMidnightUtc, dateTimeToFamilyUtc } from "@/lib/dates";
 import { REMINDER_PRESETS } from "@/lib/events/constants";
+import { createEvent as createEventService, saveParticipantsAndReminders } from "@/lib/services/eventos";
 
 export type ActionResult = { error?: string; success?: boolean; id?: string };
 
@@ -83,42 +84,32 @@ export async function createEvent(
       : null;
 
   const recurrence = data.recurrence === "none" ? null : data.recurrence;
-  const recurrence_until =
-    recurrence && data.recurrence_until ? data.recurrence_until : null;
 
   const supabase = await createClient();
-
-  const { data: event, error } = await supabase
-    .from("events")
-    .insert({
-      family_id: context.family.id,
+  const result = await createEventService(
+    supabase,
+    { familyId: context.family.id, memberId: context.member.id },
+    {
       title: data.title,
       description: data.description || null,
       category: data.category,
-      starts_at: starts_at.toISOString(),
-      ends_at: ends_at ? ends_at.toISOString() : null,
-      all_day: data.all_day,
+      startsAt: starts_at,
+      endsAt: ends_at,
+      allDay: data.all_day,
       location: data.location || null,
       recurrence,
-      recurrence_until,
-      created_by: context.member.id,
-    })
-    .select("id")
-    .single();
-
-  if (error || !event) return { error: "No se pudo crear el evento." };
-
-  await saveParticipantsAndReminders(
-    event.id,
-    context.family.id,
-    participant_ids,
-    reminderMinutes,
-    data.telegram,
+      recurrenceUntil: data.recurrence_until || null,
+      participantIds: participant_ids,
+      reminderMinutes,
+      telegram: data.telegram,
+    },
   );
+
+  if (!result.ok) return { error: result.error };
 
   revalidatePath("/eventos");
   revalidatePath("/");
-  return { success: true, id: event.id };
+  return { success: true, id: result.id };
 }
 
 export async function updateEvent(
@@ -168,6 +159,7 @@ export async function updateEvent(
   if (error || !event) return { error: "No se pudo actualizar el evento." };
 
   await saveParticipantsAndReminders(
+    supabase,
     event.id,
     event.family_id,
     participant_ids,
@@ -178,78 +170,6 @@ export async function updateEvent(
   revalidatePath("/eventos");
   revalidatePath("/");
   return { success: true, id: event.id };
-}
-
-async function saveParticipantsAndReminders(
-  eventId: string,
-  familyId: string,
-  participantIds: string[],
-  reminderMinutes: number[],
-  telegram: boolean,
-) {
-  const supabase = await createClient();
-
-  // Participantes: simple de diffear, borrar y recrear — no hay ninguna
-  // otra tabla que referencie event_participants, así que no hay efecto
-  // colateral en volver a insertarlos con id nuevo.
-  await supabase.from("event_participants").delete().eq("event_id", eventId);
-  if (participantIds.length > 0) {
-    await supabase.from("event_participants").insert(
-      participantIds.map((member_id) => ({
-        event_id: eventId,
-        member_id,
-        family_id: familyId,
-      })),
-    );
-  }
-
-  // Recordatorios: acá SÍ hace falta diffear en vez de borrar y recrear.
-  // reminder_deliveries referencia event_reminders.id con on delete
-  // cascade — si se recrean todos los recordatorios en cada edición
-  // (incluso al cambiar solo el lugar o la descripción), se pierde el
-  // historial de qué ya se avisó y un recordatorio de un evento
-  // recurrente que ya se mandó para la próxima ocurrencia se volvería a
-  // mandar. Por eso solo se borran los recordatorios que el usuario
-  // sacó y solo se insertan los que agregó.
-  const desiredReminders: { offset_minutes: number; channel: "calendar" | "telegram" }[] = [];
-  for (const offset_minutes of reminderMinutes) {
-    desiredReminders.push({ offset_minutes, channel: "calendar" });
-    if (telegram) desiredReminders.push({ offset_minutes, channel: "telegram" });
-  }
-
-  const { data: existingReminders } = await supabase
-    .from("event_reminders")
-    .select("id, offset_minutes, channel")
-    .eq("event_id", eventId);
-
-  const existing = existingReminders ?? [];
-
-  const toDelete = existing.filter(
-    (e) =>
-      !desiredReminders.some((d) => d.offset_minutes === e.offset_minutes && d.channel === e.channel),
-  );
-  const toInsert = desiredReminders.filter(
-    (d) =>
-      !existing.some((e) => e.offset_minutes === d.offset_minutes && e.channel === d.channel),
-  );
-
-  if (toDelete.length > 0) {
-    await supabase
-      .from("event_reminders")
-      .delete()
-      .in("id", toDelete.map((e) => e.id));
-  }
-
-  if (toInsert.length > 0) {
-    await supabase.from("event_reminders").insert(
-      toInsert.map((d) => ({
-        event_id: eventId,
-        family_id: familyId,
-        offset_minutes: d.offset_minutes,
-        channel: d.channel,
-      })),
-    );
-  }
 }
 
 export async function deleteEvent(id: string): Promise<ActionResult> {

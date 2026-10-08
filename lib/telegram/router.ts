@@ -3,12 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { answerCallbackQuery, sendMessage, type InlineKeyboardMarkup } from "@/lib/telegram/client";
 import { button, keyboard, NOOP } from "@/lib/telegram/keyboards";
 import { clearDialog, loadSession, saveSession } from "@/lib/telegram/session";
-import { show, type BotContext } from "@/lib/telegram/context";
+import { isAlreadySavedMessage, show, type BotContext } from "@/lib/telegram/context";
 import { handleVincular } from "@/lib/telegram/flows/vincular";
 import { handleComprasCallback, handleComprasText, startCompras } from "@/lib/telegram/flows/compras";
 import { handleGastoCallback, handleGastoText, startGasto } from "@/lib/telegram/flows/gastos";
 import { handleNaftaCallback, handleNaftaText, startNafta } from "@/lib/telegram/flows/combustible";
 import { handleHoyCallback, sendHoy } from "@/lib/telegram/flows/hoy";
+import { handleEventoCallback, handleEventoText, startEvento } from "@/lib/telegram/flows/eventos";
 import type { Db } from "@/lib/services/types";
 import type { FamilyMember } from "@/lib/supabase/types";
 
@@ -65,7 +66,8 @@ const WELCOME_UNLINKED =
 
 export const MAIN_MENU = keyboard([
   [button("🛒 Compras", "m:c"), button("💸 Gasto", "m:g")],
-  [button("⛽ Combustible", "m:f"), button("📅 Hoy", "m:h")],
+  [button("⛽ Combustible", "m:f"), button("🗓️ Evento", "m:e")],
+  [button("📅 Hoy", "m:h")],
 ]);
 
 export async function handleUpdate(update: TelegramUpdate): Promise<void> {
@@ -192,6 +194,9 @@ async function routeCommand(ctx: BotContext, text: string): Promise<void> {
     case "/combustible":
       await startNafta(ctx);
       return;
+    case "/evento":
+      await startEvento(ctx);
+      return;
     case "/cancelar":
       await show(ctx, "Listo, cancelado.", MAIN_MENU);
       return;
@@ -208,6 +213,7 @@ async function routeText(ctx: BotContext, text: string): Promise<void> {
   if (state.startsWith("compras:")) return handleComprasText(ctx, text);
   if (state.startsWith("gasto:")) return handleGastoText(ctx, text);
   if (state.startsWith("nafta:")) return handleNaftaText(ctx, text);
+  if (state.startsWith("evento:")) return handleEventoText(ctx, text);
 
   // Sin diálogo en curso (o venció): no se adivina qué quiso decir.
   await show(ctx, "No hay nada en curso. Elegí una opción:", MAIN_MENU);
@@ -228,6 +234,7 @@ async function routeCallback(ctx: BotContext, data: string, message: TelegramMes
     if (choice === "c") return startCompras(ctx);
     if (choice === "g") return startGasto(ctx);
     if (choice === "f") return startNafta(ctx);
+    if (choice === "e") return startEvento(ctx);
     if (choice === "h") return sendHoy(ctx);
     return;
   }
@@ -237,6 +244,7 @@ async function routeCallback(ctx: BotContext, data: string, message: TelegramMes
   if (action.startsWith("l")) return handleComprasCallback(ctx, data);
   if (action.startsWith("g")) return handleGastoCallback(ctx, data);
   if (action.startsWith("f")) return handleNaftaCallback(ctx, data);
+  if (action.startsWith("e")) return handleEventoCallback(ctx, data);
 }
 
 export function firstName(member: FamilyMember): string {
@@ -248,5 +256,7 @@ export function firstName(member: FamilyMember): string {
  * se canceló, o es un mensaje viejo). Se avisa en el mismo mensaje.
  */
 export async function expiredDialog(ctx: BotContext, restartCommand: string): Promise<void> {
+  // Toque tardío sobre un mensaje que ya muestra un guardado: no se pisa.
+  if (isAlreadySavedMessage(ctx)) return;
   await show(ctx, `Este diálogo ya venció. Empezá de nuevo con ${restartCommand}.`, MAIN_MENU);
 }
