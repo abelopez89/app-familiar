@@ -26,8 +26,7 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   (`/config/telegram` + webhook + cron horario), y el bloque de eventos
   del dashboard "Hoy". **No** incluye: tareas del hogar, documentos,
   combustible, ni el bot conversacional de Telegram (comandos generales,
-  sesiones con estado, inline keyboards) — eso sigue siendo diseño sin
-  detalle en este repo, igual que antes.
+  sesiones con estado, inline keyboards) — eso llegó en la Fase 7.
 - **Fase 3 (tareas del hogar): implementada y verificada en
   producción.** Migración `008` aplicada a mano desde el SQL Editor —
   `assets`, `task_definitions` y `task_instances` ya existen en la base
@@ -120,8 +119,10 @@ Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
   avisar por Telegram (bandera `tareasAvisos`) y se puede crear una
   tarea desde `/tareas`, sin volver al inicio. Ver "Mejoras post-Fase 6"
   más abajo.
-- **Fase 7 (bot conversacional de Telegram): implementada, pendiente
-  de verificación en producción.** Migraciones `012` (tablas
+- **Fase 7 (bot conversacional de Telegram): implementada y verificada
+  en producción** (el usuario probó todos los comandos desde el
+  celular: `/menu`, `/hoy`, `/compra`, `/gasto`, `/nafta`, `/evento`).
+  Menú de comandos registrado con `setMyCommands`. Migraciones `012` (tablas
   `telegram_sessions` y `telegram_updates`) y `013` (`save_expense()`
   usable sin sesión) aplicadas y confirmadas en la base. Cubre: capa de servicios compartida entre
   Server Actions y bot (`lib/services/`), `lib/telegram/` (cliente,
@@ -660,8 +661,9 @@ Tres clientes separados, no los mezcles:
 9. **El cron de tareas (`app/api/cron/tareas/route.ts`) corre una vez
    por día** (a diferencia del cron de eventos, que es horario), en dos
    pasos: generar instancias y avisar. Reutiliza
-   `sendTelegramMessage`/`escapeTelegramHtml` de `lib/telegram.ts` — no
-   se agregó nada nuevo de Telegram.
+   `sendTelegramMessage`/`escapeTelegramHtml` (hoy en
+   `lib/telegram/client.ts`, ver Fase 7) — no se agregó nada nuevo de
+   Telegram en esta fase.
 10. **Un solo mensaje de Telegram por destinatario**, agrupando todas
     sus tareas por avisar (vencidas primero, con días de atraso) y las
     garantías próximas a vencer — a diferencia del cron de eventos, que
@@ -1096,7 +1098,7 @@ Tres clientes separados, no los mezcles:
 ## Mejoras post-Fase 6: decisiones a respetar
 
 Implementadas y verificadas en producción. Ninguna agregó migraciones ni
-variables de entorno; la próxima migración sigue siendo la `012`.
+variables de entorno.
 
 1. **Rendimiento en L/100 km por defecto, configurable a km/L.** El
    cálculo sigue en km/L dentro de `lib/fuel/consumption.ts` (que no se
