@@ -1,7 +1,7 @@
 import { addDaysToDateOnly, dayOfWeekOfDateOnly } from "@/lib/dates";
 
 // Interpreta un evento escrito en una sola línea, como se escribe en el
-// chat: "Dentista jueves 15:30", "Cumple de Ana 20/10", "Reunión de
+// chat: "Dentista jueves 15:30", "Cumple de Rafa 20/10", "Reunión de
 // padres mañana a las 19", "Fútbol sábado de 10 a 12".
 //
 // Función pura, sin zona horaria propia: recibe "hoy" como fecha
