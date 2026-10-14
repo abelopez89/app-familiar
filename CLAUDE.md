@@ -7,6 +7,55 @@ Pensada para uso en celular, por adultos de una misma familia.
 Este documento orienta a cualquier sesión de trabajo (humana o de Claude
 Code) sobre las convenciones del proyecto. Léelo antes de tocar código.
 
+## Proyecto cerrado — modo mantenimiento
+
+**El desarrollo por fases terminó.** Las fases 0 a 7, la Fase Extra y
+las mejoras post-Fase 6 están implementadas y verificadas en producción
+por el usuario desde el celular, y la app funciona según lo esperado.
+No hay ninguna fase en curso ni trabajo pendiente de verificar. De acá en
+adelante solo se esperan **mejoras mínimas**.
+
+Cómo trabajar una mejora mínima:
+
+1. **Cambios chicos y acotados**: una mejora por PR, en el módulo que
+   corresponde, sin refactors de paso ni "aprovechando que estoy". Si un
+   pedido crece hasta parecer una fase nueva (tablas nuevas, un módulo
+   nuevo, rediseñar un flujo), frenar y confirmarlo con el usuario antes
+   de escribir código.
+2. **Las decisiones de cada fase siguen vigentes.** Las secciones de
+   abajo explican el porqué de cada regla; antes de "simplificar" algo,
+   leé la sección del módulo — casi todas las rarezas resolvieron un
+   problema real (zona horaria, grants, RLS, redondeo de guaraníes,
+   doble toque con mala señal).
+3. **Lógica de negocio en `lib/services/`** cuando el bot también la usa
+   (Fase 7): un cambio de regla se hace una vez y lo ven la app y el
+   bot. Toda consulta con el admin client filtra por `family_id`.
+4. **Migraciones**: la próxima es la `014` (confirmalo mirando
+   `supabase/migrations/`). Se escribe el archivo y la aplica el usuario
+   desde el SQL Editor; no avanzar con el código que depende de ella
+   hasta que confirme.
+5. **Antes de cada PR**: `npm run build` y `npm run lint` sin errores, y
+   avisar qué quedó sin probar en producción. Flujo habitual con el
+   usuario: PR → esperar el deploy de preview de Vercel en verde → merge
+   a `main` (producción). Actualizar este archivo si la mejora cambia o
+   agrega una regla.
+
+Configuración operativa fuera del código (si algo deja de andar, mirar
+acá primero):
+
+- **Vercel**: variables de entorno (ver "Variables de entorno") y deploy
+  automático de `main`.
+- **Supabase**: migraciones `001`–`013` aplicadas y bucket privado
+  `documentos` creado.
+- **cron-job.org**: `GET /api/cron/recordatorios` (cada hora) y
+  `GET /api/cron/tareas` (diario, 07:00 `America/Asuncion`), los dos con
+  `Authorization: Bearer <CRON_SECRET>`.
+- **Telegram**: webhook apuntando a `/api/telegram/webhook` con
+  `secret_token` = `TELEGRAM_WEBHOOK_SECRET` (sin `allowed_updates`, así
+  llegan los toques de botón), y menú registrado con `setMyCommands`:
+  `menu`, `hoy`, `compra`, `gasto`, `nafta`, `evento`, `cancelar`. Si se
+  agrega un comando, hay que volver a registrar la lista completa.
+
 ## Estado del proyecto
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
@@ -1210,7 +1259,8 @@ variables de entorno.
    `sendTelegramMessage` y `escapeTelegramHtml` se comportan igual, y
    `sendTelegramMessage` acepta botones opcionales), `router.ts`,
    `session.ts`, `keyboards.ts`, `context.ts` (`show`: editar o mandar)
-   y `flows/` (`compras`, `gastos`, `combustible`, `hoy`, `vincular`).
+   y `flows/` (`compras`, `gastos`, `combustible`, `eventos`, `hoy`,
+   `vincular`).
    **Los flujos no consultan la base para lógica de negocio**: llaman a
    `lib/services/`. Sin dependencias de bot (nada de Telegraf/grammY):
    `fetch` contra la Bot API.
