@@ -30,6 +30,7 @@ import type { FamilyMember } from "@/lib/supabase/types";
 //   th:<instanceId>  "Marcar hecha" en el aviso diario de tareas
 //   ag:<yyyy-MM-dd>  "Ver agenda del día" en el recordatorio de un evento
 //   hl               abrir la lista de compras desde /hoy
+//   hs               ver la semana desde /hoy
 
 function eventLine(event: DisplayEvent, today: string, membersById: Map<string, FamilyMember>): string {
   const day = dateOnlyInFamilyTimezone(event.starts_at);
@@ -112,7 +113,11 @@ export async function sendHoy(ctx: BotContext): Promise<void> {
     );
   }
 
-  await show(ctx, parts.join("\n"), openList ? keyboard([[button("🛒 Ver lista", "hl")]]) : undefined);
+  await show(
+    ctx,
+    parts.join("\n"),
+    keyboard([[openList ? button("🛒 Ver lista", "hl") : null, button("📆 Ver semana", "hs")]]),
+  );
 }
 
 /** Agenda de un día puntual (botón de los recordatorios de eventos). */
@@ -145,8 +150,86 @@ async function sendDayAgenda(ctx: BotContext, day: string): Promise<void> {
   await sendLive(ctx, lines.join("\n"));
 }
 
+/** Días que muestra `/semana`: hoy y los 6 siguientes (no la semana calendario). */
+const WEEK_DAYS = 7;
+/** Telegram corta los mensajes en 4096 caracteres; se deja margen para el cierre. */
+const MAX_MESSAGE_CHARS = 3800;
+
+/**
+ * `/semana`: eventos de hoy y los 6 días siguientes, agrupados por día.
+ * Solo lectura y sin estado, como `/hoy`. Usa `buildDisplayEvents`, así
+ * que trae la recurrencia expandida y los cumpleaños igual que la agenda
+ * de la app. Un evento que empezó antes de hoy y sigue en curso se lista
+ * en "Hoy". Los días sin nada no se muestran.
+ */
+export async function sendWeek(ctx: BotContext): Promise<void> {
+  const today = todayInFamilyTimezone();
+  const lastDay = addDaysToDateOnly(today, WEEK_DAYS - 1);
+  const [events, members] = await Promise.all([
+    listEventsWithDetails(ctx.db, ctx.actor.familyId),
+    listActiveMembers(ctx.db, ctx.actor.familyId),
+  ]);
+  const membersById = new Map(members.map((m) => [m.id, m]));
+  const occurrences = buildDisplayEvents(
+    events,
+    members,
+    dateOnlyToFamilyMidnightUtc(today),
+    dateOnlyToFamilyMidnightUtc(addDaysToDateOnly(today, WEEK_DAYS)),
+  );
+
+  const byDay = new Map<string, DisplayEvent[]>();
+  for (const event of occurrences) {
+    const start = dateOnlyInFamilyTimezone(event.starts_at);
+    const day = start < today ? today : start;
+    if (!byDay.has(day)) byDay.set(day, []);
+    byDay.get(day)!.push(event);
+  }
+
+  const header = `📆 <b>Próximos 7 días</b> · ${escapeTelegramHtml(formatDate(today, "d/M"))} al ${escapeTelegramHtml(formatDate(lastDay, "d/M"))}`;
+  const blocks: string[] = [];
+  for (let i = 0; i < WEEK_DAYS; i++) {
+    const day = addDaysToDateOnly(today, i);
+    const dayEvents = byDay.get(day);
+    if (!dayEvents) continue;
+    const name = capitalize(formatDate(day, "EEEE d"));
+    const label = i === 0 ? `Hoy · ${name}` : i === 1 ? `Mañana · ${name}` : name;
+    const lines = dayEvents.map((event) => {
+      const who = event.participant_ids
+        .map((id) => membersById.get(id)?.display_name)
+        .filter(Boolean)
+        .join(", ");
+      return (
+        `• ${event.all_day ? "Todo el día" : formatTime(event.starts_at)} — ${escapeTelegramHtml(event.title)}` +
+        (who ? ` <i>(${escapeTelegramHtml(who)})</i>` : "")
+      );
+    });
+    blocks.push([`<b>${escapeTelegramHtml(label)}</b>`, ...lines].join("\n"));
+  }
+
+  let text = blocks.length > 0 ? [header, ...blocks].join("\n\n") : `${header}\n\nNada agendado para estos días.`;
+  if (text.length > MAX_MESSAGE_CHARS) {
+    // Semana muy cargada: se corta en el último día que entra entero.
+    let kept = header;
+    let shown = 0;
+    for (const block of blocks) {
+      if (`${kept}\n\n${block}`.length > MAX_MESSAGE_CHARS) break;
+      kept = `${kept}\n\n${block}`;
+      shown++;
+    }
+    text = `${kept}\n\n… y ${blocks.length - shown} día${blocks.length - shown === 1 ? "" : "s"} más: miralos en el calendario de la app.`;
+  }
+
+  await show(ctx, text, keyboard([[button("🗓️ Agendar evento", "m:e")]]));
+}
+
 export async function handleHoyCallback(ctx: BotContext, data: string, message: TelegramMessage | undefined) {
   const [action, id] = data.split(":");
+
+  if (action === "hs") {
+    // La semana va en un mensaje aparte: el resumen de /hoy queda como estaba.
+    await sendWeek({ ...ctx, trigger: { kind: "text" } });
+    return;
+  }
 
   if (action === "hl") {
     // La lista va en un mensaje aparte: el resumen queda como estaba.
