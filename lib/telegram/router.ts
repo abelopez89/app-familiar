@@ -8,7 +8,7 @@ import { handleVincular } from "@/lib/telegram/flows/vincular";
 import { handleComprasCallback, handleComprasText, startCompras } from "@/lib/telegram/flows/compras";
 import { handleGastoCallback, handleGastoText, startGasto } from "@/lib/telegram/flows/gastos";
 import { handleNaftaCallback, handleNaftaText, startNafta } from "@/lib/telegram/flows/combustible";
-import { handleHoyCallback, sendHoy } from "@/lib/telegram/flows/hoy";
+import { handleHoyCallback, sendHoy, sendWeek } from "@/lib/telegram/flows/hoy";
 import { handleEventoCallback, handleEventoText, startEvento } from "@/lib/telegram/flows/eventos";
 import type { Db } from "@/lib/services/types";
 import type { FamilyMember } from "@/lib/supabase/types";
@@ -67,7 +67,7 @@ const WELCOME_UNLINKED =
 export const MAIN_MENU = keyboard([
   [button("🛒 Compras", "m:c"), button("💸 Gasto", "m:g")],
   [button("⛽ Combustible", "m:f"), button("🗓️ Evento", "m:e")],
-  [button("📅 Hoy", "m:h")],
+  [button("📅 Hoy", "m:h"), button("📆 Semana", "m:s")],
 ]);
 
 export async function handleUpdate(update: TelegramUpdate): Promise<void> {
@@ -183,6 +183,9 @@ async function routeCommand(ctx: BotContext, text: string): Promise<void> {
     case "/hoy":
       await sendHoy(ctx);
       return;
+    case "/semana":
+      await sendWeek(ctx);
+      return;
     case "/compra":
     case "/compras":
       await startCompras(ctx);
@@ -236,11 +239,14 @@ async function routeCallback(ctx: BotContext, data: string, message: TelegramMes
     if (choice === "f") return startNafta(ctx);
     if (choice === "e") return startEvento(ctx);
     if (choice === "h") return sendHoy(ctx);
+    if (choice === "s") return sendWeek(ctx);
     return;
   }
 
   const action = data.split(":")[0];
-  if (action === "th" || action === "ag" || action === "hl") return handleHoyCallback(ctx, data, message);
+  if (action === "th" || action === "ag" || action === "hl" || action === "hs") {
+    return handleHoyCallback(ctx, data, message);
+  }
   if (action.startsWith("l")) return handleComprasCallback(ctx, data);
   if (action.startsWith("g")) return handleGastoCallback(ctx, data);
   if (action.startsWith("f")) return handleNaftaCallback(ctx, data);
