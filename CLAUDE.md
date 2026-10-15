@@ -53,8 +53,9 @@ acá primero):
 - **Telegram**: webhook apuntando a `/api/telegram/webhook` con
   `secret_token` = `TELEGRAM_WEBHOOK_SECRET` (sin `allowed_updates`, así
   llegan los toques de botón), y menú registrado con `setMyCommands`:
-  `menu`, `hoy`, `compra`, `gasto`, `nafta`, `evento`, `cancelar`. Si se
-  agrega un comando, hay que volver a registrar la lista completa.
+  `menu`, `hoy`, `semana`, `compra`, `gasto`, `nafta`, `evento`,
+  `cancelar`. Si se agrega un comando, hay que volver a registrar la
+  lista completa.
 
 ## Estado del proyecto
 
@@ -171,6 +172,7 @@ acá primero):
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
   en producción** (el usuario probó todos los comandos desde el
   celular: `/menu`, `/hoy`, `/compra`, `/gasto`, `/nafta`, `/evento`).
+  Después se sumó `/semana` como mejora de mantenimiento (punto 22).
   Menú de comandos registrado con `setMyCommands`. Migraciones `012` (tablas
   `telegram_sessions` y `telegram_updates`) y `013` (`save_expense()`
   usable sin sesión) aplicadas y confirmadas en la base. Cubre: capa de servicios compartida entre
@@ -1290,8 +1292,8 @@ variables de entorno.
    `button()` en `keyboards.ts` revienta si un payload se pasa de 64
    bytes — es un error de programación, mejor verlo en el primer
    intento. Prefijos: `l*` compras, `g*` gastos, `f*` combustible,
-   `e*` eventos, `th`/`ag`/`hl` avisos y `/hoy`, `m:` menú, `x`
-   cancelar, `nop` rótulo.
+   `e*` eventos, `th`/`ag`/`hl`/`hs` avisos, `/hoy` y `/semana`, `m:`
+   menú, `x` cancelar, `nop` rótulo.
 10. **Sesiones de 10 minutos** (`SESSION_TTL_MS`). Un diálogo abandonado
     no puede tomar un mensaje suelto de mañana como "el monto del gasto".
     El paso vence; el "mensaje vivo" (`last_message_id`) no — los
@@ -1355,8 +1357,8 @@ variables de entorno.
     (`/api/cron/tareas`): filas de más de 7 días. Los reintentos de
     Telegram llegan en minutos.
 19. **Menú de comandos**: se registra a mano con `setMyCommands` (no hay
-    código que lo haga en cada deploy): `menu`, `hoy`, `compra`,
-    `gasto`, `nafta`, `evento`, `cancelar`. El router acepta además
+    código que lo haga en cada deploy): `menu`, `hoy`, `semana`,
+    `compra`, `gasto`, `nafta`, `evento`, `cancelar`. El router acepta además
     `/start`, `/compras`, `/combustible` y `/vincular`.
 20. **Qué no hacer:** no reimplementar lógica de negocio en el webhook ni
     en `lib/telegram/flows/` (todo pasa por `lib/services/`); no usar el
@@ -1390,6 +1392,19 @@ variables de entorno.
     app. Guarda con `createEvent` de `lib/services/eventos.ts`, que
     además descarta participantes que no sean de la familia (con el admin
     client no hay RLS que lo impida).
+
+22. **`/semana` (mejora de mantenimiento, a pedido del usuario).**
+    Resumen de solo lectura de los eventos de **hoy y los 6 días
+    siguientes** (ventana corrida, no la semana calendario lunes a
+    domingo), agrupados por día y sin mostrar los días vacíos. Sale de
+    `buildDisplayEvents`, así que trae recurrencia expandida y
+    cumpleaños igual que la agenda de la app; un evento que empezó antes
+    de hoy y sigue en curso se lista en "Hoy", una sola vez. Se llega
+    con `/semana`, con "📆 Semana" en `/menu` (edita el menú) y con
+    "📆 Ver semana" en `/hoy` (`hs`, mensaje aparte para no pisar el
+    resumen). Si la semana no entra en un mensaje de Telegram (4096
+    caracteres), se corta en el último día completo y se remite a la
+    app. Vive en `lib/telegram/flows/hoy.ts` (`sendWeek`).
 
 ## Comandos útiles
 
