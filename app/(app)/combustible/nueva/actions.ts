@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
 import type { FuelInterval } from "@/lib/fuel/consumption";
@@ -81,8 +80,10 @@ export async function createFuelLog(
   if (outcome.status === "error") return { error: outcome.error };
   if (outcome.status === "warnings") return { warnings: outcome.warnings.map((w) => w.message) };
 
-  revalidatePath("/combustible");
-  revalidatePath(`/combustible/${data.vehicle_id}`);
-
+  // Sin `revalidatePath` a propósito: en Next 15 cualquier revalidación
+  // dentro de una Server Action re-renderiza la página actual completa
+  // antes de responder, y esa espera era la mayor parte de la latencia
+  // al guardar. El formulario refresca en segundo plano (`router.refresh()`
+  // en fuel-log-form.tsx) después de mostrar el resultado.
   return { success: true, id: outcome.id, interval: outcome.interval, dropAlert: outcome.dropAlert };
 }

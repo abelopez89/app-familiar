@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { createFuelLog, type CreateFuelLogResult } from "./actions";
@@ -33,6 +34,7 @@ export function FuelLogForm({
   lastOdometerByVehicle: Record<string, number | null>;
   unit: FuelUnit;
 }) {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -47,6 +49,16 @@ export function FuelLogForm({
   const [warnings, setWarnings] = useState<string[] | null>(null);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
   const [result, setResult] = useState<CreateFuelLogResult | null>(null);
+
+  // La acción ya no revalida (ver actions.ts): el resultado se ve apenas
+  // la carga queda escrita, y recién después se refresca en segundo plano
+  // el "última carga" de esta pantalla y la caché del router, para que
+  // volver a /combustible o al detalle del vehículo no muestre datos
+  // viejos. En un efecto, y no dentro de la transición del guardado, para
+  // que el botón no quede en "Guardando…" mientras dura el refresco.
+  useEffect(() => {
+    if (result?.success) router.refresh();
+  }, [result, router]);
 
   const pricePerLiter = useMemo(() => {
     const l = Number(liters);

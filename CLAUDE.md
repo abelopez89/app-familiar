@@ -1148,6 +1148,34 @@ Tres clientes separados, no los mezcles:
     `lib/fuel/consumption.ts`, `lib/documents/schedule.ts` ni
     `lib/ics.ts` por este módulo.
 
+## Latencia percibida: decisiones a respetar
+
+Serie de mejoras de mantenimiento, una por PR, sin migraciones ni cambios
+de reglas de negocio.
+
+1. **`revalidatePath` dentro de una Server Action no es gratis.** En
+   Next 15, cualquier revalidación (de la ruta que sea) hace que el
+   servidor re-renderice **la página actual completa** — layout de
+   `(app)` incluido — y la mande en la misma respuesta de la acción
+   (`skipFlight: !workStore.pathWasRevalidated` en el action handler de
+   Next). El cliente no ve el resultado hasta que termina ese render, que
+   además se descarta cuando el formulario guarda su estado en
+   `useState(props)`. En pantallas donde el estado local ya refleja el
+   cambio, la acción no revalida y el cliente llama a `router.refresh()`
+   **después** de mostrar el resultado (en un `useEffect`, no dentro de la
+   transición del guardado, para que el botón no quede en "Guardando…"):
+   el refresco pasa en segundo plano y además descarta la caché del
+   router, así que `router.back()` (el botón de volver global) no muestra
+   una pantalla vieja.
+2. **Cargar combustible (`/combustible/nueva`)** es la primera pantalla
+   con este patrón. El rendimiento del tramo y la alerta de consumo
+   excesivo siguen llegando en la respuesta del guardado (se calculan en
+   memoria con las cargas que ya se leyeron para las advertencias: no
+   cuestan ninguna consulta extra), así que se siguen mostrando ahí mismo,
+   como pide la regla 6 de la Fase 4. `createFuelLog` en
+   `lib/services/combustible.ts` lee vehículo y cargas en paralelo; el
+   resultado es el mismo para la app y el bot.
+
 ## Mejoras post-Fase 6: decisiones a respetar
 
 Implementadas y verificadas en producción. Ninguna agregó migraciones ni

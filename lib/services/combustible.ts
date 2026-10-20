@@ -88,14 +88,13 @@ export type CreateFuelLogOutcome =
  * corresponde — se muestra una sola vez, en este momento (Fase 4).
  */
 export async function createFuelLog(db: Db, actor: Actor, input: FuelLogInput): Promise<CreateFuelLogOutcome> {
-  const vehicle = await getVehicle(db, actor.familyId, input.vehicleId);
+  // Las dos lecturas son independientes: en paralelo, una ida y vuelta
+  // menos antes del insert.
+  const [vehicle, { data: existingLogs }] = await Promise.all([
+    getVehicle(db, actor.familyId, input.vehicleId),
+    db.from("fuel_logs").select("*").eq("family_id", actor.familyId).eq("vehicle_id", input.vehicleId),
+  ]);
   if (!vehicle) return { status: "error", error: "Vehículo no encontrado." };
-
-  const { data: existingLogs } = await db
-    .from("fuel_logs")
-    .select("*")
-    .eq("family_id", actor.familyId)
-    .eq("vehicle_id", input.vehicleId);
 
   const candidate = {
     odometer: input.odometer,
