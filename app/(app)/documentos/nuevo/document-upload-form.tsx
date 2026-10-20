@@ -71,16 +71,21 @@ export function DocumentUploadForm({
 
   async function handleFilesSelected(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
+    // Copia antes del primer await: `FileList` es un objeto vivo y el
+    // `onChange` vacía el input enseguida (`e.target.value = ""`), así que
+    // leer `fileList[i]` después de comprimir el primero daba undefined y
+    // las demás páginas quedaban en "Procesando…" para siempre.
+    const selected = Array.from(fileList);
 
-    const newEntries: PendingFile[] = Array.from(fileList).map((file) => ({
+    const newEntries: PendingFile[] = selected.map((file) => ({
       key: `${file.name}-${file.size}-${Math.random()}`,
       originalName: file.name,
       status: "comprimiendo",
     }));
     setFiles((prev) => [...prev, ...newEntries]);
 
-    for (let i = 0; i < fileList.length; i++) {
-      const file = fileList[i];
+    for (let i = 0; i < selected.length; i++) {
+      const file = selected[i];
       const key = newEntries[i].key;
       const sizeError = validateDocumentFileSize(file.size);
       if (sizeError && file.type === "application/pdf") {
