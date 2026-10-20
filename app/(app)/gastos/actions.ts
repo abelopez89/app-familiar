@@ -5,12 +5,16 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { todayInFamilyTimezone } from "@/lib/dates";
-import { createDocument, deleteDocument } from "@/app/(app)/documentos/actions";
+import { deleteDocument } from "@/app/(app)/documentos/actions";
+import { buildStoragePath } from "@/lib/documents/storage";
 import { CURRENCY_CODES, GUEST_COLORS } from "@/lib/expenses/constants";
 import { parseScaledDecimal, MAX_RATE_DECIMALS } from "@/lib/expenses/split";
 import { persistExpense, prepareExpense, type ExpenseSplitInput } from "@/lib/services/gastos";
 
 export type ActionResult = { error?: string; success?: boolean; id?: string };
+
+/** Dónde subir el ticket desde el navegador, después de guardar el gasto. */
+export type ReceiptUpload = { documentId: string; path: string };
 
 function revalidateGroup(groupId: string) {
   revalidatePath("/gastos");
@@ -295,7 +299,9 @@ const expenseSchema = z.object({
  * Editar la cotización pasa por acá mismo: se vuelve a dividir con el
  * nuevo total y las partes se reescriben junto con el gasto.
  */
-export async function saveExpense(formData: FormData): Promise<ActionResult> {
+export async function saveExpense(
+  formData: FormData,
+): Promise<ActionResult & { receiptUpload?: ReceiptUpload | null }> {
   const parsed = expenseSchema.safeParse({
     group_id: formData.get("group_id"),
     expense_id: formData.get("expense_id") || undefined,
@@ -340,22 +346,31 @@ export async function saveExpense(formData: FormData): Promise<ActionResult> {
   if (!prepared.ok) return { error: prepared.error };
 
   // --- Ticket (Centro de Documentos, Fase 5) ---
-  // Se reutiliza `createDocument` tal cual: misma compresión (ya hecha en
-  // el cliente), mismas rutas de Storage y mismas políticas. Nada nuevo
-  // de storage para este módulo.
+  // El archivo ya no viaja con el gasto: acá solo se crea la fila de
+  // `documents` (sin archivos) y se devuelve la ruta de Storage. El
+  // navegador sube la imagen después de guardar, con su propia sesión
+  // (mismas políticas de storage.objects), y la registra con
+  // `attachDocumentFile` — así guardar el gasto no espera por la imagen.
+  // Misma fila que crearía `createDocument`, pero sin su `revalidatePath`,
+  // que re-renderizaría esta pantalla antes de responder.
   let receiptDocumentId: string | null = String(formData.get("receipt_document_id") ?? "") || null;
   if (formData.get("remove_receipt") === "on") receiptDocumentId = null;
-  let createdReceiptId: string | null = null;
-  const receipt = formData.get("receipt");
-  if (receipt instanceof File && receipt.size > 0) {
-    const docForm = new FormData();
-    docForm.set("title", `Ticket: ${data.description}`);
-    docForm.set("doc_type", "factura");
-    docForm.set("notes", `Gasto compartido del grupo "${prepared.group.name}".`);
-    docForm.append("files", receipt, receipt.name);
-    const doc = await createDocument({}, docForm);
-    if (doc.error || !doc.id) return { error: doc.error ?? "No se pudo guardar el ticket." };
-    createdReceiptId = doc.id;
+  let receiptUpload: ReceiptUpload | null = null;
+  const receiptName = String(formData.get("receipt_name") ?? "").trim();
+  if (receiptName) {
+    const { data: doc, error: docError } = await supabase
+      .from("documents")
+      .insert({
+        family_id: actor.familyId,
+        title: `Ticket: ${data.description}`,
+        doc_type: "factura",
+        notes: `Gasto compartido del grupo "${prepared.group.name}".`,
+        uploaded_by: actor.memberId,
+      })
+      .select("id")
+      .single();
+    if (docError || !doc) return { error: "No se pudo guardar el ticket." };
+    receiptUpload = { documentId: doc.id, path: buildStoragePath(actor.familyId, doc.id, receiptName) };
     receiptDocumentId = doc.id;
   }
 
@@ -373,12 +388,14 @@ export async function saveExpense(formData: FormData): Promise<ActionResult> {
   });
 
   if (!saved.ok) {
-    if (createdReceiptId) await deleteDocument(createdReceiptId);
+    if (receiptUpload) await deleteDocument(receiptUpload.documentId);
     return { error: saved.error };
   }
 
-  revalidateGroup(data.group_id);
-  return { success: true, id: saved.id };
+  // Sin `revalidateGroup`: re-renderizaría esta pantalla (con todo el
+  // grupo) antes de responder, y el cliente navega al grupo igual. El
+  // formulario refresca la caché del router en segundo plano.
+  return { success: true, id: saved.id, receiptUpload };
 }
 
 /** `weight_<id>` / `exact_<id>` del formulario → { id: valor } (solo los que vinieron). */

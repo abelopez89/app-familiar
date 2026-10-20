@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Camera, Check, ChevronDown, ChevronUp, FileText, X } from "lucide-react";
-import { saveExpense } from "../actions";
+import { saveExpense, type ReceiptUpload } from "../actions";
+import { attachDocumentFile, deleteDocument } from "@/app/(app)/documentos/actions";
+import { uploadDocumentFileFromBrowser } from "@/lib/documents/browser-upload";
 import { Chip } from "../group-form";
 import {
   CURRENCIES,
@@ -48,6 +50,35 @@ export type ExpenseInitial = {
 /** Guaraníes: solo dígitos. "150.000" tipeado con punto de miles no es 150. */
 function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
+}
+
+/**
+ * Sube el ticket después de guardar el gasto, mientras la persona ya está
+ * en la pantalla del grupo. Si algo falla, el gasto queda guardado igual:
+ * se borra el documento vacío (la FK del gasto pasa a null sola) y se avisa.
+ * Corre fuera del componente a propósito: sigue aunque el formulario ya
+ * se haya desmontado por la navegación.
+ */
+async function uploadReceiptAfterSave(
+  upload: ReceiptUpload,
+  receipt: { blob: Blob; contentType: string },
+  refresh: () => void,
+) {
+  const uploaded = await uploadDocumentFileFromBrowser(upload.path, receipt.blob, receipt.contentType);
+  const attached = uploaded.error
+    ? { error: uploaded.error }
+    : await attachDocumentFile(upload.documentId, {
+        path: upload.path,
+        mimeType: receipt.contentType || null,
+        sizeBytes: receipt.blob.size,
+      });
+  if (attached.error) {
+    await deleteDocument(upload.documentId);
+    toast.warning("El gasto quedó guardado, pero el ticket no se pudo adjuntar. Podés agregarlo editando el gasto.", {
+      duration: 8000,
+    });
+  }
+  refresh();
 }
 
 /**
@@ -105,7 +136,9 @@ export function ExpenseForm({
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [showMore, setShowMore] = useState(initial ? initial.splitMethod !== "iguales" || !!initial.notes : false);
 
-  const [receipt, setReceipt] = useState<{ blob: Blob; name: string; preview?: string } | null>(null);
+  const [receipt, setReceipt] = useState<{ blob: Blob; name: string; contentType: string; preview?: string } | null>(
+    null,
+  );
   const [processingReceipt, setProcessingReceipt] = useState(false);
   const [removeReceipt, setRemoveReceipt] = useState(false);
 
@@ -185,6 +218,7 @@ export function ExpenseForm({
       setReceipt({
         blob: result.blob,
         name: result.name,
+        contentType: result.contentType,
         preview: result.contentType.startsWith("image/") ? URL.createObjectURL(result.blob) : undefined,
       });
       setRemoveReceipt(false);
@@ -224,7 +258,9 @@ export function ExpenseForm({
     fd.set("notes", notes);
     if (initial?.receiptDocumentId) fd.set("receipt_document_id", initial.receiptDocumentId);
     if (removeReceipt) fd.set("remove_receipt", "on");
-    if (receipt) fd.append("receipt", receipt.blob, receipt.name);
+    // Solo el nombre: la imagen se sube después de guardar (ver
+    // `uploadReceiptAfterSave`), así el gasto no espera por ella.
+    if (receipt) fd.set("receipt_name", receipt.name);
 
     startTransition(async () => {
       const result = await saveExpense(fd);
@@ -234,6 +270,13 @@ export function ExpenseForm({
       }
       toast.success(initial ? "Gasto actualizado." : "Gasto cargado.");
       router.push(`/gastos/${groupId}`);
+      // La acción no revalida: este refresh (detrás de la navegación en la
+      // cola del router) descarta la caché, para que volver a /gastos
+      // muestre los totales nuevos.
+      router.refresh();
+      if (result.receiptUpload && receipt) {
+        void uploadReceiptAfterSave(result.receiptUpload, receipt, () => router.refresh());
+      }
     });
   }
 
