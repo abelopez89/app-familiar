@@ -910,7 +910,12 @@ Tres clientes separados, no los mezcles:
    formulario; si la persona sigue sin ella, el documento queda con las
    que sí subieron. Esto además saca a las imágenes y PDF del límite de
    1 MB del body de las Server Actions. "Agregar páginas" en
-   `/documentos/[id]` (`addDocumentFiles`) sigue por el servidor.
+   `/documentos/[id]` (`manage-files.tsx`) va por el mismo camino:
+   `prepareDocumentFiles` verifica el documento y devuelve rutas y orden
+   (a continuación de las páginas existentes), el navegador sube con
+   progreso y `attachDocumentFile` registra; una página que falla queda
+   en la grilla para reintentar con un toque. Ya no hay ninguna subida de
+   documentos que pase por el servidor de la app.
 8. **`expires_at` + `expiry_notified_at` (fecha, no booleano) para el
    aviso de vencimiento**, mismo patrón que `warranty_notified_at` en
    `assets` y `notified_at` en `task_instances` — permite repetir el
