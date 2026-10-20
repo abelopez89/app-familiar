@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, Download, FileText, Pin, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { toggleDocumentPinned } from "../actions";
@@ -33,6 +33,14 @@ export function DocumentViewer({
   const category = categories.find((c) => c.id === document.category_id);
   const member = members.find((m) => m.id === document.member_id);
   const current = fileUrls[index];
+
+  // Las demás páginas se bajan apenas se abre el documento: pasar de
+  // página no espera la descarga, y las URLs firmadas duran 60 segundos.
+  useEffect(() => {
+    for (const { file, url } of fileUrls) {
+      if (url && file.mime_type?.startsWith("image/")) new Image().src = url;
+    }
+  }, [fileUrls]);
 
   function handleTogglePin() {
     startTransition(async () => {

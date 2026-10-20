@@ -45,22 +45,29 @@ function parseTags(raw: string | undefined): string[] | null {
 }
 
 /**
- * Sube y registra un documento nuevo con sus archivos. Orden de
- * operaciones (ver CLAUDE.md, Fase 5): primero se crea la fila de
- * `documents` (sin archivos) para tener un document_id con el que armar
- * la ruta de Storage, después se sube cada archivo, y recién ahí se
- * inserta su fila en `document_files`. Si ese insert falla, se intenta
- * borrar el archivo ya subido — el peor caso es un archivo huérfano
- * invisible, no una fila apuntando a un archivo inexistente.
+ * Crea un documento nuevo (solo la fila de `documents`) y devuelve, para
+ * cada archivo que el formulario va a subir, su ruta de Storage. Los
+ * archivos ya no viajan por esta acción: el navegador los sube directo a
+ * Storage con su sesión, en paralelo y con progreso, y registra cada uno
+ * con `attachDocumentFile`. El orden de la Fase 5 se mantiene: primero la
+ * fila del documento (para tener el document_id de la ruta), después cada
+ * archivo, recién después su fila en `document_files`.
+ *
+ * Sin `revalidatePath`: re-renderizaría el formulario antes de responder.
+ * El formulario navega al documento y refresca la caché del router.
  */
-export async function createDocument(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+export async function createDocument(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult & { uploads?: { path: string }[] }> {
   const parsed = parseMetadataForm(formData);
   if ("error" in parsed) return { error: parsed.error };
 
   const context = await getCurrentFamilyContext();
   if (!context) return { error: "No se encontró tu familia." };
 
-  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+  const fileNames = formData.getAll("file_names").map(String).filter(Boolean);
+  if (fileNames.length === 0) return { error: "Agregá al menos un archivo." };
 
   const supabase = await createClient();
   const { data: document, error: insertError } = await supabase
@@ -83,28 +90,11 @@ export async function createDocument(_prev: ActionResult, formData: FormData): P
 
   if (insertError || !document) return { error: "No se pudo crear el documento." };
 
-  let sortOrder = 0;
-  for (const file of files) {
-    const path = buildStoragePath(context.family.id, document.id, file.name);
-    const { error: uploadError } = await uploadDocumentFile(path, file);
-    if (uploadError) continue;
-
-    const { error: fileInsertError } = await supabase.from("document_files").insert({
-      document_id: document.id,
-      family_id: context.family.id,
-      storage_path: path,
-      mime_type: file.type || null,
-      size_bytes: file.size,
-      sort_order: sortOrder++,
-    });
-
-    if (fileInsertError) {
-      await removeDocumentFiles([path]);
-    }
-  }
-
-  revalidatePath("/documentos");
-  return { success: true, id: document.id };
+  return {
+    success: true,
+    id: document.id,
+    uploads: fileNames.map((name) => ({ path: buildStoragePath(context.family.id, document.id, name) })),
+  };
 }
 
 export async function updateDocument(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
@@ -219,16 +209,19 @@ export async function removeDocumentFile(fileId: string, documentId: string): Pr
 
 /**
  * Registra un archivo que el navegador ya subió a Storage con su sesión
- * (hoy: el ticket de un gasto, que se sube después de guardarlo). Mismo
+ * (las páginas de un documento nuevo y el ticket de un gasto). Mismo
  * orden que `createDocument` — primero el archivo, después la fila — y
  * misma compensación: si la fila no se puede insertar, se borra el
  * archivo. La ruta tiene que estar dentro de la carpeta del documento y
  * de la familia; las políticas de storage.objects ya impiden subir fuera
  * de la propia familia, esto evita además registrar una ruta ajena.
+ * `sortOrder` va explícito cuando se suben varias páginas en paralelo
+ * (contar las existentes daría el mismo número a todas); sin él, la
+ * página va al final.
  */
 export async function attachDocumentFile(
   documentId: string,
-  file: { path: string; mimeType: string | null; sizeBytes: number },
+  file: { path: string; mimeType: string | null; sizeBytes: number; sortOrder?: number },
 ): Promise<ActionResult> {
   const context = await getCurrentFamilyContext();
   if (!context) return { error: "No se encontró tu familia." };
@@ -253,7 +246,7 @@ export async function attachDocumentFile(
     storage_path: file.path,
     mime_type: file.mimeType,
     size_bytes: file.sizeBytes,
-    sort_order: count ?? 0,
+    sort_order: file.sortOrder ?? count ?? 0,
   });
   if (error) {
     await removeDocumentFiles([file.path]);

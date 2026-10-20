@@ -858,7 +858,11 @@ Tres clientes separados, no los mezcles:
    del feed ICS de la Fase 2, acá sí hay sesión — usar el admin client
    saltearía las políticas de `storage.objects` sin necesidad, que es
    justo el mecanismo que garantiza el aislamiento entre familias. Ver
-   `lib/documents/storage.ts`.
+   `lib/documents/storage.ts`. Con 60 segundos no sirve firmarlas al
+   listar (vencerían antes del toque): el detalle las pide todas en una
+   sola llamada (`getSignedDocumentUrls`, `createSignedUrls`) encadenada a
+   la lectura del documento, `loading.tsx` muestra un esqueleto al tocar,
+   y el visor precarga las demás páginas apenas abre.
 3. **`document_files` es una tabla aparte, no una columna en
    `documents`.** Una cédula tiene frente y dorso, un estudio médico
    tiene varias páginas — modelar un archivo por documento obligaría a
@@ -894,8 +898,19 @@ Tres clientes separados, no los mezcles:
    (sin archivos) → subir cada archivo con esa ruta → insertar su fila en
    `document_files`. Si ese último insert falla, se borra el archivo ya
    subido. El peor caso es un archivo huérfano invisible en Storage, no
-   una fila apuntando a un archivo que no existe. Ver `createDocument` en
-   `app/(app)/documentos/actions.ts`.
+   una fila apuntando a un archivo que no existe. Desde la serie de
+   latencia percibida los pasos están repartidos: `createDocument`
+   (`app/(app)/documentos/actions.ts`) crea solo la fila y devuelve las
+   rutas; el formulario sube cada página **directo del navegador a
+   Storage**, en paralelo y con progreso (`lib/documents/browser-upload.ts`,
+   XHR con el token de la sesión del usuario — mismas políticas de
+   `storage.objects`, nunca el admin client), y `attachDocumentFile`
+   inserta la fila de cada una (con `sortOrder` explícito, porque suben en
+   paralelo). Una página que falla se marca y se reintenta desde el mismo
+   formulario; si la persona sigue sin ella, el documento queda con las
+   que sí subieron. Esto además saca a las imágenes y PDF del límite de
+   1 MB del body de las Server Actions. "Agregar páginas" en
+   `/documentos/[id]` (`addDocumentFiles`) sigue por el servidor.
 8. **`expires_at` + `expiry_notified_at` (fecha, no booleano) para el
    aviso de vencimiento**, mismo patrón que `warranty_notified_at` en
    `assets` y `notified_at` en `task_instances` — permite repetir el
@@ -1208,6 +1223,11 @@ de reglas de negocio.
    regla 8 de la Fase 1.
 4. **Guardar un gasto (`/gastos/[id]/nuevo` y editar)**: el ticket se
    sube después de guardar, ver la regla 15 de la Fase 6.
+5. **Documentos**: subida directa a Storage con progreso por página
+   (regla 7 de la Fase 5) y apertura más rápida (regla 2). El cliente de
+   Supabase del navegador, que la subida usa solo para leer el token de
+   la sesión, se carga con `import()` al subir: importarlo arriba sumaba
+   ~70 kB al JS inicial de `/gastos/[id]/nuevo` y `/documentos/nuevo`.
 
 ## Mejoras post-Fase 6: decisiones a respetar
 
