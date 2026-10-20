@@ -15,25 +15,6 @@ export function buildStoragePath(familyId: string, documentId: string, originalN
   return `${familyId}/${documentId}/${crypto.randomUUID()}${safeExt}`;
 }
 
-/**
- * Sube un archivo con el cliente de sesión (no el admin client): así las
- * políticas de storage.objects se aplican solas y no hay forma de que el
- * código suba (o lea) por error algo fuera de la carpeta de la propia
- * familia. Ver CLAUDE.md, Fase 5.
- */
-export async function uploadDocumentFile(
-  path: string,
-  file: File | Blob,
-  contentType?: string,
-): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase.storage.from(DOCUMENTS_BUCKET).upload(path, file, {
-    contentType: contentType ?? (file instanceof File ? file.type : undefined),
-    upsert: false,
-  });
-  return { error: error ? error.message : null };
-}
-
 export async function removeDocumentFiles(paths: string[]): Promise<void> {
   if (paths.length === 0) return;
   const supabase = await createClient();

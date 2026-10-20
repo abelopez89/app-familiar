@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
-import { buildStoragePath, getSignedDocumentUrl, removeDocumentFiles, uploadDocumentFile } from "@/lib/documents/storage";
+import { buildStoragePath, getSignedDocumentUrl, removeDocumentFiles } from "@/lib/documents/storage";
 
 export type ActionResult = { error?: string; success?: boolean; id?: string };
 
@@ -153,45 +153,44 @@ export async function toggleDocumentPinned(id: string, pinned: boolean): Promise
   return { success: true };
 }
 
-export async function addDocumentFiles(documentId: string, files: File[]): Promise<ActionResult> {
-  const validFiles = files.filter((f) => f.size > 0);
-  if (validFiles.length === 0) return { error: "No se recibió ningún archivo." };
+/**
+ * "Agregar páginas" en `/documentos/[id]`: verifica que el documento sea
+ * de la familia y devuelve, por cada archivo, su ruta de Storage y su
+ * orden (a continuación de las páginas que ya tiene). El navegador sube
+ * cada una directo a Storage con su sesión y la registra con
+ * `attachDocumentFile`, igual que al crear un documento (Fase 5, regla 7).
+ */
+export async function prepareDocumentFiles(
+  documentId: string,
+  fileNames: string[],
+): Promise<ActionResult & { uploads?: { path: string; sortOrder: number }[] }> {
+  const names = fileNames.filter(Boolean);
+  if (names.length === 0) return { error: "No se recibió ningún archivo." };
 
   const context = await getCurrentFamilyContext();
   if (!context) return { error: "No se encontró tu familia." };
 
   const supabase = await createClient();
-  const { data: existing } = await supabase
-    .from("document_files")
-    .select("sort_order")
-    .eq("document_id", documentId)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data: document }, { data: existing }] = await Promise.all([
+    supabase.from("documents").select("id").eq("family_id", context.family.id).eq("id", documentId).maybeSingle(),
+    supabase
+      .from("document_files")
+      .select("sort_order")
+      .eq("document_id", documentId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (!document) return { error: "Documento no encontrado." };
 
-  let sortOrder = (existing?.sort_order ?? -1) + 1;
-
-  for (const file of validFiles) {
-    const path = buildStoragePath(context.family.id, documentId, file.name);
-    const { error: uploadError } = await uploadDocumentFile(path, file);
-    if (uploadError) continue;
-
-    const { error: fileInsertError } = await supabase.from("document_files").insert({
-      document_id: documentId,
-      family_id: context.family.id,
-      storage_path: path,
-      mime_type: file.type || null,
-      size_bytes: file.size,
-      sort_order: sortOrder++,
-    });
-
-    if (fileInsertError) {
-      await removeDocumentFiles([path]);
-    }
-  }
-
-  revalidatePath(`/documentos/${documentId}`);
-  return { success: true };
+  const first = (existing?.sort_order ?? -1) + 1;
+  return {
+    success: true,
+    uploads: names.map((name, i) => ({
+      path: buildStoragePath(context.family.id, documentId, name),
+      sortOrder: first + i,
+    })),
+  };
 }
 
 export async function removeDocumentFile(fileId: string, documentId: string): Promise<ActionResult> {
