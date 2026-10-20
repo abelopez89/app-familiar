@@ -610,6 +610,22 @@ Tres clientes separados, no los mezcles:
    la compra (`ClosedListSummary`, productos y total) pero no tenía
    forma de llegar ahí desde el historial.
 
+8. **La edición de lista (`/compras/[id]`) es optimista, igual que el
+   modo supermercado.** Agregar un producto suelto, cambiar la cantidad y
+   borrar se ven al instante y se revierten con un toast si el servidor
+   falla; un producto recién agregado lleva un id temporal (atenuado, sin
+   editar ni borrar) hasta que llega el real. `updateItemQuantity`,
+   `deleteListItem` y `addLooseItem` **no** llaman a `revalidatePath`: en
+   Next 15 eso re-renderiza la página entera (incluido el autocompletado
+   de `getKnownProductNames`) antes de responder, y el resultado se
+   descartaba porque el editor guarda su estado en `useState(items)`. En
+   su lugar, `list-editor.tsx` hace un `router.refresh()` en segundo
+   plano dos segundos después del último cambio confirmado (o al salir de
+   la pantalla), para que volver con el botón de volver no muestre una
+   lista vieja desde la caché del router. El formulario de agregar usa
+   `onSubmit`, no `<form action>`: dentro de una acción de formulario
+   React no pinta los cambios de estado hasta que termina el await.
+
 ## Fase 2 — Eventos, calendario y Telegram: decisiones a respetar
 
 1. **Se guarda la definición de recurrencia, no las instancias.**

@@ -51,11 +51,12 @@ export async function renameShoppingList(
   return { success: true };
 }
 
-export async function updateItemQuantity(
-  itemId: string,
-  listId: string,
-  quantity: number,
-): Promise<ActionResult> {
+// Las tres acciones de edición de ítems (cantidad, borrar, producto
+// suelto) no revalidan: la pantalla ya muestra el cambio en su estado
+// local (update optimista, como el modo supermercado), y un
+// `revalidatePath` haría que el servidor re-renderice toda la página antes
+// de responder. `list-editor.tsx` refresca en segundo plano.
+export async function updateItemQuantity(itemId: string, quantity: number): Promise<ActionResult> {
   if (!(quantity > 0)) return { error: "La cantidad debe ser mayor a 0." };
 
   const supabase = await createClient();
@@ -65,18 +66,14 @@ export async function updateItemQuantity(
     .eq("id", itemId);
 
   if (error) return { error: "No se pudo actualizar la cantidad." };
-
-  revalidatePath(`/compras/${listId}`);
   return { success: true };
 }
 
-export async function deleteListItem(itemId: string, listId: string): Promise<ActionResult> {
+export async function deleteListItem(itemId: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.from("shopping_list_items").delete().eq("id", itemId);
 
   if (error) return { error: "No se pudo eliminar el producto." };
-
-  revalidatePath(`/compras/${listId}`);
   return { success: true };
 }
 
@@ -126,8 +123,6 @@ export async function addLooseItem(
   );
 
   if (!result.ok) return { error: result.error };
-
-  revalidatePath(`/compras/${listId}`);
   return { success: true, id: result.id };
 }
 
