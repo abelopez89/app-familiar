@@ -4,7 +4,7 @@ import { FileText, Plus } from "lucide-react";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { listDocumentCategories, listDocumentsWithFiles } from "@/lib/documents/queries";
 import { listActiveMembers } from "@/lib/members";
-import { getSignedDocumentUrl } from "@/lib/documents/storage";
+import { getSignedDocumentUrls } from "@/lib/documents/storage";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { MODULES_BY_KEY } from "@/components/app-shell/modules";
@@ -22,18 +22,14 @@ export default async function DocumentosPage() {
 
   // Miniatura solo para los fijados (son pocos, por diseño) — el resto de
   // la lista muestra un ícono genérico para no pagar una signed URL por
-  // documento en cada carga de /documentos.
-  const pinned = documents.filter((d) => d.is_pinned);
-  const thumbnailEntries = await Promise.all(
-    pinned.map(async (doc) => {
-      const firstImage = doc.files.find((f) => f.mime_type?.startsWith("image/"));
-      if (!firstImage) return null;
-      const url = await getSignedDocumentUrl(firstImage.storage_path);
-      return url ? ([doc.id, url] as const) : null;
-    }),
-  );
+  // documento en cada carga de /documentos. Todas en una sola llamada.
+  const withImage = documents
+    .filter((d) => d.is_pinned)
+    .map((doc) => ({ doc, image: doc.files.find((f) => f.mime_type?.startsWith("image/")) }))
+    .filter((e) => e.image);
+  const urls = await getSignedDocumentUrls(withImage.map((e) => e.image!.storage_path));
   const thumbnails = Object.fromEntries(
-    thumbnailEntries.filter((e): e is [string, string] => e !== null),
+    withImage.flatMap((e, i) => (urls[i] ? [[e.doc.id, urls[i]] as const] : [])),
   );
 
   const { fg, bg } = MODULES_BY_KEY.documentos;

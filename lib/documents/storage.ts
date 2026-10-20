@@ -55,3 +55,19 @@ export async function getSignedDocumentUrl(path: string): Promise<string | null>
   if (error || !data) return null;
   return data.signedUrl;
 }
+
+/**
+ * Lo mismo que `getSignedDocumentUrl` para varios archivos en una sola
+ * llamada a Storage (mismo cliente de sesión, mismos 60 segundos). Devuelve
+ * las URLs en el mismo orden que `paths`, con null para las que fallaron.
+ */
+export async function getSignedDocumentUrls(paths: string[]): Promise<(string | null)[]> {
+  if (paths.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage
+    .from(DOCUMENTS_BUCKET)
+    .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
+  if (error || !data) return paths.map(() => null);
+  const byPath = new Map(data.map((d) => [d.path, d.error ? null : d.signedUrl]));
+  return paths.map((p) => byPath.get(p) ?? null);
+}
