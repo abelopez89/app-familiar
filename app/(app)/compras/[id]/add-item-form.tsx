@@ -1,10 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import type { ProductCategory, ShoppingListItem, ShoppingTemplate } from "@/lib/supabase/types";
-import { addLooseItem, type ActionResult } from "./actions";
 import { defaultProductCategoryId } from "@/lib/normalize";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,13 +22,14 @@ export function AddItemForm({
   categories,
   templates,
   knownNames,
-  onItemAdded,
+  onAdd,
 }: {
   listId: string;
   categories: ProductCategory[];
   templates: ShoppingTemplate[];
   knownNames: string[];
-  onItemAdded: (item: ShoppingListItem) => void;
+  /** Agrega el ítem al instante y lo confirma; resuelve en false si falló. */
+  onAdd: (item: ShoppingListItem, formData: FormData) => Promise<boolean>;
 }) {
   const defaultCategoryId = defaultProductCategoryId(categories) ?? "none";
   const [categoryId, setCategoryId] = useState(defaultCategoryId);
@@ -44,24 +43,36 @@ export function AddItemForm({
     unit: string;
   } | null>(null);
 
-  const [state, formAction, pending] = useActionState<ActionResult, FormData>(
-    addLooseItem,
-    {},
-  );
+  // Optimista: el producto aparece en la lista y el formulario queda
+  // libre para el siguiente apenas se toca "Agregar", sin esperar al
+  // servidor. El id temporal se reemplaza por el real al confirmar; si
+  // falla, la lista lo saca y avisa (ver `handleAdd` en list-editor.tsx).
+  // `onSubmit` y no `<form action>`: una acción de formulario corre dentro
+  // de una transición, y React no pinta sus cambios de estado hasta que
+  // termina el await — el producto aparecería recién con la respuesta.
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const category = categories.find((c) => c.id === categoryId) ?? null;
+    const added = { name: trimmed, categoryId: category?.id ?? null, quantity: Number(quantity) || 1, unit };
 
-  useEffect(() => {
-    if (state.error) toast.error(state.error);
-    if (state.success && state.id) {
-      const category = categories.find((c) => c.id === categoryId) ?? null;
-      onItemAdded({
-        id: state.id,
+    setName("");
+    setQuantity("1");
+    setUnit("un");
+    setCategoryId(defaultCategoryId);
+
+    const ok = await onAdd(
+      {
+        id: `tmp-${crypto.randomUUID()}`,
         list_id: listId,
         family_id: "",
         template_item_id: null,
-        name,
-        category_id: category?.id ?? null,
+        name: trimmed,
+        category_id: added.categoryId,
         category_name: category?.name ?? null,
-        quantity: Number(quantity) || 1,
+        quantity: added.quantity,
         unit,
         notes: null,
         is_checked: false,
@@ -70,19 +81,19 @@ export function AddItemForm({
         unit_price: null,
         sort_order: 0,
         created_at: new Date().toISOString(),
-      });
-      setLastAdded({ name, categoryId: category?.id ?? null, quantity: Number(quantity) || 1, unit });
-      setName("");
-      setQuantity("1");
-      setUnit("un");
-      setCategoryId(defaultCategoryId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+      },
+      formData,
+    );
+    // "Agregar también a una plantilla" solo para lo que sí se guardó. Si
+    // falló, el nombre vuelve al campo (salvo que ya se esté escribiendo
+    // otro) para reintentar sin tipearlo de nuevo.
+    if (ok) setLastAdded(added);
+    else setName((current) => current || trimmed);
+  }
 
   return (
     <div className="flex flex-col gap-2">
-      <form action={formAction} className="flex flex-col gap-2">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <input type="hidden" name="list_id" value={listId} />
         <input type="hidden" name="category_id" value={categoryId} />
         <input
@@ -139,7 +150,7 @@ export function AddItemForm({
               ))}
             </SelectContent>
           </Select>
-          <Button type="submit" size="sm" disabled={pending || !name.trim()} className="gap-1">
+          <Button type="submit" size="sm" disabled={!name.trim()} className="gap-1">
             <Plus className="size-4" />
             Agregar
           </Button>
