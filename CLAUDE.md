@@ -173,12 +173,14 @@ acá primero):
   en producción** (el usuario probó todos los comandos desde el
   celular: `/menu`, `/hoy`, `/compra`, `/gasto`, `/nafta`, `/evento`).
   Después se sumó `/semana` como mejora de mantenimiento (punto 22).
-  Menú de comandos registrado con `setMyCommands`. Migraciones `012` (tablas
+  Menú de comandos registrado con `setMyCommands`, y vuelto a registrar
+  con `semana` incluido (lista completa en la configuración operativa de
+  arriba). Migraciones `012` (tablas
   `telegram_sessions` y `telegram_updates`) y `013` (`save_expense()`
   usable sin sesión) aplicadas y confirmadas en la base. Cubre: capa de servicios compartida entre
   Server Actions y bot (`lib/services/`), `lib/telegram/` (cliente,
   router, sesiones, teclados, flujos), comandos `/menu`, `/hoy`,
-  `/compra`, `/gasto`, `/nafta`, `/evento`, `/cancelar`, botón "Marcar hecha" en el
+  `/semana`, `/compra`, `/gasto`, `/nafta`, `/evento`, `/cancelar`, botón "Marcar hecha" en el
   aviso diario de tareas y "Ver agenda del día" en los recordatorios de
   eventos, y la limpieza de `telegram_updates` en el cron diario. Ver la
   sección "Fase 7" más abajo. El alta de eventos por chat (`/evento`) se
