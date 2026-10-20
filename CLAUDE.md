@@ -1233,6 +1233,24 @@ de reglas de negocio.
    Supabase del navegador, que la subida usa solo para leer el token de
    la sesión, se carga con `import()` al subir: importarlo arriba sumaba
    ~70 kB al JS inicial de `/gastos/[id]/nuevo` y `/documentos/nuevo`.
+6. **Pantallas de carga (`loading.tsx`)**: sin ellas, al tocar un link
+   no cambiaba nada hasta que respondía el servidor. Todas usan el mismo
+   esqueleto neutro, `PageSkeleton`
+   (`components/app-shell/page-skeleton.tsx`), salvo el visor de
+   `/documentos/[id]`, que tiene el suyo. **Dónde van importa**: Next
+   monta el límite de un `loading.tsx` de la carpeta X alrededor del
+   segmento que está *debajo* de X, con una key por segmento, y solo
+   muestra el esqueleto cuando ese límite se monta de nuevo. Un
+   `loading.tsx` en `(app)` cubre el paso entre secciones (inicio,
+   compras, gastos…), pero no la navegación *dentro* de una sección,
+   porque ahí el segmento de la sección no cambia. Por eso hay uno en
+   cada sección con subpantallas (`compras`, `gastos`, `combustible`,
+   `documentos`, `config`, `tareas`) y uno más abajo donde se navega
+   entre hermanas: `compras/[id]` (entrar al modo supermercado) y
+   `gastos/[id]` (pestañas, nuevo gasto, editar, participantes).
+   `eventos` no lleva: no tiene subpantallas y lo cubre el de `(app)`.
+   Si agregás una pantalla nueva en un nivel que hoy no tiene
+   `loading.tsx`, fijate si le hace falta uno.
 
 ## Mejoras post-Fase 6: decisiones a respetar
 
