@@ -217,6 +217,51 @@ export async function removeDocumentFile(fileId: string, documentId: string): Pr
   return { success: true };
 }
 
+/**
+ * Registra un archivo que el navegador ya subió a Storage con su sesión
+ * (hoy: el ticket de un gasto, que se sube después de guardarlo). Mismo
+ * orden que `createDocument` — primero el archivo, después la fila — y
+ * misma compensación: si la fila no se puede insertar, se borra el
+ * archivo. La ruta tiene que estar dentro de la carpeta del documento y
+ * de la familia; las políticas de storage.objects ya impiden subir fuera
+ * de la propia familia, esto evita además registrar una ruta ajena.
+ */
+export async function attachDocumentFile(
+  documentId: string,
+  file: { path: string; mimeType: string | null; sizeBytes: number },
+): Promise<ActionResult> {
+  const context = await getCurrentFamilyContext();
+  if (!context) return { error: "No se encontró tu familia." };
+
+  const prefix = `${context.family.id}/${documentId}/`;
+  const name = file.path.slice(prefix.length);
+  if (!file.path.startsWith(prefix) || !name || name.includes("/")) return { error: "Archivo inválido." };
+
+  const supabase = await createClient();
+  const [{ data: document }, { count }] = await Promise.all([
+    supabase.from("documents").select("id").eq("family_id", context.family.id).eq("id", documentId).maybeSingle(),
+    supabase.from("document_files").select("id", { count: "exact", head: true }).eq("document_id", documentId),
+  ]);
+  if (!document) {
+    await removeDocumentFiles([file.path]);
+    return { error: "Documento no encontrado." };
+  }
+
+  const { error } = await supabase.from("document_files").insert({
+    document_id: documentId,
+    family_id: context.family.id,
+    storage_path: file.path,
+    mime_type: file.mimeType,
+    size_bytes: file.sizeBytes,
+    sort_order: count ?? 0,
+  });
+  if (error) {
+    await removeDocumentFiles([file.path]);
+    return { error: "No se pudo registrar el archivo." };
+  }
+  return { success: true };
+}
+
 export async function getDocumentFileUrl(storagePath: string): Promise<string | null> {
   return getSignedDocumentUrl(storagePath);
 }

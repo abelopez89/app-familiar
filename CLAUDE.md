@@ -1146,11 +1146,24 @@ Tres clientes separados, no los mezcles:
     ese número de partes, y un truncado silencioso rompería el
     invariante sin que nadie supiera por qué. Todo lo que alimenta un
     cálculo se trae con `fetchAllPages`.
-15. **El ticket usa el Centro de Documentos (Fase 5).** `saveExpense`
-    llama a `createDocument` tal cual (título "Ticket: …", tipo
-    `factura`) con la imagen ya comprimida en el cliente por
-    `compressDocumentImage`; si después falla el guardado del gasto, se
-    borra el documento recién creado. No hay nada nuevo de storage.
+15. **El ticket usa el Centro de Documentos (Fase 5), y se sube después
+    de guardar el gasto.** La imagen se comprime en el cliente
+    (`compressDocumentImage`) pero ya no viaja con el gasto: `saveExpense`
+    solo crea la fila de `documents` (título "Ticket: …", tipo `factura`,
+    sin archivos), guarda el gasto apuntando a ella y devuelve la ruta de
+    Storage (`buildStoragePath`). Si falla el guardado, se borra ese
+    documento (la compensación de siempre). Con el gasto ya guardado y la
+    persona en la pantalla del grupo, el navegador sube la imagen directo
+    a Storage con su propia sesión (`lib/documents/browser-upload.ts`,
+    mismas políticas de `storage.objects`, nunca el admin client) y la
+    registra con `attachDocumentFile` (`app/(app)/documentos/actions.ts`,
+    que verifica que la ruta sea de esa familia y ese documento, y borra
+    el archivo si no puede insertar la fila). Si la subida falla, el gasto
+    queda guardado, se borra el documento vacío (`receipt_document_id` es
+    `on delete set null`) y se avisa con un toast. `saveExpense` no
+    revalida (ver "Latencia percibida"): el formulario navega al grupo y
+    hace `router.refresh()`. No hay nada nuevo de storage: mismo bucket,
+    mismas rutas, mismas políticas.
 16. **Categorías de gastos**: sembradas por la migración 011 para las
     familias existentes; una familia nueva las trae con "Agregar
     sugeridas" en `/config/gastos`. `icon` guarda un nombre de ícono de
@@ -1191,6 +1204,10 @@ de reglas de negocio.
    como pide la regla 6 de la Fase 4. `createFuelLog` en
    `lib/services/combustible.ts` lee vehículo y cargas en paralelo; el
    resultado es el mismo para la app y el bot.
+3. **Edición de lista de compras (`/compras/[id]`)**: optimista, ver la
+   regla 8 de la Fase 1.
+4. **Guardar un gasto (`/gastos/[id]/nuevo` y editar)**: el ticket se
+   sube después de guardar, ver la regla 15 de la Fase 6.
 
 ## Mejoras post-Fase 6: decisiones a respetar
 
