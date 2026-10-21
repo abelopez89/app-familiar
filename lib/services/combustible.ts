@@ -57,6 +57,13 @@ export async function getLastUsedVehicleId(db: Db, familyId: string, memberId: s
   return data?.vehicle_id ?? null;
 }
 
+/**
+ * Error de odómetro repetido (`unique(vehicle_id, odometer)`). Exportado
+ * para que la pantalla lo reconozca al reintentar un guardado cuya
+ * confirmación no llegó: ahí significa que la carga ya estaba guardada.
+ */
+export const DUPLICATE_ODOMETER_ERROR = "Ya cargaste una carga con ese kilometraje para este vehículo.";
+
 export type FuelLogInput = {
   vehicleId: string;
   odometer: number;
@@ -129,7 +136,7 @@ export async function createFuelLog(db: Db, actor: Actor, input: FuelLogInput): 
 
   if (error || !inserted) {
     if (error?.code === "23505") {
-      return { status: "error", error: "Ya cargaste una carga con ese kilometraje para este vehículo." };
+      return { status: "error", error: DUPLICATE_ODOMETER_ERROR };
     }
     return { status: "error", error: "No se pudo guardar la carga." };
   }

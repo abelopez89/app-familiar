@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
 import type { FuelInterval } from "@/lib/fuel/consumption";
-import { createFuelLog as createFuelLogService } from "@/lib/services/combustible";
+import { createFuelLog as createFuelLogService, DUPLICATE_ODOMETER_ERROR } from "@/lib/services/combustible";
 
 const fuelLogSchema = z.object({
   vehicle_id: z.string().trim().min(1, "Elegí un vehículo."),
@@ -41,6 +41,8 @@ function parseFuelLogForm(formData: FormData) {
 
 export type CreateFuelLogResult = {
   error?: string;
+  /** El error es por kilometraje repetido (ver `DUPLICATE_ODOMETER_ERROR`). */
+  duplicate?: boolean;
   warnings?: string[];
   success?: boolean;
   id?: string;
@@ -77,7 +79,9 @@ export async function createFuelLog(
     },
   );
 
-  if (outcome.status === "error") return { error: outcome.error };
+  if (outcome.status === "error") {
+    return { error: outcome.error, duplicate: outcome.error === DUPLICATE_ODOMETER_ERROR };
+  }
   if (outcome.status === "warnings") return { warnings: outcome.warnings.map((w) => w.message) };
 
   // Sin `revalidatePath` a propósito: en Next 15 cualquier revalidación

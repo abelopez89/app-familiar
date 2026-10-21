@@ -1223,7 +1223,17 @@ de reglas de negocio.
    cuestan ninguna consulta extra), así que se siguen mostrando ahí mismo,
    como pide la regla 6 de la Fase 4. `createFuelLog` en
    `lib/services/combustible.ts` lee vehículo y cargas en paralelo; el
-   resultado es el mismo para la app y el bot.
+   resultado es el mismo para la app y el bot. **Corte de señal al
+   guardar** (pasó en producción con una llamada entrante): la carga
+   puede quedar guardada sin que la respuesta llegue al celular. El
+   formulario atrapa la acción que falla por red y muestra "No llegó la
+   confirmación" con **Reintentar**, que reenvía la misma carga (el
+   kilometraje ya no está en el campo: React limpia el formulario al
+   enviarlo). Si el primer intento sí se había guardado, el
+   `unique(vehicle_id, odometer)` lo frena y la acción lo marca con
+   `duplicate` (`DUPLICATE_ODOMETER_ERROR` en el servicio): en un
+   reintento eso se muestra como "La carga ya estaba guardada", no como
+   error.
 3. **Edición de lista de compras (`/compras/[id]`)**: optimista, ver la
    regla 8 de la Fase 1.
 4. **Guardar un gasto (`/gastos/[id]/nuevo` y editar)**: el ticket se

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -49,6 +50,9 @@ export function FuelLogForm({
   const [warnings, setWarnings] = useState<string[] | null>(null);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
   const [result, setResult] = useState<CreateFuelLogResult | null>(null);
+  // Carga enviada cuya respuesta no llegó (corte de señal): puede estar
+  // guardada o no, y se ofrece reintentar con los mismos datos.
+  const [unconfirmed, setUnconfirmed] = useState<FormData | null>(null);
 
   // La acción ya no revalida (ver actions.ts): el resultado se ve apenas
   // la carga queda escrita, y recién después se refresca en segundo plano
@@ -83,26 +87,88 @@ export function FuelLogForm({
     setResetsCalculation(false);
   }
 
+  /**
+   * Llama a la acción sin dejar que un corte de red rompa la pantalla:
+   * con mala señal (en la estación, o una llamada entrante) la carga
+   * puede quedar guardada en el servidor sin que la respuesta llegue al
+   * celular, y antes eso terminaba en un error genérico de la app.
+   * Devuelve null si no llegó la respuesta.
+   */
+  async function send(formData: FormData): Promise<CreateFuelLogResult | null> {
+    try {
+      return await createFuelLog({}, formData);
+    } catch {
+      return null;
+    }
+  }
+
+  function handleResult(res: CreateFuelLogResult, formData: FormData) {
+    if (res.warnings) {
+      setWarnings(res.warnings);
+      setPendingFormData(formData);
+      setResult(null);
+      return;
+    }
+    finish(res);
+  }
+
   function handleSubmit(formData: FormData) {
     formData.set("confirmed", "");
     startTransition(async () => {
-      const res = await createFuelLog({}, formData);
-      if (res.warnings) {
-        setWarnings(res.warnings);
-        setPendingFormData(formData);
+      const res = await send(formData);
+      if (!res) {
         setResult(null);
+        setUnconfirmed(formData);
+        return;
+      }
+      handleResult(res, formData);
+    });
+  }
+
+  function handleConfirm() {
+    if (!pendingFormData) return;
+    const formData = pendingFormData;
+    formData.set("confirmed", "on");
+    startTransition(async () => {
+      const res = await send(formData);
+      if (!res) {
+        setWarnings(null);
+        setPendingFormData(null);
+        setUnconfirmed(formData);
         return;
       }
       finish(res);
     });
   }
 
-  function handleConfirm() {
-    if (!pendingFormData) return;
-    pendingFormData.set("confirmed", "on");
+  /**
+   * Reenvía la misma carga cuya confirmación no llegó (el kilometraje ya
+   * no está en el campo: React limpia el formulario al enviarlo). Si el
+   * primer intento sí se había guardado, `unique(vehicle_id, odometer)`
+   * frena el duplicado y eso, acá, quiere decir "ya estaba guardada".
+   */
+  function handleRetry() {
+    if (!unconfirmed) return;
+    const formData = unconfirmed;
     startTransition(async () => {
-      const res = await createFuelLog({}, pendingFormData);
-      finish(res);
+      const res = await send(formData);
+      if (!res) {
+        toast.error("Sigue sin llegar la confirmación. Probá de nuevo cuando tengas señal.");
+        return;
+      }
+      setUnconfirmed(null);
+      if (res.duplicate) {
+        toast.success("La carga ya estaba guardada.");
+        setResult(null);
+        formRef.current?.reset();
+        setLiters("");
+        setAmount("");
+        setIsFullTank(true);
+        setResetsCalculation(false);
+        router.refresh();
+        return;
+      }
+      handleResult(res, formData);
     });
   }
 
@@ -219,7 +285,29 @@ export function FuelLogForm({
           </div>
         )}
 
-        {warnings && (
+        {unconfirmed && (
+          <Card className="border-warning">
+            <CardContent className="flex flex-col gap-3 pt-4">
+              <p className="text-sm font-medium">No llegó la confirmación</p>
+              <p className="text-sm text-muted-foreground">
+                Puede que se haya cortado la señal. La carga puede haberse guardado igual: reintentá y, si ya
+                estaba, te lo avisamos sin duplicarla.
+              </p>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" asChild>
+                  <Link href={`/combustible/${String(unconfirmed.get("vehicle_id") ?? vehicleId)}`}>
+                    Ver historial
+                  </Link>
+                </Button>
+                <Button type="button" onClick={handleRetry} disabled={isPending}>
+                  {isPending ? "Reintentando…" : "Reintentar"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {!unconfirmed && warnings && (
           <Card className="border-amber-500">
             <CardContent className="flex flex-col gap-3 pt-4">
               {warnings.map((w, i) => (
@@ -239,7 +327,7 @@ export function FuelLogForm({
           </Card>
         )}
 
-        {!warnings && (
+        {!unconfirmed && !warnings && (
           <Button type="submit" disabled={isPending} className="h-12 text-base">
             {isPending ? "Guardando…" : "Guardar carga"}
           </Button>
