@@ -3,15 +3,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, Eye, EyeOff, PartyPopper } from "lucide-react";
 import type { ProductCategory, ShoppingListItem } from "@/lib/supabase/types";
 import { formatQuantity } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toggleItemChecked } from "./actions";
 import { CloseListButton } from "./close-list-button";
 
 const SIN_CATEGORIA = "__sin_categoria__";
+
+/** Preferencia "ocultar marcados", por dispositivo (como la vista del calendario). */
+const HIDE_CHECKED_KEY = "compras:ocultar-marcados";
 
 export function SupermercadoView({
   listId,
@@ -25,6 +29,29 @@ export function SupermercadoView({
   const [items, setItems] = useState(initialItems);
   const pendingIds = useRef<Set<string>>(new Set());
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
+  // Ocultar los productos ya marcados: al marcar, el producto solo baja al
+  // fondo de su categoría, y con muchas categorías lo que falta queda
+  // repartido entre lo ya comprado. Se recuerda en cada celular; se lee en
+  // un efecto para no desentonar con el render del servidor.
+  const [hideChecked, setHideChecked] = useState(false);
+
+  useEffect(() => {
+    try {
+      setHideChecked(localStorage.getItem(HIDE_CHECKED_KEY) === "1");
+    } catch {
+      // localStorage puede fallar en modo privado: se muestra todo.
+    }
+  }, []);
+
+  function changeHideChecked(next: boolean) {
+    setHideChecked(next);
+    try {
+      localStorage.setItem(HIDE_CHECKED_KEY, next ? "1" : "0");
+    } catch {
+      // ver comentario arriba
+    }
+  }
 
   useEffect(() => {
     let released = false;
@@ -144,6 +171,21 @@ export function SupermercadoView({
     });
   }, [items, categoryOrder]);
 
+  // Con "ocultar marcados", cada categoría muestra solo lo que falta y
+  // desaparece entera cuando se completa. El contador de la categoría
+  // sigue contando todo.
+  const visibleGroups = useMemo(
+    () =>
+      groups
+        .map(([key, groupItems]) => ({
+          key,
+          all: groupItems,
+          shown: hideChecked ? groupItems.filter((i) => !i.is_checked) : groupItems,
+        }))
+        .filter((g) => g.shown.length > 0),
+    [groups, hideChecked],
+  );
+
   const totalCount = items.length;
   const checkedCount = items.filter((i) => i.is_checked).length;
   const progressPercent = totalCount === 0 ? 0 : Math.round((checkedCount / totalCount) * 100);
@@ -176,6 +218,20 @@ export function SupermercadoView({
       .finally(() => {
         pendingIds.current.delete(item.id);
       });
+
+    // Con los marcados ocultos, el producto desaparece apenas se toca: si
+    // fue sin querer, el toast permite desmarcarlo sin volver a mostrar
+    // todo. Un solo toast (id fijo) que se reemplaza, no una pila.
+    if (nextChecked && hideChecked) {
+      toast(`${item.name} marcado`, {
+        id: "supermercado-marcado",
+        duration: 4000,
+        action: {
+          label: "Deshacer",
+          onClick: () => handleToggle({ ...item, is_checked: true }),
+        },
+      });
+    }
   }
 
   return (
@@ -193,6 +249,16 @@ export function SupermercadoView({
           <span className="ml-auto text-sm font-medium text-muted-foreground tabular-nums">
             {progressPercent}%
           </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => changeHideChecked(!hideChecked)}
+            aria-pressed={hideChecked}
+            className="-mr-2 gap-1.5 text-muted-foreground"
+          >
+            {hideChecked ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+            {hideChecked ? `Mostrar (${checkedCount})` : "Ocultar marcados"}
+          </Button>
         </div>
         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
           <div
@@ -202,8 +268,21 @@ export function SupermercadoView({
         </div>
       </div>
 
-      {groups.map(([key, groupItems]) => {
-        const groupChecked = groupItems.filter((i) => i.is_checked).length;
+      {hideChecked && totalCount > 0 && visibleGroups.length === 0 && (
+        <EmptyState
+          icon={PartyPopper}
+          title="Ya marcaste todo"
+          description="Están ocultos los productos que ya marcaste."
+          action={
+            <Button variant="outline" onClick={() => changeHideChecked(false)}>
+              Mostrar marcados
+            </Button>
+          }
+        />
+      )}
+
+      {visibleGroups.map(({ key, all, shown: groupItems }) => {
+        const groupChecked = all.filter((i) => i.is_checked).length;
         const categoryLabel =
           key === SIN_CATEGORIA
             ? "Sin categoría"
@@ -216,7 +295,7 @@ export function SupermercadoView({
                 {categoryLabel}
               </p>
               <p className="text-xs text-muted-foreground tabular-nums">
-                {groupChecked}/{groupItems.length}
+                {groupChecked}/{all.length}
               </p>
             </div>
             <div className="overflow-hidden rounded-xl border shadow-sm">
