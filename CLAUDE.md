@@ -262,6 +262,17 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `StickyBottomBar` de `components/app-shell/floating-action.tsx`, y
   `pb-nav` para el contenido. Sin esto, en un iPhone con indicador de
   inicio los botones quedan medio tapados.
+- **Teclado abierto al cambiar de pantalla (iOS, app instalada).** Si
+  se navega con un campo de texto enfocado, el campo desaparece del DOM
+  e iOS cierra el teclado sin recalcular el alto de la pantalla: el tab
+  bar y las barras fijas quedan flotando a mitad de pantalla (pasó en
+  producción al agregar productos y tocar "Ir a comprar").
+  `KeyboardDismiss` (`components/app-shell/keyboard-dismiss.tsx`,
+  montado en el layout de `(app)`) le saca el foco al campo antes de
+  seguir cualquier link, y cuando el teclado se cierra hace un
+  `scrollTo` a la misma posición para que iOS reubique lo fijo. Si una
+  pantalla nueva navega con `router.push` desde un formulario con
+  teclado, hacé `blur()` antes de navegar.
 - **Componentes compartidos de pantalla**, en vez de que cada página
   arme su propio encabezado: `PageHeader` y `SectionTitle`
   (`components/app-shell/page-header.tsx`), `EmptyState`, `NavRow` /
