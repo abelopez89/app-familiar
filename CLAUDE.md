@@ -637,6 +637,19 @@ Tres clientes separados, no los mezcles:
    `onSubmit`, no `<form action>`: dentro de una acción de formulario
    React no pinta los cambios de estado hasta que termina el await.
 
+9. **"Ocultar marcados" en el modo supermercado** (pedido del usuario):
+   al marcar, un producto solo baja al fondo de su categoría, y con
+   muchas categorías lo que falta se perdía entre lo ya comprado. El
+   botón del encabezado oculta los marcados; cada categoría muestra solo
+   lo que falta y desaparece entera cuando se completa (su contador
+   `n/total` sigue contando todo), y si no queda nada se ofrece
+   "Mostrar marcados". Con los marcados ocultos, marcar muestra un toast
+   con **Deshacer** (id fijo, se reemplaza en vez de apilarse) porque el
+   producto desaparece apenas se toca. La preferencia es por dispositivo
+   en `localStorage` (`compras:ocultar-marcados`), mismo criterio que la
+   vista del calendario: no justifica una columna. No cambia lo que se
+   guarda ni el realtime.
+
 ## Fase 2 — Eventos, calendario y Telegram: decisiones a respetar
 
 1. **Se guarda la definición de recurrencia, no las instancias.**
