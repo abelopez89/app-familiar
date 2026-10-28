@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-shell/header";
 import { BottomNav } from "@/components/app-shell/bottom-nav";
+import { KeyboardDismiss } from "@/components/app-shell/keyboard-dismiss";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { createClient } from "@/lib/supabase/server";
 
@@ -36,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
       </main>
       <BottomNav />
+      <KeyboardDismiss />
     </div>
   );
 }
