@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import {
   CalendarDays,
   Car,
+  CreditCard,
   UserRound,
   FolderTree,
   HandCoins,
@@ -105,6 +106,17 @@ const GRUPOS: Array<{
         label: "Vehículos",
         description: "Tanque, combustible y odómetro inicial",
         icon: Car,
+      },
+    ],
+  },
+  {
+    titulo: "Promociones",
+    filas: [
+      {
+        href: "/config/tarjetas",
+        label: "Mis tarjetas",
+        description: "Para filtrar las promos de cada banco",
+        icon: CreditCard,
       },
     ],
   },

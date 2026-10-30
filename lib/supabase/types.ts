@@ -1080,6 +1080,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      tarjetas_familia: {
+        Row: {
+          id: string;
+          family_id: string;
+          member_id: string;
+          banco: "gnb" | "itau" | "sudameris" | "basa";
+          marca: "visa" | "mastercard" | "amex";
+          nivel: string;
+          afinidad: string | null;
+          tipo: "credito" | "debito" | "prepaga";
+          alias: string;
+          activa: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          member_id: string;
+          banco: "gnb" | "itau" | "sudameris" | "basa";
+          marca: "visa" | "mastercard" | "amex";
+          nivel: string;
+          afinidad?: string | null;
+          tipo?: "credito" | "debito" | "prepaga";
+          alias: string;
+          activa?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_id?: string;
+          member_id?: string;
+          banco?: "gnb" | "itau" | "sudameris" | "basa";
+          marca?: "visa" | "mastercard" | "amex";
+          nivel?: string;
+          afinidad?: string | null;
+          tipo?: "credito" | "debito" | "prepaga";
+          alias?: string;
+          activa?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1139,3 +1181,4 @@ export type Settlement = Database["hogar"]["Tables"]["settlements"]["Row"];
 export type ExpenseGroupKind = ExpenseGroup["kind"];
 export type ExpensePaymentMethod = Expense["payment_method"];
 export type ExpenseSplitMethod = Expense["split_method"];
+export type TarjetaFamilia = Database["hogar"]["Tables"]["tarjetas_familia"]["Row"];

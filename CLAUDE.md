@@ -30,8 +30,8 @@ Cómo trabajar una mejora mínima:
 3. **Lógica de negocio en `lib/services/`** cuando el bot también la usa
    (Fase 7): un cambio de regla se hace una vez y lo ven la app y el
    bot. Toda consulta con el admin client filtra por `family_id`.
-4. **Migraciones**: la próxima es la `014` (confirmalo mirando
-   `supabase/migrations/`). Se escribe el archivo y la aplica el usuario
+4. **Migraciones**: la próxima es la `015` (confirmalo mirando
+   `supabase/migrations/`; la `014` es del módulo de promociones). Se escribe el archivo y la aplica el usuario
    desde el SQL Editor; no avanzar con el código que depende de ella
    hasta que confirme.
 5. **Antes de cada PR**: `npm run build` y `npm run lint` sin errores, y
@@ -46,7 +46,8 @@ acá primero):
 - **Vercel**: variables de entorno (ver "Variables de entorno") y deploy
   automático de `main`.
 - **Supabase**: migraciones `001`–`013` aplicadas y bucket privado
-  `documentos` creado.
+  `documentos` creado. La `014` (promociones) está escrita y **pendiente
+  de aplicar** hasta que el usuario lo confirme.
 - **cron-job.org**: `GET /api/cron/recordatorios` (cada hora) y
   `GET /api/cron/tareas` (diario, 07:00 `America/Asuncion`), los dos con
   `Authorization: Bearer <CRON_SECRET>`.
@@ -58,6 +59,11 @@ acá primero):
   lista completa.
 
 ## Estado del proyecto
+
+- **Módulo de promociones de tarjetas: en curso, por fases, a pedido
+  del usuario** (excepción explícita al modo mantenimiento). Fase 1
+  (schema, "Mis tarjetas" y matching con tests) escrita; ver la sección
+  "Promociones de tarjetas" más abajo.
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
   producción** (Vercel + Supabase), incluyendo registro, login con
@@ -227,7 +233,9 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `telegram_user_id`.
 - Sin librerías de estado global (Redux, Zustand). Alcanza con Server
   Components + estado local de React.
-- Sin tests automatizados en esta etapa.
+- Sin tests automatizados, salvo la lógica pura del módulo de
+  promociones (`npm test`, vitest, en `tests/`), pedidos por el usuario.
+  No hace falta sumar tests a los módulos anteriores.
 - Sin caché offline ni sincronización en background (el service worker
   solo hace la PWA instalable).
 
@@ -449,6 +457,7 @@ incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 | `010_documentos.sql` | `document_categories`, `documents`, `document_files`, FK `assets.document_id`, políticas sobre `storage.objects` (ver sección Fase 5 más abajo). |
 | `011_gastos.sql` | `expense_categories`, `expense_groups`, `group_participants`, `expenses`, `expense_shares`, `settlements` + RLS + grants, función `hogar.save_expense()` y seed de categorías para las familias existentes (ver sección Fase 6 más abajo). |
 | `012_telegram_bot.sql` | `telegram_sessions` y `telegram_updates`: RLS con política `using (false)`, **sin** grants a `authenticated`/`anon` (revocados explícitos, porque el default privilege de la 005 se los daría), grants solo a `service_role` (ver sección Fase 7). |
+| `014_promos.sql` | **Pendiente de aplicar.** Promos globales (`promociones`, `promo_comercios`, `promo_beneficios`, `promo_beneficio_componentes`, `promo_beneficio_tarjetas`, `promo_descartadas`, `promo_ingestas`: solo lectura para `authenticated`, escritura solo `service_role`) y por familia (`tarjetas_familia`, `comercios_favoritos`, RLS estándar). Ver "Promociones de tarjetas". |
 | `013_save_expense_bot.sql` | `hogar.save_expense()` acepta `family_id`/`created_by` en el payload **solo** si quien llama es `service_role` y no hay sesión; verifica que el grupo y el miembro sean de esa familia. Para `authenticated` no cambia nada (ver sección Fase 7). |
 
 La próxima migración de cualquier fase nueva es `014_*.sql`. Confirmá el
@@ -561,6 +570,8 @@ Tres clientes separados, no los mezcles:
   - `/config/activos` — redirect a `/tareas/activos`, Fase 6. Es la
     entrada de los activos desde los catálogos de `/config`; las rutas
     de activos no se movieron.
+  - `/config/tarjetas` — "Mis tarjetas": ABM de tarjetas por miembro
+    (módulo de promociones).
   - `/config/gastos` — ABM de categorías de gastos (+ "agregar
     sugeridas"), Fase 6.
   - `/gastos` — grupos abiertos (con total y tu balance) y cerrados,
@@ -1546,12 +1557,47 @@ variables de entorno.
     caracteres), se corta en el último día completo y se remite a la
     app. Vive en `lib/telegram/flows/hoy.ts` (`sendWeek`).
 
+## Promociones de tarjetas: decisiones a respetar
+
+Módulo en curso por fases (1: schema + tarjetas + matching; 2: ingesta
+GNB + "Promos de hoy"; 3: Itaú; 4: carga manual Sudameris/BASA; 5:
+avisos de Telegram).
+
+1. **Las promos son globales, las tarjetas son de la familia.** Las
+   tablas de promos no tienen `family_id`: un autenticado solo las lee
+   (sin políticas ni grants de escritura) y las escriben la ingesta y la
+   carga manual con el admin client. Las promos se guardan aunque no le
+   sirvan a nadie hoy; el filtro por tarjeta se aplica al mostrar y al
+   avisar, así una tarjeta nueva ve las promos sin volver a ingerir.
+2. **Columnas en castellano como el diseño del módulo, salvo
+   `family_id`/`member_id`**, que siguen el resto del schema y las
+   políticas con `hogar.current_family_id()`.
+3. **El matching vive en `lib/promos/matching.ts`, funciones puras**, y
+   lo usan la pantalla y los avisos. La exclusión siempre gana; sin
+   reglas `incluye`, la capa aplica a todas las de **crédito** del banco
+   (por eso `tarjetas_familia` tiene `tipo`, que no estaba en el diseño
+   original). Si varias capas valen el mismo día, gana la de mayor
+   `prioridad` (empate: mayor porcentaje). Fechas como `yyyy-MM-dd` con
+   `dayOfWeekOfDateOnly`, nunca con la zona del servidor.
+4. **Marca, nivel, afinidad, tipo y banco se normalizan** con
+   `lib/promos/normalize.ts` (minúsculas, sin tildes, sinónimos:
+   "MasterCard" → `mastercard`, "Clásica" → `clasica`, "Afinidad
+   Farmacenter" → `farmacenter`) al guardar, y el matching vuelve a
+   normalizar al comparar.
+5. **Tests**: `tests/promos/` con los tres casos reales (BASA súper,
+   BASA Farmacenter, Sudameris Cadena Real) estructurados en
+   `tests/fixtures/promos/esperadas.ts`. Los PDF originales van en esa
+   misma carpeta para los tests de extracción de la Fase 4.
+6. **Nunca se pide el número de una tarjeta**: solo banco, marca, nivel,
+   afinidad, tipo y alias.
+
 ## Comandos útiles
 
 ```bash
 npm run dev       # servidor de desarrollo
 npm run build     # build de producción — debe pasar sin errores de TS
 npm run lint
+npm test          # tests de la lógica pura de promociones (vitest)
 ```
 
 No ejecutes `vercel` ni ningún comando del CLI de Vercel: el proyecto se
