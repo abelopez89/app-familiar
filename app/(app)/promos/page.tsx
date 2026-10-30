@@ -162,8 +162,16 @@ export default async function PromosPage() {
           return (
             <p key={banco}>
               {BANCOS[banco].label}:{" "}
-              {estado?.ultimaOk ? `actualizado ${formatDateTime(estado.ultimaOk)}` : "todavía sin actualizar"}
-              {estado?.ultimaFallo && <span className="text-destructive"> · la última actualización falló</span>}
+              {estado?.enCurso
+                ? "actualizando…"
+                : estado?.ultimaOk
+                  ? `actualizado ${formatDateTime(estado.ultimaOk)}`
+                  : "todavía sin actualizar"}
+              {!estado?.enCurso && estado?.ultimaFallo && (
+                <span className="text-destructive"> · la última actualización falló</span>
+              )}
+              {!estado?.enCurso && !!estado?.pendientes && ` · quedan ${estado.pendientes} por procesar`}
+              {!estado?.enCurso && !!estado?.errores && !estado.ultimaFallo && ` · ${estado.errores} con error`}
             </p>
           );
         })}

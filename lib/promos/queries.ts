@@ -81,23 +81,46 @@ export const listarTarjetasActivas = cache(async function listarTarjetasActivas(
   return data ?? [];
 });
 
-export type EstadoIngesta = { banco: Banco; ultimaOk: string | null; ultimaFallo: boolean };
+export type EstadoIngesta = {
+  banco: Banco;
+  ultimaOk: string | null;
+  ultimaFallo: boolean;
+  /** La última corrida empezó hace menos de 6 minutos y no terminó. */
+  enCurso: boolean;
+  /** De la última corrida terminada: lo que quedó para la próxima. */
+  pendientes: number;
+  errores: number;
+};
 
-/** Última ingesta OK por banco, y si la última de todas falló. */
+const EN_CURSO_MS = 6 * 60_000;
+
+/** Última ingesta OK por banco, y cómo terminó la última de todas. */
 export const estadoIngestas = cache(async function estadoIngestas(): Promise<EstadoIngesta[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("promo_ingestas")
-    .select("banco, ok, terminada_en, iniciada_en")
+    .select("banco, ok, terminada_en, iniciada_en, detalle")
     .order("iniciada_en", { ascending: false })
     .limit(60);
 
+  const ahora = Date.now();
   const porBanco = new Map<Banco, EstadoIngesta>();
   for (const fila of data ?? []) {
-    const estado = porBanco.get(fila.banco) ?? { banco: fila.banco, ultimaOk: null, ultimaFallo: false };
-    if (!porBanco.has(fila.banco)) estado.ultimaFallo = !fila.ok && fila.terminada_en !== null;
+    let estado = porBanco.get(fila.banco);
+    if (!estado) {
+      // La fila más nueva del banco: de ella salen el estado y el detalle.
+      const detalle = (fila.detalle ?? {}) as { pendientes?: number; errores?: unknown[] };
+      estado = {
+        banco: fila.banco,
+        ultimaOk: null,
+        ultimaFallo: !fila.ok && fila.terminada_en !== null,
+        enCurso: fila.terminada_en === null && ahora - new Date(fila.iniciada_en).getTime() < EN_CURSO_MS,
+        pendientes: detalle.pendientes ?? 0,
+        errores: detalle.errores?.length ?? 0,
+      };
+      porBanco.set(fila.banco, estado);
+    }
     if (fila.ok && !estado.ultimaOk) estado.ultimaOk = fila.terminada_en;
-    porBanco.set(fila.banco, estado);
   }
   return [...porBanco.values()];
 });

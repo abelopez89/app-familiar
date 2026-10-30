@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCronSecret } from "@/lib/env";
 import { ingestarGnb } from "@/lib/promos/ingesta-gnb";
@@ -12,6 +12,10 @@ import { ingestarGnb } from "@/lib/promos/ingesta-gnb";
  * corrida (todo nuevo) no entra en el tiempo de la función, lo que falta
  * queda pendiente y lo toma la corrida siguiente: se puede llamar más de
  * una vez seguida sin efectos raros.
+ *
+ * Responde 202 enseguida y trabaja en `after()`: cron-job.org corta la
+ * llamada a los ~30 s, y la ingesta puede tardar minutos. El resultado de
+ * cada corrida queda en `promo_ingestas` y se ve al pie de `/promos`.
  */
 export const maxDuration = 300;
 
@@ -23,6 +27,9 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  const { ok, resumen } = await ingestarGnb(createAdminClient(), PRESUPUESTO_MS);
-  return NextResponse.json({ ok, ...resumen }, { status: ok ? 200 : 500 });
+  after(async () => {
+    const { ok, resumen } = await ingestarGnb(createAdminClient(), PRESUPUESTO_MS);
+    if (!ok) console.error("[promos-gnb] ingesta con errores", resumen);
+  });
+  return NextResponse.json({ iniciada: true }, { status: 202 });
 }

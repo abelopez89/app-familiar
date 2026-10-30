@@ -1642,7 +1642,12 @@ avisos de Telegram).
 11. **Ingesta incremental por tiempo**: la ruta tiene
     `maxDuration = 300` y normaliza con concurrencia 3 hasta 240 s; lo
     que no entra queda pendiente (sin hash) y lo toma la próxima
-    corrida, así que llamarla dos veces seguidas es inofensivo. Una
+    corrida, así que llamarla dos veces seguidas es inofensivo (mejor
+    esperar a que termine: dos corridas a la vez pueden normalizar la
+    misma promo dos veces). **La ruta responde 202 enseguida y trabaja
+    en `after()`**: cron-job.org corta la llamada a los ~30 s y la
+    ingesta tarda minutos; el resultado se lee en `promo_ingestas` y al
+    pie de `/promos` ("actualizando…", pendientes, errores). Una
     fuente que devuelve cero items corta con error **antes** de
     desactivar nada. Las promos que desaparecen de la fuente quedan
     `activa = false` (no se borran). Cada corrida deja una fila en
