@@ -1653,7 +1653,16 @@ avisos de Telegram).
     `activa = false` (no se borran). Cada corrida deja una fila en
     `promo_ingestas` con el resumen; `ok` es `false` si falló la fuente
     o fallaron todos los items intentados.
-12. **Lectura de promos con el cliente de sesión** (`lib/promos/queries.ts`):
+12. **"Actualizar ahora" en `/promos`** (pedido del usuario, para no
+    depender del cron): Server Action `actualizarPromosAhora` que exige
+    sesión, corre la misma ingesta con el admin client (las tablas de
+    promos no tienen escritura para `authenticated`) en `after()`, y la
+    página tiene `maxDuration = 300` para que alcance. Antes de arrancar,
+    la acción y la ruta del cron consultan `ingestaEnCurso` (una corrida
+    sin terminar de menos de `INGESTA_EN_CURSO_MS`): dos a la vez
+    normalizarían lo mismo dos veces. Mientras está en curso, el botón
+    queda deshabilitado y la pantalla se refresca cada 15 s.
+13. **Lectura de promos con el cliente de sesión** (`lib/promos/queries.ts`):
     una sola consulta con embeds (`promo_beneficios(...)`), por eso los
     tipos de las tablas de promos en `lib/supabase/types.ts` declaran
     `Relationships`. El filtro por tarjeta y por día se hace en

@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentFamilyContext } from "@/lib/family";
-import type { Banco } from "./constants";
+import { INGESTA_EN_CURSO_MS, type Banco } from "./constants";
 import type { PromoParaMatch } from "./matching";
 
 /**
@@ -92,8 +92,6 @@ export type EstadoIngesta = {
   errores: number;
 };
 
-const EN_CURSO_MS = 6 * 60_000;
-
 /** Última ingesta OK por banco, y cómo terminó la última de todas. */
 export const estadoIngestas = cache(async function estadoIngestas(): Promise<EstadoIngesta[]> {
   const supabase = await createClient();
@@ -114,7 +112,7 @@ export const estadoIngestas = cache(async function estadoIngestas(): Promise<Est
         banco: fila.banco,
         ultimaOk: null,
         ultimaFallo: !fila.ok && fila.terminada_en !== null,
-        enCurso: fila.terminada_en === null && ahora - new Date(fila.iniciada_en).getTime() < EN_CURSO_MS,
+        enCurso: fila.terminada_en === null && ahora - new Date(fila.iniciada_en).getTime() < INGESTA_EN_CURSO_MS,
         pendientes: detalle.pendientes ?? 0,
         errores: detalle.errores?.length ?? 0,
       };

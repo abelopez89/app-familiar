@@ -49,3 +49,10 @@ export const RUBROS = {
   electrodomesticos: { label: "Electrodomésticos", emoji: "🔌" },
 } as const;
 export type Rubro = keyof typeof RUBROS;
+
+/**
+ * Una ingesta sin terminar que empezó hace menos que esto se considera en
+ * curso (la función de Vercel dura como mucho 300 s; con margen). Más
+ * vieja, se murió a mitad de camino y no bloquea una corrida nueva.
+ */
+export const INGESTA_EN_CURSO_MS = 6 * 60_000;

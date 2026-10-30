@@ -2,6 +2,7 @@ import { after, NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCronSecret } from "@/lib/env";
 import { ingestarGnb } from "@/lib/promos/ingesta-gnb";
+import { ingestaEnCurso } from "@/lib/promos/ingesta";
 
 /**
  * Ingesta diaria de promos de GNB (05:00 America/Asuncion), protegida por
@@ -27,8 +28,13 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
+  const db = createAdminClient();
+  if (await ingestaEnCurso(db, "gnb")) {
+    return NextResponse.json({ iniciada: false, motivo: "ya hay una ingesta en curso" }, { status: 409 });
+  }
+
   after(async () => {
-    const { ok, resumen } = await ingestarGnb(createAdminClient(), PRESUPUESTO_MS);
+    const { ok, resumen } = await ingestarGnb(db, PRESUPUESTO_MS);
     if (!ok) console.error("[promos-gnb] ingesta con errores", resumen);
   });
   return NextResponse.json({ iniciada: true }, { status: 202 });

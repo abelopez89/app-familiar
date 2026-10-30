@@ -2,7 +2,7 @@ import "server-only";
 import type { Db } from "@/lib/services/types";
 import type { Json } from "@/lib/supabase/types";
 import { todayInFamilyTimezone } from "@/lib/dates";
-import type { Banco } from "./constants";
+import { INGESTA_EN_CURSO_MS, type Banco } from "./constants";
 import { filtrarPromos } from "./filtrado";
 import { normalizarPromo } from "./normalizar";
 import { guardarPromoAutomatica, hashContenido, registrarDescartada } from "./persistencia";
@@ -49,6 +49,24 @@ function mensaje(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object" && "message" in error) return String((error as { message: unknown }).message);
   return String(error);
+}
+
+/**
+ * Si hay una corrida de ese banco en curso. Dos corridas a la vez
+ * normalizarían las mismas promos dos veces (doble costo y escrituras
+ * pisadas), así que la ruta del cron y el botón de `/promos` lo
+ * consultan antes de arrancar.
+ */
+export async function ingestaEnCurso(db: Db, banco: Banco): Promise<boolean> {
+  const desde = new Date(Date.now() - INGESTA_EN_CURSO_MS).toISOString();
+  const { data } = await db
+    .from("promo_ingestas")
+    .select("id")
+    .eq("banco", banco)
+    .is("terminada_en", null)
+    .gte("iniciada_en", desde)
+    .limit(1);
+  return (data ?? []).length > 0;
 }
 
 export async function correrIngesta(
