@@ -128,6 +128,29 @@ function beneficiosDePagina(page: GnbPage | GnbBenefit[]): GnbBenefit[] {
   return page.data ?? page.benefits ?? page.items ?? [];
 }
 
+/**
+ * Para entender un rechazo (403, 429…) desde la fila de `promo_ingestas`:
+ * quién respondió (un firewall anti-bots suele identificarse en `server`
+ * o en sus propios encabezados) y el comienzo del cuerpo. Solo registra;
+ * no cambia cómo se hace el pedido.
+ */
+export async function diagnosticoRespuesta(res: Response): Promise<string> {
+  const server = res.headers.get("server");
+  const firewall = ["cf-ray", "x-akamai-transformed", "x-amz-cf-id", "x-sucuri-id", "x-iinfo"].find((h) =>
+    res.headers.has(h),
+  );
+  let cuerpo = "";
+  try {
+    cuerpo = (await res.text()).replace(/\s+/g, " ").slice(0, 200);
+  } catch {
+    // Sin cuerpo legible: alcanza con el resto.
+  }
+  return [server && `server=${server}`, firewall && `header=${firewall}`, cuerpo && `cuerpo="${cuerpo}"`]
+    .filter(Boolean)
+    .map((p) => ` · ${p}`)
+    .join("");
+}
+
 /** Todas las páginas de la API. Revienta si alguna falla: sin lista completa no se puede desactivar lo que desapareció. */
 export async function fetchGnbBenefits(fetchImpl: typeof fetch = fetch): Promise<GnbBenefit[]> {
   const todos: GnbBenefit[] = [];
@@ -138,7 +161,7 @@ export async function fetchGnbBenefits(fetchImpl: typeof fetch = fetch): Promise
       headers: { "User-Agent": PROMOS_USER_AGENT, Accept: "application/json" },
       cache: "no-store",
     });
-    if (!res.ok) throw new Error(`GNB respondió ${res.status} en la página ${page}`);
+    if (!res.ok) throw new Error(`GNB respondió ${res.status} en la página ${page}${await diagnosticoRespuesta(res)}`);
     const json = (await res.json()) as GnbPage | GnbBenefit[];
     todos.push(...beneficiosDePagina(json));
     totalPages = Array.isArray(json) ? 1 : (json.pagination?.totalPages ?? 1);
