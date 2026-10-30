@@ -8,8 +8,9 @@ import { normalizarPromo } from "./normalizar";
 import { guardarPromoAutomatica, hashContenido, registrarDescartada } from "./persistencia";
 
 /**
- * Esqueleto común de las ingestas automáticas (GNB, Itaú): cada fuente
- * entrega su lista de items con clave, texto y prefiltro, y esto decide
+ * Esqueleto común de las ingestas (Itaú automática; el JSON de GNB
+ * importado a mano): cada fuente entrega su lista de items con clave,
+ * firma, prefiltro y cómo obtener el texto completo, y esto decide
  * qué se normaliza con Claude, qué se descarta, qué se desactiva, y deja
  * una fila en `promo_ingestas` para la línea de estado de la pantalla.
  *
@@ -25,7 +26,14 @@ import { guardarPromoAutomatica, hashContenido, registrarDescartada } from "./pe
 
 export type ItemFuente = {
   clave: string;
-  texto: string;
+  /**
+   * Lo que define si el item cambió: de acá sale `hash_contenido`. En GNB
+   * es el texto entero; en Itaú, lo que dice el listado (comercio y
+   * badges), así el detalle se pide solo para lo nuevo o cambiado.
+   */
+  firma: string;
+  /** El texto que se normaliza con Claude; se pide solo si hace falta. */
+  obtenerTexto: () => Promise<string>;
   urlFuente: string | null;
   raw: Json;
   prefiltro: { pasa: true } | { pasa: false; motivo: string };
@@ -42,7 +50,9 @@ export type ResumenIngesta = {
   errores: string[];
 };
 
-const CONCURRENCIA = 3;
+// Baja a propósito: cada item de Itaú es un pedido al sitio del banco
+// además de la llamada a Claude.
+const CONCURRENCIA = 2;
 
 /** Los errores de Supabase son objetos con `message`, no instancias de Error. */
 function mensaje(error: unknown): string {
@@ -116,7 +126,7 @@ export async function correrIngesta(
     for (const item of items) {
       if (vistas.has(item.clave)) continue;
       vistas.add(item.clave);
-      const hash = hashContenido(item.texto);
+      const hash = hashContenido(item.firma);
       const existente = porClave.get(item.clave);
 
       if (!item.prefiltro.pasa) {
@@ -156,7 +166,8 @@ export async function correrIngesta(
       while (siguiente < pendientes.length && Date.now() - inicio < input.presupuestoMs) {
         const item = pendientes[siguiente++];
         try {
-          const normalizadas = await normalizarPromo({ banco: input.banco, origen: input.origen, texto: item.texto, hoy });
+          const texto = await item.obtenerTexto();
+          const normalizadas = await normalizarPromo({ banco: input.banco, origen: input.origen, texto, hoy });
           const filtrado = filtrarPromos(normalizadas.slice(0, 1));
           if (!filtrado.ok) {
             await registrarDescartada(db, item.clave, item.hash, filtrado.motivo);
