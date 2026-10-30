@@ -118,7 +118,9 @@ export const estadoIngestas = cache(async function estadoIngestas(): Promise<Est
       };
       porBanco.set(fila.banco, estado);
     }
-    if (fila.ok && !estado.ultimaOk) estado.ultimaOk = fila.terminada_en;
+    // Una prueba de conexión OK no es una actualización de promos.
+    const esPrueba = (fila.detalle as { prueba?: boolean } | null)?.prueba === true;
+    if (fila.ok && !esPrueba && !estado.ultimaOk) estado.ultimaOk = fila.terminada_en;
   }
   return [...porBanco.values()];
 });

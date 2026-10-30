@@ -15,11 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ActualizarButton } from "./actualizar-button";
-
-// Alcanza para la ingesta que corre en `after()` desde "Actualizar ahora"
-// (misma duración que la ruta del cron).
-export const maxDuration = 300;
+import { ProbarItauButton } from "./probar-itau-button";
 
 /** "2026-12-31" → "31/12", sin pasar por la zona del servidor. */
 function diaMes(fecha: string): string {
@@ -27,7 +23,9 @@ function diaMes(fecha: string): string {
   return `${d}/${m}`;
 }
 
-const BANCOS_AUTOMATICOS = ["gnb", "itau"] as const;
+// GNB rechaza los pedidos desde servidores (403, aunque su API anda en un
+// navegador): no se ingiere automáticamente, se importa a mano (Fase 4).
+const BANCOS_AUTOMATICOS = ["itau"] as const;
 
 /**
  * Promos de hoy: las promos activas que le sirven hoy a alguna tarjeta de
@@ -162,7 +160,7 @@ export default async function PromosPage() {
       )}
 
       <section className="flex flex-col gap-1 px-1 text-xs text-muted-foreground">
-        <ActualizarButton enCurso={estadoPorBanco.get("gnb")?.enCurso ?? false} />
+        <ProbarItauButton />
         {BANCOS_AUTOMATICOS.map((banco) => {
           const estado = estadoPorBanco.get(banco);
           return (
