@@ -1,10 +1,14 @@
 import type { ComponenteBeneficio, PromoParaMatch, ReglaTarjeta, TarjetaParaMatch } from "@/lib/promos/matching";
 
 /**
- * Los tres casos reales del módulo, ya estructurados como tienen que quedar
- * después de la extracción (Fase 4 del módulo). Hoy alimentan los tests de
- * matching; cuando estén los PDF en esta carpeta, los tests de extracción
- * van a comparar la salida de Claude contra estas mismas estructuras.
+ * Los tres casos reales del módulo, transcriptos a mano de los PDF de esta
+ * carpeta tal como tienen que quedar después de la extracción (Fase 4 del
+ * módulo). Hoy alimentan los tests de matching; los de extracción van a
+ * comparar la salida de Claude contra estas mismas estructuras.
+ *
+ * - basa-jueves-supermercado.pdf → `basaJuevesSuper`
+ * - basa-farmacenter.pdf → `basaFarmacenter`
+ * - sudameris-cadena-real.pdf → `sudamerisCadenaReal`
  */
 
 const componente = (c: Partial<ComponenteBeneficio> & Pick<ComponenteBeneficio, "tipo">): ComponenteBeneficio => ({
@@ -48,18 +52,41 @@ export const mcClasicaFarmacenter: TarjetaParaMatch = {
   tipo: "credito",
 };
 
+// Exclusiones genéricas de las bases de BASA y Sudameris: empresariales,
+// Gourmet Cards y prepagas.
+const exclusionesGenericas = [
+  excluye({ nivel: "empresarial" }),
+  excluye({ afinidad: "gourmet card" }),
+  excluye({ tipo: "prepaga" }),
+];
+
 // ============ BASA "Jueves de supermercado" ============
-// Incluye Visa (Oro incluida) y Mastercard, pero excluye explícitamente
-// "Basa MasterCard Oro". Comercios con ventana propia.
+// Incluye Visa Clásica/Oro, MasterCard Clásica y las afinidades
+// Farmacenter y Club Libertad (20%), y MasterCard Black / Visa Signature
+// con su propia capa (25%, tope mayor). Excluye explícitamente "Basa
+// MasterCard Oro". Comercios con ventana propia: La Rosarina desde el
+// 10/09, Casa Paraná excluida desde el 01/10.
+
+const topeSuper = { tope_periodo: "mes" as const, tope_alcance: "por cuenta, en conjunto entre los supermercados" };
+const exclusionesSuper = [excluye({ marca: "mastercard", nivel: "oro" }), ...exclusionesGenericas];
 
 export const basaJuevesSuper = {
   banco: "basa",
+  titulo: "Jueves de supermercado",
   activa: true,
-  vigencia_desde: "2026-09-01",
+  vigencia_desde: "2026-03-05",
   vigencia_hasta: "2026-12-31",
+  canal: "POS Bancard",
+  acumulable: false,
   comercios: [
-    { comercio_nombre: "Real", desde: null, hasta: null },
+    { comercio_nombre: "Box", desde: null, hasta: null },
+    { comercio_nombre: "El Pueblo", desde: null, hasta: null },
+    { comercio_nombre: "La Preferida", desde: null, hasta: null },
     { comercio_nombre: "La Rosarina", desde: "2026-09-10", hasta: null },
+    { comercio_nombre: "Los Jardines", desde: null, hasta: null },
+    { comercio_nombre: "Real", desde: null, hasta: null },
+    { comercio_nombre: "Salemma", desde: null, hasta: null },
+    { comercio_nombre: "Villa Sofia", desde: null, hasta: null },
     { comercio_nombre: "Casa Paraná", desde: null, hasta: "2026-09-30" },
   ],
   beneficios: [
@@ -68,27 +95,36 @@ export const basaJuevesSuper = {
       dias_semana: [4],
       fechas: null,
       prioridad: 0,
-      componentes: [
-        componente({
-          tipo: "reintegro",
-          porcentaje: 20,
-          tope_monto: 1_500_000,
-          tope_periodo: "mes",
-        }),
-      ],
+      componentes: [componente({ tipo: "reintegro", porcentaje: 20, tope_monto: 1_500_000, ...topeSuper })],
       tarjetas: [
-        incluye({ marca: "visa" }),
-        incluye({ marca: "mastercard" }),
-        excluye({ marca: "mastercard", nivel: "oro" }),
+        incluye({ marca: "visa", nivel: "clasica", tipo: "credito" }),
+        incluye({ marca: "visa", nivel: "oro", tipo: "credito" }),
+        incluye({ marca: "mastercard", nivel: "clasica", tipo: "credito" }),
+        incluye({ afinidad: "farmacenter", tipo: "credito" }),
+        incluye({ afinidad: "club libertad", tipo: "credito" }),
+        ...exclusionesSuper,
+      ],
+    },
+    {
+      nombre: "Black/Signature",
+      dias_semana: [4],
+      fechas: null,
+      prioridad: 1,
+      componentes: [componente({ tipo: "reintegro", porcentaje: 25, tope_monto: 2_000_000, ...topeSuper })],
+      tarjetas: [
+        incluye({ marca: "mastercard", nivel: "black", tipo: "credito" }),
+        incluye({ marca: "visa", nivel: "signature", tipo: "credito" }),
+        ...exclusionesSuper,
       ],
     },
   ],
-} satisfies PromoParaMatch & { comercios: unknown[] };
+} satisfies PromoParaMatch & Record<string, unknown>;
 
 // ============ BASA "Farmacenter" ============
-// Martes: 25% en caja (no medicamentos) / 20% (medicamentos) + 10% de
-// reintegro + hasta 6 cuotas. Fechas especiales: hasta 50% en caja + 10%
-// de reintegro, reemplazando la capa general.
+// Martes: 25% en caja (productos seleccionados, no medicamentos) / 20%
+// (medicamentos) + 10% de reintegro + hasta 6 cuotas. Fechas especiales:
+// hasta 50% en caja + 10% de reintegro + hasta 6 cuotas, reemplazando la
+// capa general. Afinidad Farmacenter, MasterCard Black y Visa Signature.
 
 export const FECHAS_ESPECIALES_FARMACENTER = [
   "2026-04-14",
@@ -103,13 +139,29 @@ export const FECHAS_ESPECIALES_FARMACENTER = [
   "2026-12-22",
 ];
 
-const tarjetasFarmacenter = [incluye({ marca: "mastercard", afinidad: "farmacenter" })];
+const tarjetasFarmacenter = [
+  incluye({ afinidad: "farmacenter", tipo: "credito" }),
+  incluye({ marca: "mastercard", nivel: "black", tipo: "credito" }),
+  incluye({ marca: "visa", nivel: "signature", tipo: "credito" }),
+  ...exclusionesGenericas,
+];
+
+const reintegroFarmacenter = componente({
+  tipo: "reintegro",
+  porcentaje: 10,
+  tope_monto: 2_000_000,
+  tope_periodo: "mes",
+});
 
 export const basaFarmacenter = {
   banco: "basa",
+  titulo: "Farmacenter",
   activa: true,
-  vigencia_desde: "2026-04-01",
+  vigencia_desde: null,
   vigencia_hasta: "2026-12-31",
+  canal: "POS Bancard",
+  acumulable: false,
+  comercios: [{ comercio_nombre: "Farmacenter", desde: null, hasta: null }],
   beneficios: [
     {
       nombre: "General",
@@ -117,9 +169,9 @@ export const basaFarmacenter = {
       fechas: null,
       prioridad: 0,
       componentes: [
-        componente({ tipo: "descuento_caja", porcentaje: 25, alcance: "excepto medicamentos" }),
+        componente({ tipo: "descuento_caja", porcentaje: 25, alcance: "productos seleccionados, excepto medicamentos" }),
         componente({ tipo: "descuento_caja", porcentaje: 20, alcance: "medicamentos" }),
-        componente({ tipo: "reintegro", porcentaje: 10 }),
+        reintegroFarmacenter,
         componente({ tipo: "cuotas", cuotas: 6, es_hasta: true }),
       ],
       tarjetas: tarjetasFarmacenter,
@@ -130,23 +182,29 @@ export const basaFarmacenter = {
       fechas: FECHAS_ESPECIALES_FARMACENTER,
       prioridad: 1,
       componentes: [
-        componente({ tipo: "descuento_caja", porcentaje: 50, es_hasta: true }),
-        componente({ tipo: "reintegro", porcentaje: 10 }),
+        componente({ tipo: "descuento_caja", porcentaje: 50, es_hasta: true, alcance: "productos seleccionados" }),
+        reintegroFarmacenter,
+        componente({ tipo: "cuotas", cuotas: 6, es_hasta: true }),
       ],
       tarjetas: tarjetasFarmacenter,
     },
   ],
-} satisfies PromoParaMatch;
+} satisfies PromoParaMatch & Record<string, unknown>;
 
 // ============ Sudameris "Cadena Real" ============
-// Solo el 20% de reintegro (el de "12 cuotas en electro/jardín/deco" se
-// descarta por ser solo cuotas).
+// Solo el 20% de reintegro del primer viernes de cada mes. El beneficio de
+// "hasta 12 cuotas en electrodomésticos/jardín/decoración" se descarta por
+// ser solo cuotas.
 
 export const sudamerisCadenaReal = {
   banco: "sudameris",
+  titulo: "Cadena Real",
   activa: true,
   vigencia_desde: "2026-07-01",
   vigencia_hasta: "2026-12-31",
+  canal: "POS Bancard",
+  version_doc: "V1 – 30/09/2026",
+  comercios: [{ comercio_nombre: "Real", desde: null, hasta: null }],
   beneficios: [
     {
       nombre: "General",
@@ -162,7 +220,11 @@ export const sudamerisCadenaReal = {
           tope_alcance: "por cuenta",
         }),
       ],
-      tarjetas: [incluye({ marca: "visa", tipo: "credito" }), incluye({ marca: "mastercard", tipo: "credito" })],
+      tarjetas: [
+        incluye({ marca: "visa", tipo: "credito" }),
+        incluye({ marca: "mastercard", tipo: "credito" }),
+        ...exclusionesGenericas,
+      ],
     },
   ],
-} satisfies PromoParaMatch;
+} satisfies PromoParaMatch & Record<string, unknown>;

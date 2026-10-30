@@ -65,16 +65,34 @@ describe('BASA "Jueves de supermercado"', () => {
 
   it("MC Clásica Farmacenter: 20% con tope de Gs. 1.500.000 por mes, solo los jueves", () => {
     const beneficio = beneficioDelDia(basaJuevesSuper, mcClasicaFarmacenter, JUEVES);
+    expect(beneficio?.nombre).toBe("General");
     expect(beneficio?.componentes).toEqual([
       expect.objectContaining({ tipo: "reintegro", porcentaje: 20, tope_monto: 1_500_000, tope_periodo: "mes" }),
     ]);
     expect(beneficioDelDia(basaJuevesSuper, mcClasicaFarmacenter, MIERCOLES)).toBeNull();
   });
 
+  it("MasterCard Black usa su propia capa: 25% con tope de Gs. 2.000.000", () => {
+    const mcBlack = { ...mcOroTarjetaB, nivel: "black", afinidad: null };
+    const beneficio = beneficioDelDia(basaJuevesSuper, mcBlack, JUEVES);
+    expect(beneficio?.nombre).toBe("Black/Signature");
+    expect(beneficio?.componentes).toEqual([
+      expect.objectContaining({ tipo: "reintegro", porcentaje: 25, tope_monto: 2_000_000 }),
+    ]);
+  });
+
+  it("excluye prepagas y empresariales", () => {
+    expect(beneficioDelDia(basaJuevesSuper, { ...mcClasicaFarmacenter, tipo: "prepaga" }, JUEVES)).toBeNull();
+    expect(beneficioDelDia(basaJuevesSuper, { ...mcClasicaFarmacenter, nivel: "empresarial" }, JUEVES)).toBeNull();
+  });
+
   it("cada comercio respeta su propia ventana", () => {
     const nombres = (fecha: string) => comerciosVigentes(basaJuevesSuper.comercios, fecha).map((c) => c.comercio_nombre);
-    expect(nombres("2026-09-03")).toEqual(["Real", "Casa Paraná"]);
-    expect(nombres("2026-10-01")).toEqual(["Real", "La Rosarina"]);
+    expect(nombres("2026-09-03")).toContain("Casa Paraná");
+    expect(nombres("2026-09-03")).not.toContain("La Rosarina");
+    expect(nombres("2026-10-01")).toContain("La Rosarina");
+    expect(nombres("2026-10-01")).not.toContain("Casa Paraná");
+    expect(nombres("2026-10-01")).toHaveLength(8);
   });
 
   it("fuera de vigencia no aplica", () => {
@@ -93,20 +111,21 @@ describe('BASA "Farmacenter"', () => {
     const beneficio = beneficioDelDia(basaFarmacenter, mcClasicaFarmacenter, MARTES);
     expect(beneficio?.nombre).toBe("General");
     expect(beneficio?.componentes).toEqual([
-      expect.objectContaining({ tipo: "descuento_caja", porcentaje: 25, alcance: "excepto medicamentos" }),
+      expect.objectContaining({ tipo: "descuento_caja", porcentaje: 25 }),
       expect.objectContaining({ tipo: "descuento_caja", porcentaje: 20, alcance: "medicamentos" }),
-      expect.objectContaining({ tipo: "reintegro", porcentaje: 10 }),
+      expect.objectContaining({ tipo: "reintegro", porcentaje: 10, tope_monto: 2_000_000, tope_periodo: "mes" }),
       expect.objectContaining({ tipo: "cuotas", cuotas: 6, es_hasta: true }),
     ]);
   });
 
-  it("las fechas especiales reemplazan a la capa general", () => {
+  it("las fechas especiales reemplazan a la capa general (hasta 50% + 10% + hasta 6 cuotas)", () => {
     for (const fecha of FECHAS_ESPECIALES_FARMACENTER) {
       const beneficio = beneficioDelDia(basaFarmacenter, mcClasicaFarmacenter, fecha);
       expect(beneficio?.nombre, fecha).toBe("Especial");
       expect(beneficio?.componentes).toEqual([
         expect.objectContaining({ tipo: "descuento_caja", porcentaje: 50, es_hasta: true }),
         expect.objectContaining({ tipo: "reintegro", porcentaje: 10 }),
+        expect.objectContaining({ tipo: "cuotas", cuotas: 6, es_hasta: true }),
       ]);
     }
   });

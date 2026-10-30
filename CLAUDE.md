@@ -45,9 +45,13 @@ acá primero):
 
 - **Vercel**: variables de entorno (ver "Variables de entorno") y deploy
   automático de `main`.
-- **Supabase**: migraciones `001`–`013` aplicadas y bucket privado
-  `documentos` creado. La `014` (promociones) está escrita y **pendiente
-  de aplicar** hasta que el usuario lo confirme.
+- **Supabase**: migraciones `001`–`014` aplicadas y bucket privado
+  `documentos` creado. La `014` (promociones) la aplicó Claude con
+  `execute_sql` del MCP de Supabase, en una transacción y con
+  autorización explícita del usuario para ese caso (sin
+  `apply_migration`, para no escribir el historial de migraciones del
+  proyecto compartido). La regla 3 de la base sigue valiendo: sin esa
+  autorización, la migración la aplica el usuario.
 - **cron-job.org**: `GET /api/cron/recordatorios` (cada hora) y
   `GET /api/cron/tareas` (diario, 07:00 `America/Asuncion`), los dos con
   `Authorization: Bearer <CRON_SECRET>`.
@@ -440,7 +444,7 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `013` corridas en Supabase y confirmadas funcionando —
+`001` a `014` corridas en Supabase y confirmadas funcionando —
 incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 
 | Archivo | Contenido |
@@ -457,7 +461,7 @@ incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 | `010_documentos.sql` | `document_categories`, `documents`, `document_files`, FK `assets.document_id`, políticas sobre `storage.objects` (ver sección Fase 5 más abajo). |
 | `011_gastos.sql` | `expense_categories`, `expense_groups`, `group_participants`, `expenses`, `expense_shares`, `settlements` + RLS + grants, función `hogar.save_expense()` y seed de categorías para las familias existentes (ver sección Fase 6 más abajo). |
 | `012_telegram_bot.sql` | `telegram_sessions` y `telegram_updates`: RLS con política `using (false)`, **sin** grants a `authenticated`/`anon` (revocados explícitos, porque el default privilege de la 005 se los daría), grants solo a `service_role` (ver sección Fase 7). |
-| `014_promos.sql` | **Pendiente de aplicar.** Promos globales (`promociones`, `promo_comercios`, `promo_beneficios`, `promo_beneficio_componentes`, `promo_beneficio_tarjetas`, `promo_descartadas`, `promo_ingestas`: solo lectura para `authenticated`, escritura solo `service_role`) y por familia (`tarjetas_familia`, `comercios_favoritos`, RLS estándar). Ver "Promociones de tarjetas". |
+| `014_promos.sql` | Promos globales (`promociones`, `promo_comercios`, `promo_beneficios`, `promo_beneficio_componentes`, `promo_beneficio_tarjetas`, `promo_descartadas`, `promo_ingestas`: solo lectura para `authenticated`, escritura solo `service_role`) y por familia (`tarjetas_familia`, `comercios_favoritos`, RLS estándar). Ver "Promociones de tarjetas". |
 | `013_save_expense_bot.sql` | `hogar.save_expense()` acepta `family_id`/`created_by` en el payload **solo** si quien llama es `service_role` y no hay sesión; verifica que el grupo y el miembro sean de esa familia. Para `authenticated` no cambia nada (ver sección Fase 7). |
 
 La próxima migración de cualquier fase nueva es `014_*.sql`. Confirmá el
@@ -1584,10 +1588,14 @@ avisos de Telegram).
    "MasterCard" → `mastercard`, "Clásica" → `clasica`, "Afinidad
    Farmacenter" → `farmacenter`) al guardar, y el matching vuelve a
    normalizar al comparar.
-5. **Tests**: `tests/promos/` con los tres casos reales (BASA súper,
-   BASA Farmacenter, Sudameris Cadena Real) estructurados en
-   `tests/fixtures/promos/esperadas.ts`. Los PDF originales van en esa
-   misma carpeta para los tests de extracción de la Fase 4.
+5. **Tests**: `tests/promos/` con los tres casos reales. Los PDF
+   originales están en `tests/fixtures/promos/`
+   (`basa-jueves-supermercado.pdf`, `basa-farmacenter.pdf`,
+   `sudameris-cadena-real.pdf`) y su transcripción estructurada en
+   `esperadas.ts`, contra la que van a comparar los tests de extracción
+   de la Fase 4. Exclusiones genéricas de las bases ("Empresariales,
+   Gourmet Cards y Prepagas") se modelan como reglas `excluye` por
+   `nivel = empresarial`, `afinidad = gourmet card` y `tipo = prepaga`.
 6. **Nunca se pide el número de una tarjeta**: solo banco, marca, nivel,
    afinidad, tipo y alias.
 
