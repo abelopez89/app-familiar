@@ -52,12 +52,11 @@ acá primero):
   `apply_migration`, para no escribir el historial de migraciones del
   proyecto compartido). La regla 3 de la base sigue valiendo: sin esa
   autorización, la migración la aplica el usuario.
-- **cron-job.org**: `GET /api/cron/recordatorios` (cada hora),
-  `GET /api/cron/tareas` (diario, 07:00 `America/Asuncion`) y
-  `GET /api/cron/promos-gnb` (diario, 05:00 `America/Asuncion`), todos
-  con `Authorization: Bearer <CRON_SECRET>`. Los crons de promos van en
-  cron-job.org como los demás, no en Vercel Cron (confirmado por el
-  usuario).
+- **cron-job.org**: `GET /api/cron/recordatorios` (cada hora) y
+  `GET /api/cron/tareas` (diario, 07:00 `America/Asuncion`), los dos
+  con `Authorization: Bearer <CRON_SECRET>`. Los crons de promos (Itaú,
+  cuando exista) van en cron-job.org como los demás, no en Vercel Cron
+  (confirmado por el usuario).
 - **Telegram**: webhook apuntando a `/api/telegram/webhook` con
   `secret_token` = `TELEGRAM_WEBHOOK_SECRET` (sin `allowed_updates`, así
   llegan los toques de botón), y menú registrado con `setMyCommands`:
@@ -70,9 +69,12 @@ acá primero):
 - **Módulo de promociones de tarjetas: en curso, por fases, a pedido
   del usuario** (excepción explícita al modo mantenimiento). Fase 1
   (schema, "Mis tarjetas" y matching con tests) verificada por el
-  usuario. Fase 2 (ingesta de GNB con normalización por Claude y
-  "Promos de hoy" en `/promos`) escrita; ver la sección "Promociones de
-  tarjetas" más abajo.
+  usuario. Fase 2 ("Promos de hoy" en `/promos`, normalización con
+  Claude) en producción, pero **GNB rechaza los pedidos desde servidores
+  (403) aunque su API anda en un navegador**: no hay ingesta automática
+  de GNB, se va a importar el JSON a mano en la Fase 4 (decisión del
+  usuario). Fase 3 (Itaú) arranca con una prueba de conexión; ver la
+  sección "Promociones de tarjetas" más abajo.
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
   producción** (Vercel + Supabase), incluyendo registro, login con
@@ -235,8 +237,7 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `app/api/calendar/[token]/route.ts` (GET, feed ICS sin sesión),
   `app/api/telegram/webhook/route.ts` (POST, lo llama Telegram),
   `app/api/cron/recordatorios/route.ts` (GET, lo llama cron-job.org) y
-  `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3) y
-  `app/api/cron/promos-gnb/route.ts` (GET, cron-job.org, promociones).
+  `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3).
   Desde la Fase 7 la lógica de negocio de esas mutaciones vive en
   `lib/services/` (ver "Fase 7"): la Server Action resuelve familia y
   miembro desde la sesión y delega; el bot hace lo mismo desde
@@ -495,6 +496,7 @@ En tiempo de ejecución deben existir:
   `/api/cron/*` (`Authorization: Bearer <CRON_SECRET>`).
 - `ANTHROPIC_API_KEY` (promociones, solo server) — la usa
   `lib/promos/normalizar.ts` para normalizar cada promo con Claude.
+  Ya está cargada en Vercel.
 
 `lib/env.ts` valida su presencia con un mensaje de error claro si falta
 alguna. No agregues variables nuevas sin documentarlas ahí y en el README.
@@ -1633,14 +1635,22 @@ avisos de Telegram).
    su hash en `promo_descartadas` y no se reprocesa. El prefiltro de
    GNB (`prefiltrarGnb` en `lib/promos/gnb.ts`) descarta por el
    `circleText` sin llamar a Claude.
+   **GNB bloquea a los servidores y eso se respeta**: su API responde en
+   un navegador pero devuelve 403 a los pedidos desde Vercel. No se
+   esquiva con encabezados, User-Agent de navegador ni proxies (mismo
+   criterio que Sudameris y BASA). `lib/promos/gnb.ts` no tiene fetch;
+   el JSON lo baja la persona en su navegador y lo importa (Fase 4),
+   con el mismo prefiltro, hash y normalización. `diagnosticoRespuesta`
+   registra quién rechaza un pedido, sin cambiar cómo se hace.
 10. **Guardado sin transacción, en orden seguro**
     (`lib/promos/persistencia.ts`): la promo se guarda con
     `activa = false` y sin hash, después sus capas, y al final se marca
     activa con el hash. Un fallo a mitad de camino deja la promo
     invisible y sin hash, y la próxima corrida la reprocesa. No hace
     falta una función SQL para esto.
-11. **Ingesta incremental por tiempo**: la ruta tiene
-    `maxDuration = 300` y normaliza con concurrencia 3 hasta 240 s; lo
+11. **Ingesta incremental por tiempo** (para Itaú, en la Fase 3): la
+    ruta del cron va a tener `maxDuration = 300` y normaliza con
+    concurrencia 3 hasta 240 s; lo
     que no entra queda pendiente (sin hash) y lo toma la próxima
     corrida, así que llamarla dos veces seguidas es inofensivo (mejor
     esperar a que termine: dos corridas a la vez pueden normalizar la
@@ -1653,15 +1663,16 @@ avisos de Telegram).
     `activa = false` (no se borran). Cada corrida deja una fila en
     `promo_ingestas` con el resumen; `ok` es `false` si falló la fuente
     o fallaron todos los items intentados.
-12. **"Actualizar ahora" en `/promos`** (pedido del usuario, para no
-    depender del cron): Server Action `actualizarPromosAhora` que exige
-    sesión, corre la misma ingesta con el admin client (las tablas de
-    promos no tienen escritura para `authenticated`) en `after()`, y la
-    página tiene `maxDuration = 300` para que alcance. Antes de arrancar,
-    la acción y la ruta del cron consultan `ingestaEnCurso` (una corrida
-    sin terminar de menos de `INGESTA_EN_CURSO_MS`): dos a la vez
-    normalizarían lo mismo dos veces. Mientras está en curso, el botón
-    queda deshabilitado y la pantalla se refresca cada 15 s.
+12. **Prueba de conexión antes de construir una fuente automática**
+    (aprendido con GNB): "Probar conexión con Itaú" en `/promos`
+    (`probarItau` en `lib/promos/prueba-itau.ts`) pide un listado y un
+    detalle, sin Claude ni promos guardadas, y deja en `promo_ingestas`
+    una fila con `detalle.prueba = true`, el estado de cada pedido y una
+    muestra del HTML real para escribir el parser sobre datos
+    verdaderos. Una prueba OK no cuenta como "actualizado" en la línea
+    de estado. Cuando exista la ingesta de Itaú, ese botón pasa a ser
+    "Actualizar ahora" (con `ingestaEnCurso` para no correr dos a la
+    vez, ingesta en `after()` y `maxDuration = 300`).
 13. **Lectura de promos con el cliente de sesión** (`lib/promos/queries.ts`):
     una sola consulta con embeds (`promo_beneficios(...)`), por eso los
     tipos de las tablas de promos en `lib/supabase/types.ts` declaran

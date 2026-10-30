@@ -1,7 +1,10 @@
 /**
  * Fuente GNB: API JSON pública de beneficios (sin auth). Funciones puras
- * para el prefiltro y para armar el texto que se normaliza con Claude; el
- * fetch también vive acá porque no depende de nada del servidor.
+ * para el prefiltro y para armar el texto que se normaliza con Claude.
+ *
+ * GNB rechaza (403) los pedidos que salen de un servidor aunque la API
+ * responde en un navegador: es una decisión del banco y se respeta, así
+ * que no hay fetch automático. El JSON se importa a mano (Fase 4).
  *
  * El prefiltro descarta sin gastar una llamada a Claude lo que ya se sabe
  * que no sirve por el `circleText` (el círculo de la tarjeta del sitio:
@@ -25,13 +28,6 @@ export type GnbBenefit = {
   category?: { name?: string | null } | null;
   highlighted?: boolean | null;
   status?: string | null;
-};
-
-type GnbPage = {
-  data?: GnbBenefit[];
-  benefits?: GnbBenefit[];
-  items?: GnbBenefit[];
-  pagination?: { totalPages?: number };
 };
 
 export function claveGnb(benefit: Pick<GnbBenefit, "id">): string {
@@ -119,16 +115,6 @@ export function textoGnb(benefit: GnbBenefit): string {
 }
 
 /**
- * La forma exacta del envoltorio no está documentada: se aceptan los
- * nombres habituales y un array en la raíz. Si no aparece ninguno, la
- * ingesta corta con error antes de desactivar nada (ver ingesta-gnb.ts).
- */
-function beneficiosDePagina(page: GnbPage | GnbBenefit[]): GnbBenefit[] {
-  if (Array.isArray(page)) return page;
-  return page.data ?? page.benefits ?? page.items ?? [];
-}
-
-/**
  * Para entender un rechazo (403, 429…) desde la fila de `promo_ingestas`:
  * quién respondió (un firewall anti-bots suele identificarse en `server`
  * o en sus propios encabezados) y el comienzo del cuerpo. Solo registra;
@@ -149,22 +135,4 @@ export async function diagnosticoRespuesta(res: Response): Promise<string> {
     .filter(Boolean)
     .map((p) => ` · ${p}`)
     .join("");
-}
-
-/** Todas las páginas de la API. Revienta si alguna falla: sin lista completa no se puede desactivar lo que desapareció. */
-export async function fetchGnbBenefits(fetchImpl: typeof fetch = fetch): Promise<GnbBenefit[]> {
-  const todos: GnbBenefit[] = [];
-  let totalPages = 1;
-  for (let page = 0; page < totalPages && page < 20; page++) {
-    const url = `${GNB_API_URL}?pageSize=200&paginationKey=${page}`;
-    const res = await fetchImpl(url, {
-      headers: { "User-Agent": PROMOS_USER_AGENT, Accept: "application/json" },
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error(`GNB respondió ${res.status} en la página ${page}${await diagnosticoRespuesta(res)}`);
-    const json = (await res.json()) as GnbPage | GnbBenefit[];
-    todos.push(...beneficiosDePagina(json));
-    totalPages = Array.isArray(json) ? 1 : (json.pagination?.totalPages ?? 1);
-  }
-  return todos;
 }
