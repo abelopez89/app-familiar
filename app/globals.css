@@ -90,6 +90,8 @@
   --mod-familia-soft: oklch(0.955 0.03 200);
   --mod-gastos: oklch(0.52 0.14 135);
   --mod-gastos-soft: oklch(0.955 0.04 130);
+  --mod-promos: oklch(0.55 0.17 330);
+  --mod-promos-soft: oklch(0.96 0.03 330);
 }
 
 /* Valores del tema oscuro. Van duplicados a propósito en dos selectores:
@@ -141,6 +143,8 @@
     --mod-familia-soft: oklch(0.29 0.045 200);
     --mod-gastos: oklch(0.78 0.14 132);
     --mod-gastos-soft: oklch(0.3 0.055 132);
+    --mod-promos: oklch(0.77 0.13 330);
+    --mod-promos-soft: oklch(0.31 0.06 330);
   }
 }
 
@@ -187,6 +191,8 @@
   --mod-familia-soft: oklch(0.29 0.045 200);
   --mod-gastos: oklch(0.78 0.14 132);
   --mod-gastos-soft: oklch(0.3 0.055 132);
+  --mod-promos: oklch(0.77 0.13 330);
+  --mod-promos-soft: oklch(0.31 0.06 330);
 }
 
 @theme inline {
@@ -230,6 +236,8 @@
   --color-mod-familia-soft: var(--mod-familia-soft);
   --color-mod-gastos: var(--mod-gastos);
   --color-mod-gastos-soft: var(--mod-gastos-soft);
+  --color-mod-promos: var(--mod-promos);
+  --color-mod-promos-soft: var(--mod-promos-soft);
 
   --radius-sm: calc(var(--radius) - 8px);
   --radius-md: calc(var(--radius) - 6px);

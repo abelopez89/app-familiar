@@ -1,4 +1,5 @@
 import {
+  BadgePercent,
   CalendarDays,
   FileText,
   Fuel,
@@ -17,6 +18,7 @@ export type ModuleKey =
   | "gastos"
   | "combustible"
   | "documentos"
+  | "promos"
   | "familia";
 
 export type ModuleDef = {
@@ -97,6 +99,15 @@ export const MODULES: ModuleDef[] = [
     bg: "bg-mod-documentos-soft",
   },
   {
+    key: "promos",
+    href: "/promos",
+    label: "Promos",
+    tagline: "Descuentos de tus tarjetas",
+    icon: BadgePercent,
+    fg: "text-mod-promos",
+    bg: "bg-mod-promos-soft",
+  },
+  {
     key: "familia",
     href: "/config/miembros",
     label: "Familia",
@@ -135,6 +146,7 @@ const SECTION_LABELS: Array<[prefix: string, label: string]> = [
   ["/gastos", "Gastos"],
   ["/combustible", "Combustible"],
   ["/documentos", "Documentos"],
+  ["/promos", "Promos"],
 ];
 
 export function sectionLabelFor(pathname: string): string | null {
