@@ -3,6 +3,8 @@
 // entorno porque no tenemos acceso de escritura a la base remota).
 // Actualizar manualmente cuando cambie una migración.
 
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
 export type Database = {
   hogar: {
     Tables: {
@@ -1080,6 +1082,320 @@ export type Database = {
         };
         Relationships: [];
       };
+      promociones: {
+        Row: {
+          id: string;
+          banco: "gnb" | "itau" | "sudameris" | "basa";
+          origen: "api" | "web" | "manual";
+          clave_externa: string | null;
+          titulo: string;
+          resumen: string | null;
+          rubro: "supermercado" | "farmacia" | "combustible" | "electrodomesticos";
+          url_fuente: string | null;
+          archivo_path: string | null;
+          version_doc: string | null;
+          vigencia_desde: string | null;
+          vigencia_hasta: string | null;
+          canal: string | null;
+          acumulable: boolean | null;
+          hash_contenido: string | null;
+          raw: Json | null;
+          activa: boolean;
+          creado_en: string;
+          actualizado_en: string;
+          reemplazada_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          banco: "gnb" | "itau" | "sudameris" | "basa";
+          origen: "api" | "web" | "manual";
+          clave_externa?: string | null;
+          titulo: string;
+          resumen?: string | null;
+          rubro: "supermercado" | "farmacia" | "combustible" | "electrodomesticos";
+          url_fuente?: string | null;
+          archivo_path?: string | null;
+          version_doc?: string | null;
+          vigencia_desde?: string | null;
+          vigencia_hasta?: string | null;
+          canal?: string | null;
+          acumulable?: boolean | null;
+          hash_contenido?: string | null;
+          raw?: Json | null;
+          activa?: boolean;
+          creado_en?: string;
+          actualizado_en?: string;
+          reemplazada_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          banco?: "gnb" | "itau" | "sudameris" | "basa";
+          origen?: "api" | "web" | "manual";
+          clave_externa?: string | null;
+          titulo?: string;
+          resumen?: string | null;
+          rubro?: "supermercado" | "farmacia" | "combustible" | "electrodomesticos";
+          url_fuente?: string | null;
+          archivo_path?: string | null;
+          version_doc?: string | null;
+          vigencia_desde?: string | null;
+          vigencia_hasta?: string | null;
+          canal?: string | null;
+          acumulable?: boolean | null;
+          hash_contenido?: string | null;
+          raw?: Json | null;
+          activa?: boolean;
+          creado_en?: string;
+          actualizado_en?: string;
+          reemplazada_por?: string | null;
+        };
+        Relationships: [];
+      };
+      promo_comercios: {
+        Row: {
+          id: string;
+          promo_id: string;
+          comercio_nombre: string;
+          desde: string | null;
+          hasta: string | null;
+        };
+        Insert: {
+          id?: string;
+          promo_id: string;
+          comercio_nombre: string;
+          desde?: string | null;
+          hasta?: string | null;
+        };
+        Update: {
+          id?: string;
+          promo_id?: string;
+          comercio_nombre?: string;
+          desde?: string | null;
+          hasta?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "promo_comercios_promo_id_fkey";
+            columns: ["promo_id"];
+            isOneToOne: false;
+            referencedRelation: "promociones";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      promo_beneficios: {
+        Row: {
+          id: string;
+          promo_id: string;
+          nombre: string;
+          dias_semana: number[] | null;
+          fechas: string[] | null;
+          prioridad: number;
+        };
+        Insert: {
+          id?: string;
+          promo_id: string;
+          nombre?: string;
+          dias_semana?: number[] | null;
+          fechas?: string[] | null;
+          prioridad?: number;
+        };
+        Update: {
+          id?: string;
+          promo_id?: string;
+          nombre?: string;
+          dias_semana?: number[] | null;
+          fechas?: string[] | null;
+          prioridad?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "promo_beneficios_promo_id_fkey";
+            columns: ["promo_id"];
+            isOneToOne: false;
+            referencedRelation: "promociones";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      promo_beneficio_componentes: {
+        Row: {
+          id: string;
+          beneficio_id: string;
+          tipo: "descuento_caja" | "reintegro" | "descuento_monto" | "cuotas";
+          porcentaje: number | null;
+          monto: number | null;
+          cuotas: number | null;
+          es_hasta: boolean;
+          alcance: string | null;
+          tope_monto: number | null;
+          tope_periodo: "dia" | "mes" | "promo" | null;
+          tope_alcance: string | null;
+        };
+        Insert: {
+          id?: string;
+          beneficio_id: string;
+          tipo: "descuento_caja" | "reintegro" | "descuento_monto" | "cuotas";
+          porcentaje?: number | null;
+          monto?: number | null;
+          cuotas?: number | null;
+          es_hasta?: boolean;
+          alcance?: string | null;
+          tope_monto?: number | null;
+          tope_periodo?: "dia" | "mes" | "promo" | null;
+          tope_alcance?: string | null;
+        };
+        Update: {
+          id?: string;
+          beneficio_id?: string;
+          tipo?: "descuento_caja" | "reintegro" | "descuento_monto" | "cuotas";
+          porcentaje?: number | null;
+          monto?: number | null;
+          cuotas?: number | null;
+          es_hasta?: boolean;
+          alcance?: string | null;
+          tope_monto?: number | null;
+          tope_periodo?: "dia" | "mes" | "promo" | null;
+          tope_alcance?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "promo_beneficio_componentes_beneficio_id_fkey";
+            columns: ["beneficio_id"];
+            isOneToOne: false;
+            referencedRelation: "promo_beneficios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      promo_beneficio_tarjetas: {
+        Row: {
+          id: string;
+          beneficio_id: string;
+          regla: "incluye" | "excluye";
+          marca: string | null;
+          nivel: string | null;
+          afinidad: string | null;
+          tipo: "credito" | "debito" | "prepaga" | null;
+        };
+        Insert: {
+          id?: string;
+          beneficio_id: string;
+          regla: "incluye" | "excluye";
+          marca?: string | null;
+          nivel?: string | null;
+          afinidad?: string | null;
+          tipo?: "credito" | "debito" | "prepaga" | null;
+        };
+        Update: {
+          id?: string;
+          beneficio_id?: string;
+          regla?: "incluye" | "excluye";
+          marca?: string | null;
+          nivel?: string | null;
+          afinidad?: string | null;
+          tipo?: "credito" | "debito" | "prepaga" | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "promo_beneficio_tarjetas_beneficio_id_fkey";
+            columns: ["beneficio_id"];
+            isOneToOne: false;
+            referencedRelation: "promo_beneficios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      promo_descartadas: {
+        Row: {
+          clave_externa: string;
+          hash: string;
+          motivo: string;
+          descartada_en: string;
+        };
+        Insert: {
+          clave_externa: string;
+          hash: string;
+          motivo: string;
+          descartada_en?: string;
+        };
+        Update: {
+          clave_externa?: string;
+          hash?: string;
+          motivo?: string;
+          descartada_en?: string;
+        };
+        Relationships: [];
+      };
+      promo_ingestas: {
+        Row: {
+          id: string;
+          banco: "gnb" | "itau" | "sudameris" | "basa";
+          iniciada_en: string;
+          terminada_en: string | null;
+          ok: boolean;
+          detalle: Json | null;
+        };
+        Insert: {
+          id?: string;
+          banco: "gnb" | "itau" | "sudameris" | "basa";
+          iniciada_en?: string;
+          terminada_en?: string | null;
+          ok?: boolean;
+          detalle?: Json | null;
+        };
+        Update: {
+          id?: string;
+          banco?: "gnb" | "itau" | "sudameris" | "basa";
+          iniciada_en?: string;
+          terminada_en?: string | null;
+          ok?: boolean;
+          detalle?: Json | null;
+        };
+        Relationships: [];
+      };
+      tarjetas_familia: {
+        Row: {
+          id: string;
+          family_id: string;
+          member_id: string;
+          banco: "gnb" | "itau" | "sudameris" | "basa";
+          marca: "visa" | "mastercard" | "amex";
+          nivel: string;
+          afinidad: string | null;
+          tipo: "credito" | "debito" | "prepaga";
+          alias: string;
+          activa: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          member_id: string;
+          banco: "gnb" | "itau" | "sudameris" | "basa";
+          marca: "visa" | "mastercard" | "amex";
+          nivel: string;
+          afinidad?: string | null;
+          tipo?: "credito" | "debito" | "prepaga";
+          alias: string;
+          activa?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_id?: string;
+          member_id?: string;
+          banco?: "gnb" | "itau" | "sudameris" | "basa";
+          marca?: "visa" | "mastercard" | "amex";
+          nivel?: string;
+          afinidad?: string | null;
+          tipo?: "credito" | "debito" | "prepaga";
+          alias?: string;
+          activa?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1139,3 +1455,6 @@ export type Settlement = Database["hogar"]["Tables"]["settlements"]["Row"];
 export type ExpenseGroupKind = ExpenseGroup["kind"];
 export type ExpensePaymentMethod = Expense["payment_method"];
 export type ExpenseSplitMethod = Expense["split_method"];
+export type TarjetaFamilia = Database["hogar"]["Tables"]["tarjetas_familia"]["Row"];
+export type Promocion = Database["hogar"]["Tables"]["promociones"]["Row"];
+export type PromoIngesta = Database["hogar"]["Tables"]["promo_ingestas"]["Row"];

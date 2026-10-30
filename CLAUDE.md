@@ -30,8 +30,8 @@ Cómo trabajar una mejora mínima:
 3. **Lógica de negocio en `lib/services/`** cuando el bot también la usa
    (Fase 7): un cambio de regla se hace una vez y lo ven la app y el
    bot. Toda consulta con el admin client filtra por `family_id`.
-4. **Migraciones**: la próxima es la `014` (confirmalo mirando
-   `supabase/migrations/`). Se escribe el archivo y la aplica el usuario
+4. **Migraciones**: la próxima es la `015` (confirmalo mirando
+   `supabase/migrations/`; la `014` es del módulo de promociones). Se escribe el archivo y la aplica el usuario
    desde el SQL Editor; no avanzar con el código que depende de ella
    hasta que confirme.
 5. **Antes de cada PR**: `npm run build` y `npm run lint` sin errores, y
@@ -45,11 +45,19 @@ acá primero):
 
 - **Vercel**: variables de entorno (ver "Variables de entorno") y deploy
   automático de `main`.
-- **Supabase**: migraciones `001`–`013` aplicadas y bucket privado
-  `documentos` creado.
-- **cron-job.org**: `GET /api/cron/recordatorios` (cada hora) y
-  `GET /api/cron/tareas` (diario, 07:00 `America/Asuncion`), los dos con
-  `Authorization: Bearer <CRON_SECRET>`.
+- **Supabase**: migraciones `001`–`014` aplicadas y bucket privado
+  `documentos` creado. La `014` (promociones) la aplicó Claude con
+  `execute_sql` del MCP de Supabase, en una transacción y con
+  autorización explícita del usuario para ese caso (sin
+  `apply_migration`, para no escribir el historial de migraciones del
+  proyecto compartido). La regla 3 de la base sigue valiendo: sin esa
+  autorización, la migración la aplica el usuario.
+- **cron-job.org**: `GET /api/cron/recordatorios` (cada hora),
+  `GET /api/cron/tareas` (diario, 07:00 `America/Asuncion`) y
+  `GET /api/cron/promos-gnb` (diario, 05:00 `America/Asuncion`), todos
+  con `Authorization: Bearer <CRON_SECRET>`. Los crons de promos van en
+  cron-job.org como los demás, no en Vercel Cron (confirmado por el
+  usuario).
 - **Telegram**: webhook apuntando a `/api/telegram/webhook` con
   `secret_token` = `TELEGRAM_WEBHOOK_SECRET` (sin `allowed_updates`, así
   llegan los toques de botón), y menú registrado con `setMyCommands`:
@@ -58,6 +66,13 @@ acá primero):
   lista completa.
 
 ## Estado del proyecto
+
+- **Módulo de promociones de tarjetas: en curso, por fases, a pedido
+  del usuario** (excepción explícita al modo mantenimiento). Fase 1
+  (schema, "Mis tarjetas" y matching con tests) verificada por el
+  usuario. Fase 2 (ingesta de GNB con normalización por Claude y
+  "Promos de hoy" en `/promos`) escrita; ver la sección "Promociones de
+  tarjetas" más abajo.
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
   producción** (Vercel + Supabase), incluyendo registro, login con
@@ -188,9 +203,9 @@ acá primero):
   incluye: eventos que se repiten por chat, subir documentos por foto,
   divisiones de gastos por pesos o importes exactos por chat, ni chats
   de grupo.
-- Migraciones `001` a `013` aplicadas y confirmadas en la base
+- Migraciones `001` a `014` aplicadas y confirmadas en la base
   compartida. Antes de escribir la
-  migración `014`, mirá `supabase/migrations/` para confirmar el próximo
+  migración `015`, mirá `supabase/migrations/` para confirmar el próximo
   número — no lo asumas.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
@@ -220,14 +235,17 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `app/api/calendar/[token]/route.ts` (GET, feed ICS sin sesión),
   `app/api/telegram/webhook/route.ts` (POST, lo llama Telegram),
   `app/api/cron/recordatorios/route.ts` (GET, lo llama cron-job.org) y
-  `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3).
+  `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3) y
+  `app/api/cron/promos-gnb/route.ts` (GET, cron-job.org, promociones).
   Desde la Fase 7 la lógica de negocio de esas mutaciones vive en
   `lib/services/` (ver "Fase 7"): la Server Action resuelve familia y
   miembro desde la sesión y delega; el bot hace lo mismo desde
   `telegram_user_id`.
 - Sin librerías de estado global (Redux, Zustand). Alcanza con Server
   Components + estado local de React.
-- Sin tests automatizados en esta etapa.
+- Sin tests automatizados, salvo la lógica pura del módulo de
+  promociones (`npm test`, vitest, en `tests/`), pedidos por el usuario.
+  No hace falta sumar tests a los módulos anteriores.
 - Sin caché offline ni sincronización en background (el service worker
   solo hace la PWA instalable).
 
@@ -240,9 +258,9 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   los de shadcn (`background`, `card`, `primary`, `muted`, `border`…)
   más `success`, `warning` y `surface`, y encima de esos hay **un par de
   tokens por módulo**: `--mod-<modulo>` para el color del ícono y
-  `--mod-<modulo>-soft` para el fondo tintado que va detrás. Los siete
+  `--mod-<modulo>-soft` para el fondo tintado que va detrás. Los ocho
   módulos son `compras`, `eventos`, `tareas`, `combustible`,
-  `documentos`, `familia` y `gastos` (Fase 6). Si agregás un módulo, agregá su par de
+  `documentos`, `familia`, `gastos` (Fase 6) y `promos` (promociones). Si agregás un módulo, agregá su par de
   tokens en los tres bloques de color (`:root`, la media query oscura y
   `.dark`) y su entrada en `MODULES` — no inventes un color suelto en la
   pantalla.
@@ -432,7 +450,7 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `013` corridas en Supabase y confirmadas funcionando —
+`001` a `014` corridas en Supabase y confirmadas funcionando —
 incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 
 | Archivo | Contenido |
@@ -450,8 +468,9 @@ incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 | `011_gastos.sql` | `expense_categories`, `expense_groups`, `group_participants`, `expenses`, `expense_shares`, `settlements` + RLS + grants, función `hogar.save_expense()` y seed de categorías para las familias existentes (ver sección Fase 6 más abajo). |
 | `012_telegram_bot.sql` | `telegram_sessions` y `telegram_updates`: RLS con política `using (false)`, **sin** grants a `authenticated`/`anon` (revocados explícitos, porque el default privilege de la 005 se los daría), grants solo a `service_role` (ver sección Fase 7). |
 | `013_save_expense_bot.sql` | `hogar.save_expense()` acepta `family_id`/`created_by` en el payload **solo** si quien llama es `service_role` y no hay sesión; verifica que el grupo y el miembro sean de esa familia. Para `authenticated` no cambia nada (ver sección Fase 7). |
+| `014_promos.sql` | Promos globales (`promociones`, `promo_comercios`, `promo_beneficios`, `promo_beneficio_componentes`, `promo_beneficio_tarjetas`, `promo_descartadas`, `promo_ingestas`: solo lectura para `authenticated`, escritura solo `service_role`) y por familia (`tarjetas_familia`, `comercios_favoritos`, RLS estándar). Ver "Promociones de tarjetas". |
 
-La próxima migración de cualquier fase nueva es `014_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `015_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
@@ -472,8 +491,10 @@ En tiempo de ejecución deben existir:
 - `TELEGRAM_WEBHOOK_SECRET` (Fase 2, solo server) — se compara contra el
   header `X-Telegram-Bot-Api-Secret-Token` en
   `app/api/telegram/webhook/route.ts`.
-- `CRON_SECRET` (Fase 2, solo server) — protege
-  `GET /api/cron/recordatorios` (`Authorization: Bearer <CRON_SECRET>`).
+- `CRON_SECRET` (Fase 2, solo server) — protege los crons de
+  `/api/cron/*` (`Authorization: Bearer <CRON_SECRET>`).
+- `ANTHROPIC_API_KEY` (promociones, solo server) — la usa
+  `lib/promos/normalizar.ts` para normalizar cada promo con Claude.
 
 `lib/env.ts` valida su presencia con un mensaje de error claro si falta
 alguna. No agregues variables nuevas sin documentarlas ahí y en el README.
@@ -561,6 +582,12 @@ Tres clientes separados, no los mezcles:
   - `/config/activos` — redirect a `/tareas/activos`, Fase 6. Es la
     entrada de los activos desde los catálogos de `/config`; las rutas
     de activos no se movieron.
+  - `/config/tarjetas` — "Mis tarjetas": ABM de tarjetas por miembro
+    (módulo de promociones).
+  - `/promos` — "Promos de hoy": promos que le sirven hoy a alguna
+    tarjeta de la familia, por rubro, con la línea de estado de la
+    ingesta por banco (módulo de promociones). En el lanzador del
+    inicio, no en el tab bar.
   - `/config/gastos` — ABM de categorías de gastos (+ "agregar
     sugeridas"), Fase 6.
   - `/gastos` — grupos abiertos (con total y tu balance) y cerrados,
@@ -1546,12 +1573,108 @@ variables de entorno.
     caracteres), se corta en el último día completo y se remite a la
     app. Vive en `lib/telegram/flows/hoy.ts` (`sendWeek`).
 
+## Promociones de tarjetas: decisiones a respetar
+
+Módulo en curso por fases (1: schema + tarjetas + matching; 2: ingesta
+GNB + "Promos de hoy"; 3: Itaú; 4: carga manual Sudameris/BASA; 5:
+avisos de Telegram).
+
+1. **Las promos son globales, las tarjetas son de la familia.** Las
+   tablas de promos no tienen `family_id`: un autenticado solo las lee
+   (sin políticas ni grants de escritura) y las escriben la ingesta y la
+   carga manual con el admin client. Las promos se guardan aunque no le
+   sirvan a nadie hoy; el filtro por tarjeta se aplica al mostrar y al
+   avisar, así una tarjeta nueva ve las promos sin volver a ingerir.
+2. **Columnas en castellano como el diseño del módulo, salvo
+   `family_id`/`member_id`**, que siguen el resto del schema y las
+   políticas con `hogar.current_family_id()`.
+3. **El matching vive en `lib/promos/matching.ts`, funciones puras**, y
+   lo usan la pantalla y los avisos. La exclusión siempre gana; sin
+   reglas `incluye`, la capa aplica a todas las de **crédito** del banco
+   (por eso `tarjetas_familia` tiene `tipo`, que no estaba en el diseño
+   original). Si varias capas valen el mismo día, gana la de mayor
+   `prioridad` (empate: mayor porcentaje). Fechas como `yyyy-MM-dd` con
+   `dayOfWeekOfDateOnly`, nunca con la zona del servidor.
+4. **Marca, nivel, afinidad, tipo y banco se normalizan** con
+   `lib/promos/normalize.ts` (minúsculas, sin tildes, sinónimos:
+   "MasterCard" → `mastercard`, "Clásica" → `clasica`, "Afinidad
+   Farmacenter" → `farmacenter`) al guardar, y el matching vuelve a
+   normalizar al comparar.
+5. **Tests**: `tests/promos/` con los tres casos reales. Los PDF
+   originales están en `tests/fixtures/promos/`
+   (`basa-jueves-supermercado.pdf`, `basa-farmacenter.pdf`,
+   `sudameris-cadena-real.pdf`) y su transcripción estructurada en
+   `esperadas.ts`, contra la que van a comparar los tests de extracción
+   de la Fase 4. Exclusiones genéricas de las bases ("Empresariales,
+   Gourmet Cards y Prepagas") se modelan como reglas `excluye` por
+   `nivel = empresarial`, `afinidad = gourmet card` y `tipo = prepaga`.
+6. **Nunca se pide el número de una tarjeta**: solo banco, marca, nivel,
+   afinidad, tipo y alias.
+7. **Normalización con Claude (`lib/promos/normalizar.ts`)**: modelo
+   `claude-sonnet-5-5` (pedido del usuario), effort `medium`, salida
+   estricta con `output_config.format` a partir del esquema Zod de
+   `lib/promos/esquema.ts` (1:1 con las tablas), `fallbacks: "default"`
+   (si el clasificador rechaza un texto, la API reintenta en otro
+   modelo) y prompt de sistema fijo con `cache_control` — lo variable
+   (fecha de hoy, banco, texto) va en el mensaje del usuario para no
+   romper la caché. El rubro lo decide Claude, nunca la categoría del
+   banco.
+8. **Las reglas de filtrado viven en código, no en el prompt**
+   (`lib/promos/filtrado.ts`, puro): rubro dentro de los cuatro, al
+   menos un componente con porcentaje o monto (una capa de solo cuotas
+   se descarta, la promo entera si no queda ninguna), y saneo de lo que
+   el esquema no garantiza (fechas reales, días 0–6, porcentajes en
+   rango, marca/nivel/afinidad/tipo normalizados). El prompt las
+   explica para que la salida las permita, pero la que decide es esta
+   función.
+9. **Costo controlado por hash** (`lib/promos/ingesta.ts`): solo se
+   llama a Claude por un item cuyo `hash_contenido` cambió o que nunca
+   se vio. Lo descartado (por el prefiltro o después de Claude) guarda
+   su hash en `promo_descartadas` y no se reprocesa. El prefiltro de
+   GNB (`prefiltrarGnb` en `lib/promos/gnb.ts`) descarta por el
+   `circleText` sin llamar a Claude.
+10. **Guardado sin transacción, en orden seguro**
+    (`lib/promos/persistencia.ts`): la promo se guarda con
+    `activa = false` y sin hash, después sus capas, y al final se marca
+    activa con el hash. Un fallo a mitad de camino deja la promo
+    invisible y sin hash, y la próxima corrida la reprocesa. No hace
+    falta una función SQL para esto.
+11. **Ingesta incremental por tiempo**: la ruta tiene
+    `maxDuration = 300` y normaliza con concurrencia 3 hasta 240 s; lo
+    que no entra queda pendiente (sin hash) y lo toma la próxima
+    corrida, así que llamarla dos veces seguidas es inofensivo (mejor
+    esperar a que termine: dos corridas a la vez pueden normalizar la
+    misma promo dos veces). **La ruta responde 202 enseguida y trabaja
+    en `after()`**: cron-job.org corta la llamada a los ~30 s y la
+    ingesta tarda minutos; el resultado se lee en `promo_ingestas` y al
+    pie de `/promos` ("actualizando…", pendientes, errores). Una
+    fuente que devuelve cero items corta con error **antes** de
+    desactivar nada. Las promos que desaparecen de la fuente quedan
+    `activa = false` (no se borran). Cada corrida deja una fila en
+    `promo_ingestas` con el resumen; `ok` es `false` si falló la fuente
+    o fallaron todos los items intentados.
+12. **"Actualizar ahora" en `/promos`** (pedido del usuario, para no
+    depender del cron): Server Action `actualizarPromosAhora` que exige
+    sesión, corre la misma ingesta con el admin client (las tablas de
+    promos no tienen escritura para `authenticated`) en `after()`, y la
+    página tiene `maxDuration = 300` para que alcance. Antes de arrancar,
+    la acción y la ruta del cron consultan `ingestaEnCurso` (una corrida
+    sin terminar de menos de `INGESTA_EN_CURSO_MS`): dos a la vez
+    normalizarían lo mismo dos veces. Mientras está en curso, el botón
+    queda deshabilitado y la pantalla se refresca cada 15 s.
+13. **Lectura de promos con el cliente de sesión** (`lib/promos/queries.ts`):
+    una sola consulta con embeds (`promo_beneficios(...)`), por eso los
+    tipos de las tablas de promos en `lib/supabase/types.ts` declaran
+    `Relationships`. El filtro por tarjeta y por día se hace en
+    `matching.ts`, no en SQL.
+
 ## Comandos útiles
 
 ```bash
 npm run dev       # servidor de desarrollo
 npm run build     # build de producción — debe pasar sin errores de TS
 npm run lint
+npm test          # tests de la lógica pura de promociones (vitest)
 ```
 
 No ejecutes `vercel` ni ningún comando del CLI de Vercel: el proyecto se

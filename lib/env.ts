@@ -34,3 +34,7 @@ export function getTelegramWebhookSecret(): string {
 export function getCronSecret(): string {
   return required("CRON_SECRET", process.env.CRON_SECRET);
 }
+
+export function getAnthropicApiKey(): string {
+  return required("ANTHROPIC_API_KEY", process.env.ANTHROPIC_API_KEY);
+}
