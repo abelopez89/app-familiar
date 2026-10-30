@@ -198,9 +198,9 @@ acá primero):
   incluye: eventos que se repiten por chat, subir documentos por foto,
   divisiones de gastos por pesos o importes exactos por chat, ni chats
   de grupo.
-- Migraciones `001` a `013` aplicadas y confirmadas en la base
+- Migraciones `001` a `014` aplicadas y confirmadas en la base
   compartida. Antes de escribir la
-  migración `014`, mirá `supabase/migrations/` para confirmar el próximo
+  migración `015`, mirá `supabase/migrations/` para confirmar el próximo
   número — no lo asumas.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
@@ -461,10 +461,10 @@ incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 | `010_documentos.sql` | `document_categories`, `documents`, `document_files`, FK `assets.document_id`, políticas sobre `storage.objects` (ver sección Fase 5 más abajo). |
 | `011_gastos.sql` | `expense_categories`, `expense_groups`, `group_participants`, `expenses`, `expense_shares`, `settlements` + RLS + grants, función `hogar.save_expense()` y seed de categorías para las familias existentes (ver sección Fase 6 más abajo). |
 | `012_telegram_bot.sql` | `telegram_sessions` y `telegram_updates`: RLS con política `using (false)`, **sin** grants a `authenticated`/`anon` (revocados explícitos, porque el default privilege de la 005 se los daría), grants solo a `service_role` (ver sección Fase 7). |
-| `014_promos.sql` | Promos globales (`promociones`, `promo_comercios`, `promo_beneficios`, `promo_beneficio_componentes`, `promo_beneficio_tarjetas`, `promo_descartadas`, `promo_ingestas`: solo lectura para `authenticated`, escritura solo `service_role`) y por familia (`tarjetas_familia`, `comercios_favoritos`, RLS estándar). Ver "Promociones de tarjetas". |
 | `013_save_expense_bot.sql` | `hogar.save_expense()` acepta `family_id`/`created_by` en el payload **solo** si quien llama es `service_role` y no hay sesión; verifica que el grupo y el miembro sean de esa familia. Para `authenticated` no cambia nada (ver sección Fase 7). |
+| `014_promos.sql` | Promos globales (`promociones`, `promo_comercios`, `promo_beneficios`, `promo_beneficio_componentes`, `promo_beneficio_tarjetas`, `promo_descartadas`, `promo_ingestas`: solo lectura para `authenticated`, escritura solo `service_role`) y por familia (`tarjetas_familia`, `comercios_favoritos`, RLS estándar). Ver "Promociones de tarjetas". |
 
-La próxima migración de cualquier fase nueva es `014_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `015_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
