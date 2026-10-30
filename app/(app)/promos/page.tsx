@@ -15,7 +15,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ProbarItauButton } from "./probar-itau-button";
+import { ActualizarButton } from "./actualizar-button";
+
+// Alcanza para la ingesta que corre en `after()` desde "Actualizar ahora"
+// (misma duración que la ruta del cron).
+export const maxDuration = 300;
 
 /** "2026-12-31" → "31/12", sin pasar por la zona del servidor. */
 function diaMes(fecha: string): string {
@@ -160,7 +164,7 @@ export default async function PromosPage() {
       )}
 
       <section className="flex flex-col gap-1 px-1 text-xs text-muted-foreground">
-        <ProbarItauButton />
+        <ActualizarButton enCurso={estadoPorBanco.get("itau")?.enCurso ?? false} />
         {BANCOS_AUTOMATICOS.map((banco) => {
           const estado = estadoPorBanco.get(banco);
           return (

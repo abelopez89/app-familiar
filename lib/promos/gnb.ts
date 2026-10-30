@@ -73,6 +73,8 @@ export function prefiltrarGnb(benefit: GnbBenefit): Prefiltro {
 /** HTML de la descripción a texto plano, suficiente para el modelo. */
 export function htmlATexto(html: string): string {
   return html
+    .replace(/<(style|script)\b[\s\S]*?<\/\1>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<(br|\/p|\/li|\/div|\/h\d)[^>]*>/gi, "\n")
     .replace(/<li[^>]*>/gi, "• ")
     .replace(/<[^>]+>/g, "")
@@ -84,6 +86,8 @@ export function htmlATexto(html: string): string {
     .replace(/&#39;/g, "'")
     .replace(/&([a-z])acute;/gi, (_, l: string) => ({ a: "á", e: "é", i: "í", o: "ó", u: "ú" })[l.toLowerCase()] ?? l)
     .replace(/&ntilde;/gi, "ñ")
+    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s*\n+/g, "\n")
     .trim();

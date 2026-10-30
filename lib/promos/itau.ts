@@ -1,4 +1,4 @@
-import { PROMOS_USER_AGENT, diagnosticoRespuesta } from "./gnb";
+import { PROMOS_USER_AGENT, diagnosticoRespuesta, htmlATexto } from "./gnb";
 
 /**
  * Fuente Itaú: HTML del servidor (listado por categoría) + detalle por
@@ -30,13 +30,9 @@ export function claveItau(item: Pick<ItemListadoItau, "b" | "c">): string {
   return `itau:${item.b}:${item.c}`;
 }
 
+/** En una línea y con las entidades decodificadas (Itaú escribe "Aret&#233;"). */
 function textoPlano(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
+  return htmlATexto(html).replace(/\s+/g, " ").trim();
 }
 
 /** Cada `<a class="item-oferta" …>…</a>` del listado. */
@@ -56,8 +52,8 @@ export function parsearListadoItau(html: string): ItemListadoItau[] {
     items.push({
       b: onclick[1],
       c: onclick[2],
-      comercio: onclick[3],
-      nombre: nombre ? textoPlano(nombre[1]) : onclick[3],
+      comercio: textoPlano(onclick[3]),
+      nombre: nombre ? textoPlano(nombre[1]) : textoPlano(onclick[3]),
       badges,
     });
   }
@@ -85,4 +81,30 @@ export function fetchListadoItau(categoria: number, fetchImpl: typeof fetch = fe
 
 export function fetchDetalleItau(b: string, c: string, fetchImpl: typeof fetch = fetch) {
   return pedir(`${ITAU_BASE}/Detalle?b=${encodeURIComponent(b)}&c=${encodeURIComponent(c)}`, fetchImpl);
+}
+
+/**
+ * Lo que define si una promo del listado cambió (de acá sale el hash): si
+ * comercio y badges siguen iguales, no se vuelve a pedir el detalle.
+ */
+export function firmaItau(item: ItemListadoItau): string {
+  return [item.comercio, ...[...item.badges].sort()].join("|");
+}
+
+/**
+ * Texto para Claude: listado + detalle (descripción, vigencia, medios de
+ * pago y bases, donde están los días y las tarjetas). La categoría del
+ * banco no va: el rubro lo decide Claude.
+ */
+export function textoItau(item: ItemListadoItau, detalleHtml: string): string {
+  return [
+    `Comercio: ${item.comercio}`,
+    `Badges del listado: ${item.badges.join(" · ")}`,
+    `Detalle:\n${htmlATexto(detalleHtml)}`,
+  ].join("\n");
+}
+
+/** Pausa corta entre pedidos al sitio de Itaú. */
+export function pausa(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -54,9 +54,10 @@ acá primero):
   autorización, la migración la aplica el usuario.
 - **cron-job.org**: `GET /api/cron/recordatorios` (cada hora) y
   `GET /api/cron/tareas` (diario, 07:00 `America/Asuncion`), los dos
-  con `Authorization: Bearer <CRON_SECRET>`. Los crons de promos (Itaú,
-  cuando exista) van en cron-job.org como los demás, no en Vercel Cron
-  (confirmado por el usuario).
+  con `Authorization: Bearer <CRON_SECRET>`. `GET /api/cron/promos-itau`
+  (diario, 05:15) va a ir ahí también, no en Vercel Cron (confirmado por
+  el usuario), pero **todavía no está creado**: por ahora la ingesta se
+  dispara con "Actualizar ahora" en `/promos`.
 - **Telegram**: webhook apuntando a `/api/telegram/webhook` con
   `secret_token` = `TELEGRAM_WEBHOOK_SECRET` (sin `allowed_updates`, así
   llegan los toques de botón), y menú registrado con `setMyCommands`:
@@ -73,7 +74,8 @@ acá primero):
   Claude) en producción, pero **GNB rechaza los pedidos desde servidores
   (403) aunque su API anda en un navegador**: no hay ingesta automática
   de GNB, se va a importar el JSON a mano en la Fase 4 (decisión del
-  usuario). Fase 3 (Itaú) arranca con una prueba de conexión; ver la
+  usuario). Fase 3 (ingesta de Itaú) escrita, después de que la prueba
+  de conexión confirmara que Itaú sí responde desde Vercel; ver la
   sección "Promociones de tarjetas" más abajo.
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
@@ -237,7 +239,8 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `app/api/calendar/[token]/route.ts` (GET, feed ICS sin sesión),
   `app/api/telegram/webhook/route.ts` (POST, lo llama Telegram),
   `app/api/cron/recordatorios/route.ts` (GET, lo llama cron-job.org) y
-  `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3).
+  `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3) y
+  `app/api/cron/promos-itau/route.ts` (GET, cron-job.org, promociones).
   Desde la Fase 7 la lógica de negocio de esas mutaciones vive en
   `lib/services/` (ver "Fase 7"): la Server Action resuelve familia y
   miembro desde la sesión y delega; el bot hace lo mismo desde
@@ -1648,9 +1651,9 @@ avisos de Telegram).
     activa con el hash. Un fallo a mitad de camino deja la promo
     invisible y sin hash, y la próxima corrida la reprocesa. No hace
     falta una función SQL para esto.
-11. **Ingesta incremental por tiempo** (para Itaú, en la Fase 3): la
-    ruta del cron va a tener `maxDuration = 300` y normaliza con
-    concurrencia 3 hasta 240 s; lo
+11. **Ingesta incremental por tiempo**: la ruta del cron y `/promos`
+    tienen `maxDuration = 300` y normalizan con concurrencia 2 hasta
+    240 s; lo
     que no entra queda pendiente (sin hash) y lo toma la próxima
     corrida, así que llamarla dos veces seguidas es inofensivo (mejor
     esperar a que termine: dos corridas a la vez pueden normalizar la
@@ -1672,8 +1675,25 @@ avisos de Telegram).
     verdaderos. Una prueba OK no cuenta como "actualizado" en la línea
     de estado. Cuando exista la ingesta de Itaú, ese botón pasa a ser
     "Actualizar ahora" (con `ingestaEnCurso` para no correr dos a la
-    vez, ingesta en `after()` y `maxDuration = 300`).
-13. **Lectura de promos con el cliente de sesión** (`lib/promos/queries.ts`):
+    vez, ingesta en `after()` y `maxDuration = 300`). Así fue: la prueba
+    confirmó que Itaú responde, y el botón es ahora "Actualizar ahora"
+    (`actualizarPromosAhora` en `app/(app)/promos/actions.ts`).
+13. **Itaú (`lib/promos/itau.ts`, `lib/promos/ingesta-itau.ts`)**:
+    recorre solo las categorías del prefiltro (`ITAU_CATEGORIAS`: 13,
+    14, 8, 3, 2, 16) de a una con 400 ms de pausa, elimina duplicados
+    entre categorías por `itau:{b}:{c}` y corta con error si alguna
+    categoría falla (con el listado incompleto se desactivarían promos
+    vigentes). Sin `%` en ningún badge se descarta sin pedir el detalle.
+    **El hash sale del listado** (`firmaItau`: comercio + badges), así
+    que el detalle se pide solo para lo nuevo o lo que cambió de badges,
+    dentro de `obtenerTexto` y con pausa. El texto para Claude lleva el
+    listado y el detalle (descripción, vigencia, medios de pago, bases);
+    la categoría del banco no va, el rubro lo decide Claude. Itaú
+    escribe los acentos como entidades numéricas (`Aret&#233;`) y el
+    detalle trae un bloque `<style>`: `htmlATexto` decodifica las
+    primeras y descarta el segundo. User-Agent identificable y
+    concurrencia 2.
+14. **Lectura de promos con el cliente de sesión** (`lib/promos/queries.ts`):
     una sola consulta con embeds (`promo_beneficios(...)`), por eso los
     tipos de las tablas de promos en `lib/supabase/types.ts` declaran
     `Relationships`. El filtro por tarjeta y por día se hace en
