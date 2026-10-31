@@ -140,3 +140,29 @@ export async function diagnosticoRespuesta(res: Response): Promise<string> {
     .map((p) => ` · ${p}`)
     .join("");
 }
+
+/**
+ * Beneficios de una página del JSON de GNB, tal como la muestra el
+ * navegador. La forma del envoltorio no está documentada: se aceptan los
+ * nombres habituales y un array en la raíz. Cada beneficio necesita `id`.
+ */
+export function beneficiosDeJsonGnb(json: unknown): GnbBenefit[] {
+  const lista = Array.isArray(json)
+    ? json
+    : json && typeof json === "object"
+      ? ((json as Record<string, unknown>).data ??
+        (json as Record<string, unknown>).benefits ??
+        (json as Record<string, unknown>).items)
+      : null;
+  if (!Array.isArray(lista)) return [];
+  return lista.filter(
+    (b): b is GnbBenefit =>
+      !!b && typeof b === "object" && (typeof (b as GnbBenefit).id === "string" || typeof (b as GnbBenefit).id === "number"),
+  );
+}
+
+/** `pagination.totalPages` si el JSON lo trae (para avisar que falta otra página). */
+export function totalPaginasGnb(json: unknown): number | null {
+  const total = (json as { pagination?: { totalPages?: unknown } } | null)?.pagination?.totalPages;
+  return typeof total === "number" ? total : null;
+}

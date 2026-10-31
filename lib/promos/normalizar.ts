@@ -52,12 +52,37 @@ export type FuenteNormalizacion = "api" | "web" | "manual";
 
 export class NormalizacionError extends Error {}
 
+function contenidoUsuario(
+  input: { banco: Banco; origen: FuenteNormalizacion; hoy: string } & ({ texto: string } | { archivo: ArchivoPromo }),
+): Anthropic.Beta.BetaContentBlockParam[] {
+  const encabezado = [
+    `Banco: ${BANCOS[input.banco].label}`,
+    `Origen: ${input.origen === "manual" ? "documento manual" : `automático (${input.origen})`}`,
+    `Hoy: ${input.hoy}`,
+  ].join("\n");
+
+  if ("texto" in input) {
+    return [{ type: "text", text: [encabezado, "", "<promo>", input.texto, "</promo>"].join("\n") }];
+  }
+  // El archivo va antes del texto, como recomienda la documentación.
+  const archivo: Anthropic.Beta.BetaContentBlockParam =
+    input.archivo.mediaType === "application/pdf"
+      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: input.archivo.base64 } }
+      : { type: "image", source: { type: "base64", media_type: input.archivo.mediaType, data: input.archivo.base64 } };
+  return [archivo, { type: "text", text: `${encabezado}\n\nLa promoción está en el archivo adjunto.` }];
+}
+
+/** Un PDF o una imagen (carga manual), en base64. */
+export type ArchivoPromo = {
+  mediaType: "application/pdf" | "image/jpeg" | "image/png" | "image/webp";
+  base64: string;
+};
+
 export async function normalizarPromo(input: {
   banco: Banco;
   origen: FuenteNormalizacion;
-  texto: string;
   hoy: string;
-}): Promise<PromoNormalizada[]> {
+} & ({ texto: string } | { archivo: ArchivoPromo })): Promise<PromoNormalizada[]> {
   const response = await getClient().beta.messages.parse({
     model: MODELO,
     max_tokens: 16000,
@@ -65,20 +90,7 @@ export async function normalizarPromo(input: {
     fallbacks: "default",
     output_config: { effort: "medium", format: betaZodOutputFormat(salidaModeloSchema) },
     system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-    messages: [
-      {
-        role: "user",
-        content: [
-          `Banco: ${BANCOS[input.banco].label}`,
-          `Origen: ${input.origen === "manual" ? "documento manual" : `automático (${input.origen})`}`,
-          `Hoy: ${input.hoy}`,
-          "",
-          "<promo>",
-          input.texto,
-          "</promo>",
-        ].join("\n"),
-      },
-    ],
+    messages: [{ role: "user", content: contenidoUsuario(input) }],
   });
 
   if (response.stop_reason === "refusal") throw new NormalizacionError("el modelo rechazó el texto");

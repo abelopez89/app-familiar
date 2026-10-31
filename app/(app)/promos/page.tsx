@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BadgePercent, CreditCard } from "lucide-react";
+import { BadgePercent, CreditCard, FileUp } from "lucide-react";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { listActiveMembers } from "@/lib/members";
 import { dateOnlyToFamilyMidnightUtc, formatDate, formatDateTime, todayInFamilyTimezone } from "@/lib/dates";
@@ -27,9 +27,10 @@ function diaMes(fecha: string): string {
   return `${d}/${m}`;
 }
 
-// GNB rechaza los pedidos desde servidores (403, aunque su API anda en un
-// navegador): no se ingiere automáticamente, se importa a mano (Fase 4).
-const BANCOS_AUTOMATICOS = ["itau"] as const;
+// Itaú se actualiza solo (o con "Actualizar ahora"); GNB, importando a
+// mano el JSON en "Cargar promo" (rechaza los pedidos desde servidores).
+// Sudameris y BASA no tienen línea: se cargan de a un PDF.
+const BANCOS_CON_ESTADO = ["itau", "gnb"] as const;
 
 /**
  * Promos de hoy: las promos activas que le sirven hoy a alguna tarjeta de
@@ -164,8 +165,16 @@ export default async function PromosPage() {
       )}
 
       <section className="flex flex-col gap-1 px-1 text-xs text-muted-foreground">
-        <ActualizarButton enCurso={estadoPorBanco.get("itau")?.enCurso ?? false} />
-        {BANCOS_AUTOMATICOS.map((banco) => {
+        <div className="flex flex-wrap gap-2">
+          <ActualizarButton enCurso={estadoPorBanco.get("itau")?.enCurso ?? false} />
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link href="/promos/cargar">
+              <FileUp className="size-4" />
+              Cargar promo
+            </Link>
+          </Button>
+        </div>
+        {BANCOS_CON_ESTADO.map((banco) => {
           const estado = estadoPorBanco.get(banco);
           return (
             <p key={banco}>

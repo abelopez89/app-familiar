@@ -32,7 +32,7 @@ export function ActualizarButton({ enCurso }: { enCurso: boolean }) {
         toast.error(result.error);
         return;
       }
-      toast.success("Actualizando las promos. Tarda unos minutos.");
+      toast.success("Actualizando las promos de Itaú. Tarda unos minutos.");
       // La fila de la ingesta se crea apenas arranca: con este refresco la
       // línea pasa a "actualizando…" y empieza el refresco periódico.
       setTimeout(() => router.refresh(), 3_000);
@@ -43,7 +43,7 @@ export function ActualizarButton({ enCurso }: { enCurso: boolean }) {
   return (
     <Button variant="outline" size="sm" className="gap-2 self-start" disabled={ocupado} onClick={actualizar}>
       <RefreshCw className={cn("size-4", ocupado && "animate-spin")} />
-      {enCurso ? "Actualizando…" : "Actualizar ahora"}
+      {enCurso ? "Actualizando Itaú…" : "Actualizar Itaú"}
     </Button>
   );
 }

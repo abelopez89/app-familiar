@@ -86,6 +86,12 @@ export async function correrIngesta(
     origen: "api" | "web";
     obtenerItems: () => Promise<ItemFuente[]>;
     presupuestoMs: number;
+    /**
+     * Desactivar las promos del banco que no vinieron en esta corrida. Sí
+     * cuando la fuente trae la lista completa (Itaú); no cuando llega por
+     * partes (el JSON de GNB importado en tandas desde el navegador).
+     */
+    desactivarFaltantes?: boolean;
   },
 ): Promise<{ ok: boolean; resumen: ResumenIngesta }> {
   const inicio = Date.now();
@@ -149,7 +155,10 @@ export async function correrIngesta(
     }
 
     // Lo que ya no está en la fuente deja de verse (no se borra).
-    const desaparecidas = (existentes ?? []).filter((p) => p.activa && p.clave_externa && !vistas.has(p.clave_externa));
+    const desaparecidas =
+      input.desactivarFaltantes === false
+        ? []
+        : (existentes ?? []).filter((p) => p.activa && p.clave_externa && !vistas.has(p.clave_externa));
     if (desaparecidas.length > 0) {
       const { error } = await db.from("promociones").update({ activa: false }).in("id", desaparecidas.map((p) => p.id));
       if (error) throw error;
