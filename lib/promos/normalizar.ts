@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { getAnthropicApiKey } from "@/lib/env";
 import { BANCOS, type Banco } from "./constants";
-import { normalizacionSchema, type PromoNormalizada } from "./esquema";
+import { deSalidaModelo, salidaModeloSchema, type PromoNormalizada } from "./esquema";
 
 /**
  * Normalización de una promo con Claude: texto/HTML del banco → estructura
@@ -32,14 +32,14 @@ Qué se guarda (las reglas las aplica después el código, pero tu salida tiene 
 Estructura:
 - Una promoción tiene comercios, vigencia y una o más capas (beneficios). Cada capa tiene días, componentes y reglas de tarjetas.
 - Capas: cuando el documento distingue niveles (beneficios generales vs. especiales, o un porcentaje mayor para Black/Signature), cada nivel es una capa. Si dos capas pueden valer el mismo día para la misma tarjeta, la que reemplaza a la otra lleva prioridad mayor (General = 0, Especial = 1).
-- Días: dias_semana como enteros, 0 = domingo, 1 = lunes … 6 = sábado. Cuando el documento lista fechas explícitas ("03 de julio, 07 de agosto…", "primer viernes de cada mes" con las fechas escritas), usá fechas y dejá dias_semana en null: preferí siempre las fechas explícitas. Si vale todos los días de la vigencia, ambos en null.
+- Días: dias_semana como enteros, 0 = domingo, 1 = lunes … 6 = sábado. Cuando el documento lista fechas explícitas ("03 de julio, 07 de agosto…", "primer viernes de cada mes" con las fechas escritas), usá fechas y dejá dias_semana vacío: preferí siempre las fechas explícitas. Si vale todos los días de la vigencia, ambos vacíos.
 - Fechas en formato yyyy-MM-dd. Si el documento no dice el año, usá el de la vigencia o el año en curso que viene en el mensaje.
 - Componentes: los beneficios de una capa se SUMAN (descuento en caja + reintegro + cuotas). Un porcentaje distinto según el producto (25% salvo medicamentos, 20% en medicamentos) son dos componentes con su alcance. "Hasta X%" lleva es_hasta = true. El tope ("tope de compra Gs. 1.500.000 por mes por cuenta") va en el componente al que aplica, con tope_periodo y tope_alcance.
-- Tarjetas: reglas "incluye" por cada tarjeta nombrada como participante y "excluye" por cada exclusión. Campos en minúscula y sin tildes: marca (visa, mastercard, amex), nivel (clasica, oro, platinum, black, signature, infinite, empresarial), afinidad (el nombre de la tarjeta de afinidad sin la palabra "afinidad", ej. "farmacenter", "club libertad"; "Gourmet Card" es afinidad "gourmet card"), tipo (credito, debito, prepaga). Un campo que no se especifica va en null (comodín). Ej.: "Visa Oro" → marca visa, nivel oro; "Afinidad Farmacenter" → solo afinidad farmacenter; "tarjetas de crédito Visa y Mastercard" → dos reglas con tipo credito; "se excluyen las prepagas y las empresariales" → excluye tipo prepaga, excluye nivel empresarial. Si el documento no nombra tarjetas, no pongas reglas.
+- Tarjetas: reglas "incluye" por cada tarjeta nombrada como participante y "excluye" por cada exclusión. Campos en minúscula y sin tildes: marca (visa, mastercard, amex), nivel (clasica, oro, platinum, black, signature, infinite, empresarial), afinidad (el nombre de la tarjeta de afinidad sin la palabra "afinidad", ej. "farmacenter", "club libertad"; "Gourmet Card" es afinidad "gourmet card"), tipo (credito, debito, prepaga). Un campo que no se especifica va vacío ("", o tipo "cualquiera"): es un comodín. Ej.: "Visa Oro" → marca visa, nivel oro; "Afinidad Farmacenter" → solo afinidad farmacenter; "tarjetas de crédito Visa y Mastercard" → dos reglas con tipo credito; "se excluyen las prepagas y las empresariales" → excluye tipo prepaga, excluye nivel empresarial. Si el documento no nombra tarjetas, no pongas reglas.
 - Comercios: cada comercio adherido con su ventana. "Desde el 10/09" → desde. "Se excluye X desde el 01/10" → X con hasta = el día anterior (30/09).
-- Canal: por dónde se procesa ("POS Bancard", "web"), si lo dice. acumulable: false si dice "no acumulable", null si no dice.
+- Canal: por dónde se procesa ("POS Bancard", "web"), si lo dice. acumulable: "no" si dice "no acumulable", "no_dice" si no lo dice.
 - Origen automático (API o web): devolvé una sola promoción. Documento manual: una promoción por cada beneficio distinto del documento (pueden ser varias).
-- No inventes datos: lo que el texto no dice va en null.`;
+- No inventes datos: lo que el texto no dice va vacío ("" en textos, 0 en números, [] en listas, "cualquiera"/"sin_tope"/"no_dice" en esas opciones).`;
 
 let client: Anthropic | null = null;
 
@@ -63,7 +63,7 @@ export async function normalizarPromo(input: {
     max_tokens: 16000,
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-    output_config: { effort: "medium", format: betaZodOutputFormat(normalizacionSchema) },
+    output_config: { effort: "medium", format: betaZodOutputFormat(salidaModeloSchema) },
     system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
     messages: [
       {
@@ -84,5 +84,5 @@ export async function normalizarPromo(input: {
   if (response.stop_reason === "refusal") throw new NormalizacionError("el modelo rechazó el texto");
   if (response.stop_reason === "max_tokens") throw new NormalizacionError("la respuesta quedó cortada");
   if (!response.parsed_output) throw new NormalizacionError("la respuesta no cumple el esquema");
-  return response.parsed_output.promociones;
+  return deSalidaModelo(response.parsed_output);
 }

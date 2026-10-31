@@ -1623,7 +1623,14 @@ avisos de Telegram).
    modelo) y prompt de sistema fijo con `cache_control` — lo variable
    (fecha de hoy, banco, texto) va en el mensaje del usuario para no
    romper la caché. El rubro lo decide Claude, nunca la categoría del
-   banco.
+   banco. **El esquema que ve el modelo (`salidaModeloSchema`) no tiene
+   campos opcionales**: structured outputs rechaza con 400 un esquema con
+   más de 16 parámetros con unión de tipos (cada `.nullable()` cuenta), y
+   la forma interna tiene 19 — pasó en producción, todas las llamadas
+   fallaron. "No dice" va como `""`, `0`, `[]` o un valor de enum
+   (`cualquiera`, `sin_tope`, `no_dice`), y `deSalidaModelo` lo vuelve
+   `null`. Un test (`tests/promos/esquema.test.ts`) cuenta las uniones del
+   esquema que manda el SDK.
 8. **Las reglas de filtrado viven en código, no en el prompt**
    (`lib/promos/filtrado.ts`, puro): rubro dentro de los cuatro, al
    menos un componente con porcentaje o monto (una capa de solo cuotas
