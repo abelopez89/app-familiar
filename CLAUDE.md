@@ -59,7 +59,7 @@ acá primero):
   el usuario), pero **todavía no está creado**: por ahora la ingesta se
   dispara con "Actualizar ahora" en `/promos`. `GET /api/cron/promos-avisos`
   (cada hora, mismo `CRON_SECRET`) manda los avisos de promos por
-  Telegram (Fase 5); hay que crearlo en cron-job.org.
+  Telegram (Fase 5): ya creado en cron-job.org y funcionando.
 - **Telegram**: webhook apuntando a `/api/telegram/webhook` con
   `secret_token` = `TELEGRAM_WEBHOOK_SECRET` (sin `allowed_updates`, así
   llegan los toques de botón), y menú registrado con `setMyCommands`:
@@ -81,8 +81,10 @@ acá primero):
   editable y versionado, e importación del JSON de GNB) escrita.
   Ingesta por mail (newsletters de Gmail enviados por un Google Apps
   Script) en producción y funcionando. Fase 5 (avisos por Telegram)
-  escrita, pendiente de crear el job horario en cron-job.org; ver la
-  sección "Promociones de tarjetas" más abajo (puntos 19–23).
+  en producción y funcionando (job horario creado en cron-job.org).
+  Editar una promo guardada y bajar su archivo original: verificados
+  por el usuario. Ver la sección "Promociones de tarjetas" más abajo
+  (puntos 19–24).
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
   producción** (Vercel + Supabase), incluyendo registro, login con
