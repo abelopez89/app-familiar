@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ActualizarButton } from "./actualizar-button";
+import { DesactivarButton } from "./desactivar-button";
 
 // Alcanza para la ingesta que corre en `after()` desde "Actualizar ahora"
 // (misma duración que la ruta del cron).
@@ -156,6 +157,7 @@ export default async function PromosPage() {
                         </span>
                       )}
                     </div>
+                    <DesactivarButton promoId={promo.id} titulo={promo.titulo} />
                   </CardContent>
                 </Card>
               );
