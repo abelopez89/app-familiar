@@ -36,6 +36,7 @@ Las variables de entorno **se configuran únicamente en Vercel**
 | `TELEGRAM_WEBHOOK_SECRET` | solo servidor | String aleatorio que Telegram manda de vuelta en cada request al webhook (`X-Telegram-Bot-Api-Secret-Token`), para verificar que el request es legítimo. |
 | `CRON_SECRET` | solo servidor | Protege los crons (`GET /api/cron/*`) (`Authorization: Bearer <CRON_SECRET>`), la única llamada permitida es la del cron externo. |
 | `ANTHROPIC_API_KEY` | solo servidor | Clave de la API de Claude. La usa la ingesta de promociones (`/api/cron/promos-*`) para normalizar el texto de cada promo. |
+| `PROMOS_MAIL_SECRET` | solo servidor | Contraseña del webhook de Postmark Inbound (`/api/inbound/promos`): la URL que se carga en Postmark es `https://promos:<PROMOS_MAIL_SECRET>@<dominio>/api/inbound/promos`. |
 
 Ninguna de las nuevas lleva el prefijo `NEXT_PUBLIC_` salvo
 `NEXT_PUBLIC_APP_URL`, que es pública a propósito (se usa para armar un

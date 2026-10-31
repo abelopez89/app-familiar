@@ -38,3 +38,7 @@ export function getCronSecret(): string {
 export function getAnthropicApiKey(): string {
   return required("ANTHROPIC_API_KEY", process.env.ANTHROPIC_API_KEY);
 }
+
+export function getPromosMailSecret(): string {
+  return required("PROMOS_MAIL_SECRET", process.env.PROMOS_MAIL_SECRET);
+}

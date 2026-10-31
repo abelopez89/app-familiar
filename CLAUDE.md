@@ -76,8 +76,10 @@ acá primero):
   de GNB, se va a importar el JSON a mano en la Fase 4 (decisión del
   usuario). Fase 3 (ingesta de Itaú) en producción y funcionando. Fase 4
   (carga manual: PDF/captura de Sudameris y BASA con vista previa
-  editable y versionado, e importación del JSON de GNB) escrita; ver la
-  sección "Promociones de tarjetas" más abajo.
+  editable y versionado, e importación del JSON de GNB) escrita.
+  Ingesta por mail (Postmark Inbound, newsletters reenviados desde
+  Gmail) escrita, pendiente de configurar Postmark y Gmail; ver la
+  sección "Promociones de tarjetas" más abajo (puntos 19–21).
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
   producción** (Vercel + Supabase), incluyendo registro, login con
@@ -241,7 +243,8 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `app/api/telegram/webhook/route.ts` (POST, lo llama Telegram),
   `app/api/cron/recordatorios/route.ts` (GET, lo llama cron-job.org) y
   `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3) y
-  `app/api/cron/promos-itau/route.ts` (GET, cron-job.org, promociones).
+  `app/api/cron/promos-itau/route.ts` (GET, cron-job.org, promociones) y
+  `app/api/inbound/promos/route.ts` (POST, lo llama Postmark Inbound).
   Desde la Fase 7 la lógica de negocio de esas mutaciones vive en
   `lib/services/` (ver "Fase 7"): la Server Action resuelve familia y
   miembro desde la sesión y delega; el bot hace lo mismo desde
@@ -501,6 +504,9 @@ En tiempo de ejecución deben existir:
 - `ANTHROPIC_API_KEY` (promociones, solo server) — la usa
   `lib/promos/normalizar.ts` para normalizar cada promo con Claude.
   Ya está cargada en Vercel.
+- `PROMOS_MAIL_SECRET` (promociones, solo server) — contraseña del
+  webhook de Postmark Inbound (`/api/inbound/promos`, Basic auth: la URL
+  en Postmark es `https://promos:<secreto>@<dominio>/api/inbound/promos`).
 
 `lib/env.ts` valida su presencia con un mensaje de error claro si falta
 alguna. No agregues variables nuevas sin documentarlas ahí y en el README.
@@ -617,6 +623,8 @@ Tres clientes separados, no los mezcles:
     Calendar directo, sin cookies.
   - `/api/telegram/*` — el webhook, lo llama Telegram.
   - `/api/cron/*` — el cron de recordatorios, lo llama cron-job.org.
+  - `/api/inbound/*` — el webhook de Postmark con los mails de promos
+    (protegido con Basic auth, `PROMOS_MAIL_SECRET`).
 
 ## Fase 1 — Módulo de compras: decisiones a respetar
 
@@ -1748,6 +1756,36 @@ avisos de Telegram).
     tipos de las tablas de promos en `lib/supabase/types.ts` declaran
     `Relationships`. El filtro por tarjeta y por día se hace en
     `matching.ts`, no en SQL.
+19. **Ingesta por mail (Postmark Inbound)** (`lib/promos/mail.ts` puro,
+    `lib/promos/ingesta-mail.ts`, `app/api/inbound/promos/route.ts`).
+    Gmail reenvía con un filtro por remitente los newsletters a la
+    dirección de Postmark, y Postmark hace un POST con el correo en JSON.
+    Solo se aceptan los dominios de los bancos (`bancoDeRemitente`:
+    `sudamerismail.com.py`, `bancobasa.com.py`, `novedades.bancognb.com.py`,
+    dominio exacto o subdominio); cualquier otro se ignora con 200 (si no,
+    Postmark reintenta). La confirmación de reenvío de Gmail no se
+    procesa: el código se lee en la actividad de Postmark. La ruta
+    responde enseguida y trabaja en `after()`. Es la carga manual sin
+    vista previa: imágenes (adjuntas, `cid:` o remotas del HTML, sin
+    logos ni íconos, a lo sumo 8) + PDF adjuntos + el texto (asunto,
+    cuerpo, `alt`) van a `normalizarPromo` con `{ mail }`, después
+    `filtrarPromo` y `guardarPromoManual` (origen `manual`, sin archivo).
+    Reemplaza a las promos que propone `buscarReemplazos`, salvo que
+    alguna parezca más nueva: ahí no guarda nada.
+20. **Idempotencia del mail sin migración**: `registrarMailRecibido`
+    inserta `mail:<hash del Message-ID>` en `promo_descartadas` (el
+    registro de "ya visto" de las ingestas) antes de procesar; si choca
+    contra la primary key, el correo ya llegó. Un correo que falla al
+    leerse no se reintenta solo: se reenvía a mano. Cada correo deja una
+    fila en `promo_ingestas` con `detalle.mail = true` (la lista "Últimos
+    mails recibidos" de `/promos/cargar`; `estadoIngestas` las saltea) y,
+    si guardó algo, un aviso por Telegram a los miembros de las familias
+    con una tarjeta de ese banco. Las imágenes remotas se bajan como un
+    cliente de correo (solo https, sin IP literal ni nombres locales,
+    `urlImagenPermitida`): no es recorrer el sitio del banco.
+21. **"Desactivar" en cada promo de `/promos`** (`desactivarPromo`): para
+    lo que se leyó mal, sobre todo de los mails. Deja `activa = false`
+    (no borra) para todos, porque las promos son globales.
 
 ## Comandos útiles
 

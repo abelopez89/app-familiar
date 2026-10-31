@@ -104,6 +104,8 @@ export const estadoIngestas = cache(async function estadoIngestas(): Promise<Est
   const ahora = Date.now();
   const porBanco = new Map<Banco, EstadoIngesta>();
   for (const fila of data ?? []) {
+    // Los mails no son una corrida de la fuente: tienen su propia lista (`ultimosMails`).
+    if ((fila.detalle as { mail?: boolean } | null)?.mail === true) continue;
     let estado = porBanco.get(fila.banco);
     if (!estado) {
       // La fila más nueva del banco: de ella salen el estado y el detalle.
@@ -123,4 +125,35 @@ export const estadoIngestas = cache(async function estadoIngestas(): Promise<Est
     if (fila.ok && !esPrueba && !estado.ultimaOk) estado.ultimaOk = fila.terminada_en;
   }
   return [...porBanco.values()];
+});
+
+export type MailRecibido = {
+  banco: Banco;
+  recibido: string;
+  asunto: string;
+  guardadas: Array<{ titulo: string }>;
+  descartadas: Array<{ titulo: string; motivo: string }>;
+  error: string | null;
+};
+
+/** Los últimos correos de promos que llegaron por Postmark y qué se hizo con cada uno. */
+export const ultimosMails = cache(async function ultimosMails(limite = 5): Promise<MailRecibido[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("promo_ingestas")
+    .select("banco, iniciada_en, detalle")
+    .eq("detalle->>mail", "true")
+    .order("iniciada_en", { ascending: false })
+    .limit(limite);
+  return (data ?? []).map((fila) => {
+    const d = (fila.detalle ?? {}) as Partial<Omit<MailRecibido, "banco" | "recibido">>;
+    return {
+      banco: fila.banco,
+      recibido: fila.iniciada_en,
+      asunto: d.asunto ?? "",
+      guardadas: d.guardadas ?? [],
+      descartadas: d.descartadas ?? [],
+      error: d.error ?? null,
+    };
+  });
 });

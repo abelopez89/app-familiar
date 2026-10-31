@@ -39,6 +39,7 @@ Estructura:
 - Comercios: cada comercio adherido con su ventana. "Desde el 10/09" → desde. "Se excluye X desde el 01/10" → X con hasta = el día anterior (30/09).
 - Canal: por dónde se procesa ("POS Bancard", "web"), si lo dice. acumulable: "no" si dice "no acumulable", "no_dice" si no lo dice.
 - Origen automático (API o web): devolvé una sola promoción. Documento manual: una promoción por cada beneficio distinto del documento (pueden ser varias).
+- Correo del banco (newsletter): la promo suele estar en las imágenes y la letra chica (vigencia, días, topes, tarjetas) en el texto al pie; usá las dos cosas. Puede traer varias promos, o ninguna (un aviso institucional): devolvé una por beneficio, o ninguna si no hay promociones.
 - No inventes datos: lo que el texto no dice va vacío ("" en textos, 0 en números, [] en listas, "cualquiera"/"sin_tope"/"no_dice" en esas opciones).`;
 
 let client: Anthropic | null = null;
@@ -52,37 +53,46 @@ export type FuenteNormalizacion = "api" | "web" | "manual";
 
 export class NormalizacionError extends Error {}
 
-function contenidoUsuario(
-  input: { banco: Banco; origen: FuenteNormalizacion; hoy: string } & ({ texto: string } | { archivo: ArchivoPromo }),
-): Anthropic.Beta.BetaContentBlockParam[] {
+/** Lo que se lee: el texto de una fuente, un archivo, o un correo (texto + imágenes/PDF). */
+export type ContenidoPromo = { texto: string } | { archivo: ArchivoPromo } | { mail: { texto: string; archivos: ArchivoPromo[] } };
+
+type InputNormalizacion = { banco: Banco; origen: FuenteNormalizacion; hoy: string } & ContenidoPromo;
+
+function bloqueArchivo(archivo: ArchivoPromo): Anthropic.Beta.BetaContentBlockParam {
+  return archivo.mediaType === "application/pdf"
+    ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: archivo.base64 } }
+    : { type: "image", source: { type: "base64", media_type: archivo.mediaType, data: archivo.base64 } };
+}
+
+function contenidoUsuario(input: InputNormalizacion): Anthropic.Beta.BetaContentBlockParam[] {
   const encabezado = [
     `Banco: ${BANCOS[input.banco].label}`,
-    `Origen: ${input.origen === "manual" ? "documento manual" : `automático (${input.origen})`}`,
+    `Origen: ${"mail" in input ? "correo del banco" : input.origen === "manual" ? "documento manual" : `automático (${input.origen})`}`,
     `Hoy: ${input.hoy}`,
   ].join("\n");
+
+  if ("mail" in input) {
+    // Las imágenes y adjuntos van antes del texto, como recomienda la documentación.
+    return [
+      ...input.mail.archivos.map(bloqueArchivo),
+      { type: "text", text: [encabezado, "", "<correo>", input.mail.texto, "</correo>"].join("\n") },
+    ];
+  }
 
   if ("texto" in input) {
     return [{ type: "text", text: [encabezado, "", "<promo>", input.texto, "</promo>"].join("\n") }];
   }
   // El archivo va antes del texto, como recomienda la documentación.
-  const archivo: Anthropic.Beta.BetaContentBlockParam =
-    input.archivo.mediaType === "application/pdf"
-      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: input.archivo.base64 } }
-      : { type: "image", source: { type: "base64", media_type: input.archivo.mediaType, data: input.archivo.base64 } };
-  return [archivo, { type: "text", text: `${encabezado}\n\nLa promoción está en el archivo adjunto.` }];
+  return [bloqueArchivo(input.archivo), { type: "text", text: `${encabezado}\n\nLa promoción está en el archivo adjunto.` }];
 }
 
-/** Un PDF o una imagen (carga manual), en base64. */
+/** Un PDF o una imagen (carga manual o adjunto de un correo), en base64. */
 export type ArchivoPromo = {
-  mediaType: "application/pdf" | "image/jpeg" | "image/png" | "image/webp";
+  mediaType: "application/pdf" | "image/jpeg" | "image/png" | "image/gif" | "image/webp";
   base64: string;
 };
 
-export async function normalizarPromo(input: {
-  banco: Banco;
-  origen: FuenteNormalizacion;
-  hoy: string;
-} & ({ texto: string } | { archivo: ArchivoPromo })): Promise<PromoNormalizada[]> {
+export async function normalizarPromo(input: InputNormalizacion): Promise<PromoNormalizada[]> {
   const response = await getClient().beta.messages.parse({
     model: MODELO,
     max_tokens: 16000,

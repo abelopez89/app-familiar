@@ -1,6 +1,8 @@
 "use server";
 
 import { after } from "next/server";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { ingestaEnCurso } from "@/lib/promos/ingesta";
@@ -34,5 +36,28 @@ export async function actualizarPromosAhora(): Promise<ActionResult> {
     const { ok, resumen } = await ingestarItau(db, PRESUPUESTO_MS);
     if (!ok) console.error("[promos] actualización manual con errores", resumen);
   });
+  return { success: true };
+}
+
+/**
+ * "Desactivar" en una promo de `/promos`: para una lectura equivocada
+ * (sobre todo de los mails, que se guardan sin vista previa). No se
+ * borra: queda `activa = false`. Las promos son globales, así que se
+ * escribe con el admin client; la sesión solo se exige para que no lo
+ * haga cualquiera. Una automática vuelve a activarse si el banco la
+ * cambia (cambia su hash).
+ */
+export async function desactivarPromo(promoId: string): Promise<ActionResult> {
+  const context = await getCurrentFamilyContext();
+  if (!context) return { error: "Tu sesión venció. Volvé a entrar." };
+  const id = z.string().uuid().safeParse(promoId);
+  if (!id.success) return { error: "Promo inválida." };
+
+  const { error } = await createAdminClient().from("promociones").update({ activa: false }).eq("id", id.data);
+  if (error) {
+    console.error("[desactivarPromo]", error);
+    return { error: "No se pudo desactivar la promo." };
+  }
+  revalidatePath("/promos");
   return { success: true };
 }
