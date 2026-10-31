@@ -66,6 +66,12 @@ export function vencePronto(vigenciaHasta: string | null, hoy: string): boolean 
 const NOMBRES_DIA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 const MAX_FECHAS = 6;
 
+/** "2026-12-31" → "miércoles". */
+export function nombreDia(fecha: string): string {
+  const [y, m, d] = fecha.split("-").map(Number);
+  return NOMBRES_DIA[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+}
+
 /** "2026-12-31" → "31/12". */
 export function diaMes(fecha: string): string {
   const [, m, d] = fecha.split("-");
