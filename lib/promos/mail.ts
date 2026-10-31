@@ -2,7 +2,7 @@ import type { Banco } from "./constants";
 import { htmlATexto } from "./gnb";
 
 /**
- * Lógica pura de la ingesta por mail (Postmark Inbound): de qué banco es
+ * Lógica pura de la ingesta por mail (Apps Script de Gmail): de qué banco es
  * un correo, qué imágenes del HTML vale la pena mandarle a Claude y cómo
  * se arma el texto. Sin red ni base: lo usa `ingesta-mail.ts` y lo
  * prueban los tests.
@@ -41,7 +41,7 @@ export function bancoDeRemitente(remitente: string): Banco | null {
 
 /**
  * La confirmación que manda Gmail al configurar el reenvío. No se procesa:
- * el código se lee en la actividad de Postmark (ver CLAUDE.md).
+ * el script nunca la manda, queda por si se vuelve a un reenvío de Gmail.
  */
 export function esConfirmacionGmail(remitente: string): boolean {
   return emailDe(remitente) === "forwarding-noreply@google.com";

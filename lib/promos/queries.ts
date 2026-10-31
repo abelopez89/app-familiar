@@ -136,7 +136,7 @@ export type MailRecibido = {
   error: string | null;
 };
 
-/** Los últimos correos de promos que llegaron por Postmark y qué se hizo con cada uno. */
+/** Los últimos correos de promos que llegaron por mail y qué se hizo con cada uno. */
 export const ultimosMails = cache(async function ultimosMails(limite = 5): Promise<MailRecibido[]> {
   const supabase = await createClient();
   const { data } = await supabase

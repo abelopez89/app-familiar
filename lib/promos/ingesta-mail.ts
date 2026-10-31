@@ -16,10 +16,10 @@ import { buscarReemplazos, guardarPromoManual } from "./persistencia";
 import { existenteEsMasNueva } from "./versiones";
 
 /**
- * Ingesta de promos por mail (Postmark Inbound). El usuario reenvía desde
- * Gmail, con un filtro por remitente, los newsletters de los bancos a la
- * dirección de Postmark, y Postmark le hace un POST con el correo en JSON
- * a `/api/inbound/promos`.
+ * Ingesta de promos por mail. Un Google Apps Script en la cuenta de Gmail
+ * del usuario (`scripts/gmail-promos.gs`) manda cada newsletter de los
+ * bancos a `/api/inbound/promos`, con el mismo JSON que el webhook de
+ * Postmark Inbound (Postmark se descartó: no acepta cuentas de Gmail).
  *
  * Es la carga manual (Fase 4) sin la vista previa: la promo se lee con
  * Claude (imágenes + letra chica), pasa por el mismo `filtrarPromo` y se
@@ -31,8 +31,9 @@ import { existenteEsMasNueva } from "./versiones";
  * pie de `/promos/cargar`) y avisa por Telegram solo si se guardó algo.
  */
 
-// Lo que manda Postmark (https://postmarkapp.com/developer/webhooks/inbound-webhook);
-// solo los campos que se usan, el resto se ignora.
+// El formato del webhook de Postmark Inbound, que reproduce el Apps Script
+// (https://postmarkapp.com/developer/webhooks/inbound-webhook); solo los
+// campos que se usan, el resto se ignora.
 export const correoPostmarkSchema = z.object({
   From: z.string().default(""),
   Subject: z.string().default(""),
@@ -61,7 +62,7 @@ const TIMEOUT_IMAGEN_MS = 10_000;
 
 /**
  * El Message-ID original (el que puso el banco) identifica el correo;
- * Gmail lo conserva al reenviar. Si falta, el de Postmark.
+ * el script lo manda en `Headers`. Si falta, el id de Gmail.
  */
 export function claveMail(correo: CorreoPostmark): string {
   const original = correo.Headers.find((h) => h.Name.toLowerCase() === "message-id")?.Value;
@@ -72,7 +73,7 @@ export function claveMail(correo: CorreoPostmark): string {
 /**
  * Marca el correo como recibido (en `promo_descartadas`, que es el
  * registro de "ya visto" de las ingestas; la clave `mail:` no choca con
- * las de GNB ni Itaú). Devuelve `false` si ya estaba: Postmark puede
+ * las de GNB ni Itaú). Devuelve `false` si ya estaba: el script puede
  * reintentar, y el mismo newsletter puede reenviarse dos veces.
  */
 export async function registrarMailRecibido(db: Db, clave: string, asunto: string): Promise<boolean> {
