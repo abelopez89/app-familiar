@@ -77,8 +77,8 @@ acá primero):
   usuario). Fase 3 (ingesta de Itaú) en producción y funcionando. Fase 4
   (carga manual: PDF/captura de Sudameris y BASA con vista previa
   editable y versionado, e importación del JSON de GNB) escrita.
-  Ingesta por mail (Postmark Inbound, newsletters reenviados desde
-  Gmail) escrita, pendiente de configurar Postmark y Gmail; ver la
+  Ingesta por mail (newsletters de Gmail enviados por un Google Apps
+  Script) en producción y funcionando; ver la
   sección "Promociones de tarjetas" más abajo (puntos 19–21).
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
@@ -244,7 +244,8 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `app/api/cron/recordatorios/route.ts` (GET, lo llama cron-job.org) y
   `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3) y
   `app/api/cron/promos-itau/route.ts` (GET, cron-job.org, promociones) y
-  `app/api/inbound/promos/route.ts` (POST, lo llama Postmark Inbound).
+  `app/api/inbound/promos/route.ts` (POST, lo llama el Apps Script de
+  Gmail, `scripts/gmail-promos.gs`).
   Desde la Fase 7 la lógica de negocio de esas mutaciones vive en
   `lib/services/` (ver "Fase 7"): la Server Action resuelve familia y
   miembro desde la sesión y delega; el bot hace lo mismo desde
@@ -505,8 +506,8 @@ En tiempo de ejecución deben existir:
   `lib/promos/normalizar.ts` para normalizar cada promo con Claude.
   Ya está cargada en Vercel.
 - `PROMOS_MAIL_SECRET` (promociones, solo server) — contraseña del
-  webhook de Postmark Inbound (`/api/inbound/promos`, Basic auth: la URL
-  en Postmark es `https://promos:<secreto>@<dominio>/api/inbound/promos`).
+  ruta de mails de promos (`/api/inbound/promos`, Basic auth con usuario
+  `promos`). La misma clave va en `SECRETO` del Apps Script de Gmail.
 
 `lib/env.ts` valida su presencia con un mensaje de error claro si falta
 alguna. No agregues variables nuevas sin documentarlas ahí y en el README.
@@ -623,7 +624,7 @@ Tres clientes separados, no los mezcles:
     Calendar directo, sin cookies.
   - `/api/telegram/*` — el webhook, lo llama Telegram.
   - `/api/cron/*` — el cron de recordatorios, lo llama cron-job.org.
-  - `/api/inbound/*` — el webhook de Postmark con los mails de promos
+  - `/api/inbound/*` — los mails de promos que manda el Apps Script de Gmail
     (protegido con Basic auth, `PROMOS_MAIL_SECRET`).
 
 ## Fase 1 — Módulo de compras: decisiones a respetar
@@ -1756,22 +1757,27 @@ avisos de Telegram).
     tipos de las tablas de promos en `lib/supabase/types.ts` declaran
     `Relationships`. El filtro por tarjeta y por día se hace en
     `matching.ts`, no en SQL.
-19. **Ingesta por mail (Postmark Inbound)** (`lib/promos/mail.ts` puro,
+19. **Ingesta por mail** (`lib/promos/mail.ts` puro,
     `lib/promos/ingesta-mail.ts`, `app/api/inbound/promos/route.ts`).
-    Gmail reenvía con un filtro por remitente los newsletters a la
-    dirección de Postmark, y Postmark hace un POST con el correo en JSON.
-    Solo se aceptan los dominios de los bancos (`bancoDeRemitente`:
-    `sudamerismail.com.py`, `bancobasa.com.py`, `novedades.bancognb.com.py`,
-    dominio exacto o subdominio); cualquier otro se ignora con 200 (si no,
-    Postmark reintenta). La confirmación de reenvío de Gmail no se
-    procesa: el código se lee en la actividad de Postmark. La ruta
-    responde enseguida y trabaja en `after()`. Es la carga manual sin
-    vista previa: imágenes (adjuntas, `cid:` o remotas del HTML, sin
-    logos ni íconos, a lo sumo 8) + PDF adjuntos + el texto (asunto,
-    cuerpo, `alt`) van a `normalizarPromo` con `{ mail }`, después
-    `filtrarPromo` y `guardarPromoManual` (origen `manual`, sin archivo).
-    Reemplaza a las promos que propone `buscarReemplazos`, salvo que
-    alguna parezca más nueva: ahí no guarda nada.
+    **Se descartó Postmark**: no acepta registrarse con un Gmail. En su
+    lugar, un Google Apps Script en la cuenta de Gmail del usuario
+    (`scripts/gmail-promos.gs`, activador cada hora) busca los mails de
+    los remitentes de los bancos sin la etiqueta `promos-enviado` (últimos
+    30 días), los manda con el **mismo JSON del webhook de Postmark
+    Inbound** (por eso el esquema se llama `correoPostmarkSchema`) y
+    Basic auth, y etiqueta los que devolvieron 200. `APP_URL` en el
+    script va **sin "/" al final**: una redirección convierte el POST en
+    GET y la ruta responde 405 (pasó). La ruta solo acepta los dominios
+    de los bancos (`bancoDeRemitente`: `sudamerismail.com.py`,
+    `bancobasa.com.py`, `novedades.bancognb.com.py`, dominio exacto o
+    subdominio); cualquier otro se ignora con 200. Responde enseguida y
+    trabaja en `after()`. Es la carga manual sin vista previa: imágenes
+    (adjuntas, `cid:` o remotas del HTML, sin logos ni íconos, a lo sumo
+    8) + PDF adjuntos + el texto (asunto, cuerpo, `alt`) van a
+    `normalizarPromo` con `{ mail }`, después `filtrarPromo` y
+    `guardarPromoManual` (origen `manual`, sin archivo). Reemplaza a las
+    promos que propone `buscarReemplazos`, salvo que alguna parezca más
+    nueva: ahí no guarda nada.
 20. **Idempotencia del mail sin migración**: `registrarMailRecibido`
     inserta `mail:<hash del Message-ID>` en `promo_descartadas` (el
     registro de "ya visto" de las ingestas) antes de procesar; si choca

@@ -6,15 +6,15 @@ import { bancoDeRemitente, esConfirmacionGmail } from "@/lib/promos/mail";
 import { claveMail, correoPostmarkSchema, procesarMail, registrarMailRecibido } from "@/lib/promos/ingesta-mail";
 
 /**
- * Webhook de Postmark Inbound: un newsletter de un banco reenviado desde
- * Gmail (ver `lib/promos/ingesta-mail.ts`). Postmark manda la URL con
- * usuario y contraseña (`https://promos:<PROMOS_MAIL_SECRET>@…`), que
- * llega como `Authorization: Basic`; el usuario no importa.
+ * Un newsletter de un banco, que manda el Apps Script de Gmail
+ * (`scripts/gmail-promos.gs`) con el JSON del webhook de Postmark
+ * Inbound (ver `lib/promos/ingesta-mail.ts`). `Authorization: Basic`
+ * con la clave `PROMOS_MAIL_SECRET`; el usuario no importa.
  *
  * Responde 200 enseguida y trabaja en `after()`: leer las imágenes con
- * Claude tarda más de lo que Postmark espera, y un error que no sea de
- * autenticación tampoco se arregla reintentando. Un remitente que no es
- * de un banco se ignora con 200 (si no, Postmark reintenta).
+ * Claude tarda, y un error que no sea de autenticación no se arregla
+ * reintentando. Un remitente que no es de un banco se ignora con 200
+ * (el script etiqueta lo que devolvió 200 y no lo vuelve a mandar).
  */
 export const maxDuration = 300;
 
@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
   const correo = parsed.data;
 
   if (esConfirmacionGmail(correo.From)) {
-    // El código de confirmación se lee en la actividad de Postmark.
     console.info("[promos-mail] confirmación de reenvío de Gmail:", correo.Subject);
     return NextResponse.json({ procesado: false, motivo: "confirmación de Gmail" });
   }

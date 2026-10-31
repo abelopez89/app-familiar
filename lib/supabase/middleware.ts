@@ -14,7 +14,7 @@ const AUTH_FLOW_PATHS = ["/auth/callback"];
 //   /api/calendar/* — el feed ICS, lo piden Apple Calendar y Google Calendar
 //   /api/telegram/*  — el webhook, lo llama Telegram
 //   /api/cron/*      — el cron de recordatorios, lo llama cron-job.org
-//   /api/inbound/*   — el webhook de Postmark (mails de promos), con su propia clave
+//   /api/inbound/*   — los mails de promos (Apps Script de Gmail), con su propia clave
 const PUBLIC_API_PATHS = ["/api/calendar", "/api/telegram", "/api/cron", "/api/inbound"];
 
 export async function updateSession(request: NextRequest) {
