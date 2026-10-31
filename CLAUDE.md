@@ -612,6 +612,10 @@ Tres clientes separados, no los mezcles:
   - `/promos/todas` — "Todas las promos": todas las vigentes (o las
     desactivadas), por rubro, con filtros por banco, rubro y "solo mis
     tarjetas" en la URL.
+  - `/promos/[id]/editar` — corregir una promo guardada (cualquier
+    origen) con el editor de la carga manual. `/promos/[id]/archivo` —
+    Route Handler GET que redirige a la URL firmada del PDF o la captura
+    original (solo las cargadas a mano guardan archivo).
   - `/config/gastos` — ABM de categorías de gastos (+ "agregar
     sugeridas"), Fase 6.
   - `/gastos` — grupos abiertos (con total y tu balance) y cerrados,
@@ -1836,6 +1840,23 @@ avisos de Telegram).
     en la misma ruta. `escapeTelegramHtml` se movió a
     `lib/telegram/escape.ts` (sin cambios; `client.ts` la reexporta)
     para poder usarla en código puro y tests.
+24. **Editar una promo y bajar su archivo**, a pedido del usuario (Claude
+    puede leer mal un punto). Cada promo de `/promos` y `/promos/todas`
+    tiene **Editar**, **Archivo** (si tiene) y Desactivar/Reactivar
+    (`acciones-promo.tsx`). `/promos/[id]/editar` reusa `EditorPromo` de
+    la carga manual (sin la sección de reemplazos) y guarda con
+    `guardarEdicionPromo`, que valida con Zod y pasa por `filtrarPromo`
+    igual que la carga, y `actualizarPromo` (`persistencia.ts`): pone la
+    promo inactiva, reescribe capas y comercios y le devuelve el estado
+    que tenía; si falla a mitad, queda desactivada (visible y
+    reactivable). **No toca `hash_contenido`**: una automática corregida
+    solo se vuelve a leer si el banco la cambia, y ahí la versión del
+    banco pisa la corrección. El archivo se baja por
+    `/promos/[id]/archivo` (Route Handler, para que sea un `<a>` común
+    que el celular no bloquee): URL firmada de 60 s con el **cliente de
+    sesión**, así las políticas de `storage.objects` solo dejan bajar
+    archivos de la propia familia. Los mails no guardan archivo: sus
+    imágenes se leen y se descartan.
 
 ## Comandos útiles
 

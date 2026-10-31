@@ -6,6 +6,9 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { ingestaEnCurso } from "@/lib/promos/ingesta";
+import { promoNormalizadaSchema } from "@/lib/promos/esquema";
+import { filtrarPromo } from "@/lib/promos/filtrado";
+import { actualizarPromo } from "@/lib/promos/persistencia";
 import { ingestarItau } from "@/lib/promos/ingesta-itau";
 
 export type ActionResult = { error?: string; success?: boolean };
@@ -78,6 +81,34 @@ export async function reactivarPromo(promoId: string): Promise<ActionResult> {
   if (error) {
     console.error("[reactivarPromo]", error);
     return { error: "No se pudo reactivar la promo." };
+  }
+  revalidatePath("/promos");
+  revalidatePath("/promos/todas");
+  return { success: true };
+}
+
+const edicionSchema = z.object({ id: z.string().uuid(), promo: promoNormalizadaSchema });
+
+/**
+ * Guarda una promo corregida a mano (`/promos/[id]/editar`). Lo que llega
+ * del navegador se vuelve a validar y pasa por el mismo `filtrarPromo`
+ * que la ingesta y la carga manual: una corrección no puede dejar una
+ * promo que el módulo no guardaría (otro rubro, sin descuento).
+ */
+export async function guardarEdicionPromo(input: unknown): Promise<ActionResult> {
+  const context = await getCurrentFamilyContext();
+  if (!context) return { error: "Tu sesión venció. Volvé a entrar." };
+  const parsed = edicionSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+
+  const filtrado = filtrarPromo(parsed.data.promo);
+  if (!filtrado.ok) return { error: `No se puede guardar así: ${filtrado.motivo}.` };
+
+  try {
+    await actualizarPromo(createAdminClient(), parsed.data.id, filtrado.promos[0]);
+  } catch (error) {
+    console.error("[guardarEdicionPromo]", error);
+    return { error: "No se pudo guardar. Si la promo quedó desactivada, reactivala desde Todas las promos." };
   }
   revalidatePath("/promos");
   revalidatePath("/promos/todas");
