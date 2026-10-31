@@ -12,7 +12,7 @@ import type { PromoParaMatch } from "./matching";
  */
 
 const SELECT_PROMO = `
-  id, banco, titulo, resumen, rubro, vigencia_desde, vigencia_hasta, canal, activa,
+  id, banco, titulo, resumen, rubro, vigencia_desde, vigencia_hasta, canal, activa, origen, archivo_path,
   promo_comercios ( comercio_nombre, desde, hasta ),
   promo_beneficios (
     nombre, dias_semana, fechas, prioridad,
@@ -27,6 +27,8 @@ export type PromoConCapas = PromoParaMatch & {
   resumen: string | null;
   rubro: string;
   canal: string | null;
+  origen: "api" | "web" | "manual";
+  archivo_path: string | null;
   comercios: Array<{ comercio_nombre: string; desde: string | null; hasta: string | null }>;
   beneficios: Array<PromoParaMatch["beneficios"][number] & { nombre: string }>;
 };
@@ -36,14 +38,31 @@ export type PromoConCapas = PromoParaMatch & {
  * los días se resuelven en `matching.ts`, no en la consulta.
  */
 export const listarPromosActivas = cache(async function listarPromosActivas(desde: string): Promise<PromoConCapas[]> {
+  return listarPromos(desde, true);
+});
+
+/**
+ * Las desactivadas que no vencieron, sin las reemplazadas por una versión
+ * nueva (esas son historial, no algo para reactivar). Para "Todas las
+ * promos".
+ */
+export const listarPromosDesactivadas = cache(async function listarPromosDesactivadas(
+  desde: string,
+): Promise<PromoConCapas[]> {
+  return listarPromos(desde, false);
+});
+
+async function listarPromos(desde: string, activa: boolean): Promise<PromoConCapas[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("promociones")
     .select(SELECT_PROMO)
-    .eq("activa", true)
+    .eq("activa", activa)
     .or(`vigencia_hasta.is.null,vigencia_hasta.gte.${desde}`);
+  if (!activa) query = query.is("reemplazada_por", null);
+  const { data, error } = await query;
   if (error) {
-    console.error("[listarPromosActivas]", error);
+    console.error("[listarPromos]", error);
     return [];
   }
   return (data ?? []).map((p) => ({
@@ -54,6 +73,8 @@ export const listarPromosActivas = cache(async function listarPromosActivas(desd
     resumen: p.resumen,
     rubro: p.rubro,
     canal: p.canal,
+    origen: p.origen,
+    archivo_path: p.archivo_path,
     vigencia_desde: p.vigencia_desde,
     vigencia_hasta: p.vigencia_hasta,
     comercios: p.promo_comercios,
@@ -66,7 +87,7 @@ export const listarPromosActivas = cache(async function listarPromosActivas(desd
       tarjetas: b.promo_beneficio_tarjetas,
     })),
   }));
-});
+}
 
 export const listarTarjetasActivas = cache(async function listarTarjetasActivas() {
   const context = await getCurrentFamilyContext();

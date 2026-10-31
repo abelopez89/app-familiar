@@ -2,9 +2,9 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { desactivarPromo } from "./actions";
+import { desactivarPromo, reactivarPromo } from "./actions";
 
 /** Saca de la vista una promo mal leída (no la borra). */
 export function DesactivarButton({ promoId, titulo }: { promoId: string; titulo: string }) {
@@ -26,6 +26,29 @@ export function DesactivarButton({ promoId, titulo }: { promoId: string; titulo:
     >
       <EyeOff className="size-3.5" />
       {pending ? "Desactivando…" : "Desactivar"}
+    </Button>
+  );
+}
+
+/** Vuelve a mostrar una promo desactivada. */
+export function ReactivarButton({ promoId }: { promoId: string }) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-8 gap-1.5 self-end px-2 text-xs"
+      disabled={pending}
+      onClick={() =>
+        startTransition(async () => {
+          const result = await reactivarPromo(promoId);
+          if (result.error) toast.error(result.error);
+          else toast.success("Promo reactivada.");
+        })
+      }
+    >
+      <Eye className="size-3.5" />
+      {pending ? "Reactivando…" : "Reactivar"}
     </Button>
   );
 }

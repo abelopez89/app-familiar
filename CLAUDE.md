@@ -604,6 +604,9 @@ Tres clientes separados, no los mezcles:
   - `/promos/cargar` — "Cargar promo": PDF o captura de Sudameris/BASA
     (vista previa editable antes de guardar) e importación del JSON de
     GNB pegado a mano.
+  - `/promos/todas` — "Todas las promos": todas las vigentes (o las
+    desactivadas), por rubro, con filtros por banco, rubro y "solo mis
+    tarjetas" en la URL.
   - `/config/gastos` — ABM de categorías de gastos (+ "agregar
     sugeridas"), Fase 6.
   - `/gastos` — grupos abiertos (con total y tu balance) y cerrados,
@@ -1792,6 +1795,18 @@ avisos de Telegram).
 21. **"Desactivar" en cada promo de `/promos`** (`desactivarPromo`): para
     lo que se leyó mal, sobre todo de los mails. Deja `activa = false`
     (no borra) para todos, porque las promos son globales.
+22. **"Todas las promos" (`/promos/todas`)**, a pedido del usuario: la
+    lista completa de promos vigentes, no solo las de hoy. Cada promo
+    muestra todas sus capas con los días (`describirDias`: días de la
+    semana, fechas explícitas o "todos los días"), los descuentos y
+    topes, a qué tarjetas de la familia les sirve algún día
+    (`tarjetasQueAplican` en `matching.ts`, sin mirar la fecha) o "No
+    aplica a tus tarjetas", y el origen (`describirOrigen`: web del
+    banco, importación, carga manual o mail — un mail es una manual sin
+    `archivo_path`). Filtros como parámetros de la URL (`banco`, `rubro`,
+    `mias`, `estado=desactivadas`), con links y sin JS de cliente. Las
+    desactivadas excluyen las reemplazadas por una versión nueva (son
+    historial) y se pueden reactivar (`reactivarPromo`). Sin migración.
 
 ## Comandos útiles
 
