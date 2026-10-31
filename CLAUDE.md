@@ -74,8 +74,9 @@ acá primero):
   Claude) en producción, pero **GNB rechaza los pedidos desde servidores
   (403) aunque su API anda en un navegador**: no hay ingesta automática
   de GNB, se va a importar el JSON a mano en la Fase 4 (decisión del
-  usuario). Fase 3 (ingesta de Itaú) escrita, después de que la prueba
-  de conexión confirmara que Itaú sí responde desde Vercel; ver la
+  usuario). Fase 3 (ingesta de Itaú) en producción y funcionando. Fase 4
+  (carga manual: PDF/captura de Sudameris y BASA con vista previa
+  editable y versionado, e importación del JSON de GNB) escrita; ver la
   sección "Promociones de tarjetas" más abajo.
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
@@ -593,6 +594,9 @@ Tres clientes separados, no los mezcles:
     tarjeta de la familia, por rubro, con la línea de estado de la
     ingesta por banco (módulo de promociones). En el lanzador del
     inicio, no en el tab bar.
+  - `/promos/cargar` — "Cargar promo": PDF o captura de Sudameris/BASA
+    (vista previa editable antes de guardar) e importación del JSON de
+    GNB pegado a mano.
   - `/config/gastos` — ABM de categorías de gastos (+ "agregar
     sugeridas"), Fase 6.
   - `/gastos` — grupos abiertos (con total y tu balance) y cerrados,
@@ -1700,7 +1704,46 @@ avisos de Telegram).
     detalle trae un bloque `<style>`: `htmlATexto` decodifica las
     primeras y descarta el segundo. User-Agent identificable y
     concurrencia 2.
-14. **Lectura de promos con el cliente de sesión** (`lib/promos/queries.ts`):
+14. **Carga manual (Fase 4, `/promos/cargar`)**. Sudameris y BASA por
+    PDF o captura: el navegador sube el archivo directo a Storage con la
+    sesión de la persona (`uploadDocumentFileFromBrowser`, comprimido con
+    `compressDocumentImage` si es foto), al **mismo bucket `documentos`**
+    con ruta `{family_id}/promos/{uuid}.ext` (el primer segmento es la
+    familia, así valen las políticas de `storage.objects` de la 010 sin
+    tocarlas). `leerPromoManual` lo baja con el cliente de sesión y lo
+    manda a Claude como bloque `document`/`image` (`normalizarPromo`
+    acepta `texto` o `archivo`), filtra y busca a qué promo ya cargada
+    reemplazaría. La persona revisa y corrige todo en una vista previa
+    editable (`editor-promo.tsx`) y `guardarPromosManuales` **vuelve a
+    validar con Zod y a filtrar** lo que llega del navegador antes de
+    escribir con el admin client. Las Server Actions de esa pantalla
+    corren con `maxDuration = 300` (leer un PDF tarda).
+15. **Versionado de las manuales** (`lib/promos/versiones.ts`,
+    `buscarReemplazos`/`guardarPromoManual` en `persistencia.ts`): una
+    carga nueva del mismo banco con el mismo título o algún comercio en
+    común reemplaza a la vieja, que queda `activa = false` con
+    `reemplazada_por` apuntando a la nueva (no se borra). La vista previa
+    lo propone marcado, salvo que la existente parezca más nueva
+    (`existenteEsMasNueva`: primero vigencia, después fecha o número de
+    `version_doc`); en ese caso avisa y lo deja desmarcado. `version_doc`
+    sale de la extracción (campo nuevo del esquema, sin uniones).
+16. **GNB por JSON pegado, en tandas** (`lib/promos/importar-gnb.ts`,
+    `importar-gnb.tsx`). El bucket `documentos` solo admite imágenes y
+    PDF (`allowed_mime_types` del proyecto compartido, no se tocó), así
+    que el JSON no pasa por Storage: el navegador lo parsea
+    (`beneficiosDeJsonGnb`), elimina duplicados y lo manda en tandas de
+    `TAMANO_TANDA_GNB` (8) a `importarTandaGnb`, mostrando el avance.
+    Cada tanda es una corrida de `correrIngesta` con
+    `desactivarFaltantes: false` (una tanda no es la lista completa) y el
+    mismo prefiltro, hash y normalización. Si se corta, se vuelve a
+    importar: lo ya procesado tiene hash y no se repite.
+17. **Tests de extracción contra los PDF reales**
+    (`tests/promos/extraccion.test.ts`): llaman a Claude, así que corren
+    solo con `ANTHROPIC_API_KEY` en el entorno (si no, se saltean).
+    Comparan comportamiento (qué capa le toca a qué tarjeta en fechas
+    clave), no texto literal. `vitest.config.ts` reemplaza `server-only`
+    por un módulo vacío para poder importar código de servidor.
+18. **Lectura de promos con el cliente de sesión** (`lib/promos/queries.ts`):
     una sola consulta con embeds (`promo_beneficios(...)`), por eso los
     tipos de las tablas de promos en `lib/supabase/types.ts` declaran
     `Relationships`. El filtro por tarjeta y por día se hace en

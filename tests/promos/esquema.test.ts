@@ -27,6 +27,7 @@ describe("esquema de salida para Claude", () => {
           resumen: "15% de reintegro los domingos",
           rubro: "supermercado",
           canal: "",
+          version_doc: "",
           acumulable: "no_dice",
           vigencia_desde: "2026-01-04",
           vigencia_hasta: "",

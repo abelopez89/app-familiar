@@ -49,6 +49,7 @@ const base: PromoNormalizada = {
   resumen: "20% de reintegro el primer viernes",
   rubro: "supermercado",
   canal: "POS Bancard",
+  version_doc: null,
   acumulable: null,
   vigencia_desde: "2026-07-01",
   vigencia_hasta: "2026-12-31",

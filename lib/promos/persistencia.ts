@@ -4,6 +4,7 @@ import type { Db } from "@/lib/services/types";
 import type { Json } from "@/lib/supabase/types";
 import type { Banco } from "./constants";
 import type { PromoFiltrada } from "./filtrado";
+import { normalizarTexto } from "./normalize";
 
 /**
  * Escritura de promos con el admin client (las tablas de promos no tienen
@@ -123,4 +124,89 @@ export async function registrarDescartada(db: Db, clave: string, hash: string, m
   if (error) throw error;
   // Una promo que antes servía y ahora no (el banco la cambió) deja de verse.
   await db.from("promociones").update({ activa: false }).eq("clave_externa", clave);
+}
+
+// ============ Cargas manuales (Sudameris, BASA) ============
+
+export type PromoExistente = {
+  id: string;
+  titulo: string;
+  version_doc: string | null;
+  vigencia_hasta: string | null;
+  comercios: string[];
+};
+
+/**
+ * Promos manuales activas del banco que la nueva reemplazaría: mismo
+ * título o algún comercio en común (normalizados). La persona confirma en
+ * la vista previa; esto solo propone.
+ */
+export async function buscarReemplazos(db: Db, banco: Banco, promo: PromoFiltrada): Promise<PromoExistente[]> {
+  const { data } = await db
+    .from("promociones")
+    .select("id, titulo, version_doc, vigencia_hasta, promo_comercios ( comercio_nombre )")
+    .eq("banco", banco)
+    .eq("origen", "manual")
+    .eq("activa", true);
+
+  const titulo = normalizarTexto(promo.titulo);
+  const comercios = new Set(promo.comercios.map((c) => normalizarTexto(c.nombre)));
+  return (data ?? [])
+    .map((p) => ({
+      id: p.id,
+      titulo: p.titulo,
+      version_doc: p.version_doc,
+      vigencia_hasta: p.vigencia_hasta,
+      comercios: p.promo_comercios.map((c) => c.comercio_nombre),
+    }))
+    .filter(
+      (p) => normalizarTexto(p.titulo) === titulo || p.comercios.some((c) => comercios.has(normalizarTexto(c))),
+    );
+}
+
+/**
+ * Guarda una promo cargada a mano y deja inactivas las que reemplaza (no
+ * se borran: quedan con `reemplazada_por` apuntando a la nueva). Mismo
+ * orden seguro que las automáticas: inactiva hasta tener sus capas.
+ */
+export async function guardarPromoManual(
+  db: Db,
+  input: { banco: Banco; archivoPath: string | null; promo: PromoFiltrada; reemplaza: string[] },
+): Promise<string> {
+  const { data, error } = await db
+    .from("promociones")
+    .insert({
+      banco: input.banco,
+      origen: "manual",
+      clave_externa: null,
+      titulo: input.promo.titulo,
+      resumen: input.promo.resumen,
+      rubro: input.promo.rubro,
+      archivo_path: input.archivoPath,
+      version_doc: input.promo.version_doc,
+      vigencia_desde: input.promo.vigencia_desde,
+      vigencia_hasta: input.promo.vigencia_hasta,
+      canal: input.promo.canal,
+      acumulable: input.promo.acumulable,
+      activa: false,
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw error ?? new Error("no se pudo guardar la promo");
+
+  await reemplazarCapas(db, data.id, input.promo);
+
+  const { error: activarError } = await db.from("promociones").update({ activa: true }).eq("id", data.id);
+  if (activarError) throw activarError;
+
+  if (input.reemplaza.length > 0) {
+    const { error: viejasError } = await db
+      .from("promociones")
+      .update({ activa: false, reemplazada_por: data.id })
+      .in("id", input.reemplaza)
+      .eq("banco", input.banco)
+      .eq("origen", "manual");
+    if (viejasError) throw viejasError;
+  }
+  return data.id;
 }
