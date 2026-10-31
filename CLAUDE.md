@@ -78,7 +78,8 @@ acá primero):
   de GNB, se va a importar el JSON a mano en la Fase 4 (decisión del
   usuario). Fase 3 (ingesta de Itaú) en producción y funcionando. Fase 4
   (carga manual: PDF/captura de Sudameris y BASA con vista previa
-  editable y versionado, e importación del JSON de GNB) escrita.
+  editable y versionado, e importación del JSON de GNB) verificada en
+  producción por el usuario.
   Ingesta por mail (newsletters de Gmail enviados por un Google Apps
   Script) en producción y funcionando. Fase 5 (avisos por Telegram)
   en producción y funcionando (job horario creado en cron-job.org).
