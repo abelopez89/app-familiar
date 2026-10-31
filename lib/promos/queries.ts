@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Db } from "@/lib/services/types";
+import type { PromoNormalizada } from "./esquema";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { INGESTA_EN_CURSO_MS, type Banco } from "./constants";
 import type { PromoParaMatch } from "./matching";
@@ -187,3 +188,67 @@ export const ultimosMails = cache(async function ultimosMails(limite = 5): Promi
     };
   });
 });
+
+export type PromoParaEditar = {
+  id: string;
+  banco: string;
+  activa: boolean;
+  archivo_path: string | null;
+  promo: PromoNormalizada;
+};
+
+/**
+ * Una promo con todas sus columnas en la forma interna
+ * (`PromoNormalizada`), para abrirla en el mismo editor de la carga
+ * manual.
+ */
+export async function obtenerPromoParaEditar(id: string): Promise<PromoParaEditar | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("promociones")
+    .select(
+      `id, banco, activa, archivo_path, titulo, resumen, rubro, canal, version_doc, acumulable, vigencia_desde, vigencia_hasta,
+       promo_comercios ( comercio_nombre, desde, hasta ),
+       promo_beneficios (
+         nombre, dias_semana, fechas, prioridad,
+         promo_beneficio_componentes ( tipo, porcentaje, monto, cuotas, es_hasta, alcance, tope_monto, tope_periodo, tope_alcance ),
+         promo_beneficio_tarjetas ( regla, marca, nivel, afinidad, tipo )
+       )`,
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    id: data.id,
+    banco: data.banco,
+    activa: data.activa,
+    archivo_path: data.archivo_path,
+    promo: {
+      titulo: data.titulo,
+      resumen: data.resumen ?? "",
+      rubro: data.rubro as PromoNormalizada["rubro"],
+      canal: data.canal,
+      version_doc: data.version_doc,
+      acumulable: data.acumulable,
+      vigencia_desde: data.vigencia_desde,
+      vigencia_hasta: data.vigencia_hasta,
+      comercios: data.promo_comercios.map((c) => ({ nombre: c.comercio_nombre, desde: c.desde, hasta: c.hasta })),
+      beneficios: [...data.promo_beneficios]
+        .sort((a, b) => a.prioridad - b.prioridad)
+        .map((b) => ({
+          nombre: b.nombre,
+          dias_semana: b.dias_semana,
+          fechas: b.fechas,
+          prioridad: b.prioridad,
+          componentes: b.promo_beneficio_componentes,
+          tarjetas: b.promo_beneficio_tarjetas.map((t) => ({
+            regla: t.regla,
+            marca: t.marca,
+            nivel: t.nivel,
+            afinidad: t.afinidad,
+            tipo: t.tipo as PromoNormalizada["beneficios"][number]["tarjetas"][number]["tipo"],
+          })),
+        })),
+    },
+  };
+}

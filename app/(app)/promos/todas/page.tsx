@@ -20,7 +20,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { DesactivarButton, ReactivarButton } from "../desactivar-button";
+import { AccionesPromo } from "../acciones-promo";
 
 type Filtros = { banco?: string; rubro?: string; mias?: string; estado?: string };
 
@@ -240,11 +240,7 @@ function PromoCard({
           <span>origen: {describirOrigen(promo)}</span>
         </div>
 
-        {promo.activa ? (
-          <DesactivarButton promoId={promo.id} titulo={promo.titulo} />
-        ) : (
-          <ReactivarButton promoId={promo.id} />
-        )}
+        <AccionesPromo promo={promo} />
       </CardContent>
     </Card>
   );

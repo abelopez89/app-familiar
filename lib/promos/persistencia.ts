@@ -210,3 +210,41 @@ export async function guardarPromoManual(
   }
   return data.id;
 }
+
+// ============ Edición a mano (/promos/[id]/editar) ============
+
+/**
+ * Guarda una promo corregida a mano, de cualquier origen. Mismo orden
+ * seguro que el alta: queda inactiva mientras se reescriben las capas y
+ * al final vuelve al estado que tenía; si algo falla a mitad de camino,
+ * queda desactivada (se ve y se reactiva desde "Todas las promos") en vez
+ * de a la vista con capas a medias. No toca `hash_contenido`: una promo
+ * automática corregida solo se vuelve a leer si el banco la cambia.
+ */
+export async function actualizarPromo(db: Db, id: string, promo: PromoFiltrada): Promise<void> {
+  const { data: actual, error: leerError } = await db.from("promociones").select("activa").eq("id", id).single();
+  if (leerError || !actual) throw leerError ?? new Error("la promo no existe");
+
+  const { error } = await db
+    .from("promociones")
+    .update({
+      titulo: promo.titulo,
+      resumen: promo.resumen,
+      rubro: promo.rubro,
+      version_doc: promo.version_doc,
+      vigencia_desde: promo.vigencia_desde,
+      vigencia_hasta: promo.vigencia_hasta,
+      canal: promo.canal,
+      acumulable: promo.acumulable,
+      activa: false,
+    })
+    .eq("id", id);
+  if (error) throw error;
+
+  await reemplazarCapas(db, id, promo);
+
+  if (actual.activa) {
+    const { error: activarError } = await db.from("promociones").update({ activa: true }).eq("id", id);
+    if (activarError) throw activarError;
+  }
+}
