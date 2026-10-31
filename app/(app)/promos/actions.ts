@@ -59,5 +59,27 @@ export async function desactivarPromo(promoId: string): Promise<ActionResult> {
     return { error: "No se pudo desactivar la promo." };
   }
   revalidatePath("/promos");
+  revalidatePath("/promos/todas");
+  return { success: true };
+}
+
+/** Vuelve a mostrar una promo desactivada (desde "Todas las promos"). */
+export async function reactivarPromo(promoId: string): Promise<ActionResult> {
+  const context = await getCurrentFamilyContext();
+  if (!context) return { error: "Tu sesión venció. Volvé a entrar." };
+  const id = z.string().uuid().safeParse(promoId);
+  if (!id.success) return { error: "Promo inválida." };
+
+  const { error } = await createAdminClient()
+    .from("promociones")
+    .update({ activa: true })
+    .eq("id", id.data)
+    .is("reemplazada_por", null);
+  if (error) {
+    console.error("[reactivarPromo]", error);
+    return { error: "No se pudo reactivar la promo." };
+  }
+  revalidatePath("/promos");
+  revalidatePath("/promos/todas");
   return { success: true };
 }

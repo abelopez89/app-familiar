@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BadgePercent, CreditCard, FileUp } from "lucide-react";
+import { BadgePercent, CreditCard, FileUp, List } from "lucide-react";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { listActiveMembers } from "@/lib/members";
 import { dateOnlyToFamilyMidnightUtc, formatDate, formatDateTime, todayInFamilyTimezone } from "@/lib/dates";
 import { BANCOS, RUBROS, type Rubro } from "@/lib/promos/constants";
 import { comerciosVigentes, porcentajeTotal, promosQueAplican } from "@/lib/promos/matching";
-import { describirComponente, describirTopes, vencePronto } from "@/lib/promos/formato";
+import { describirComponente, describirTopes, diaMes, vencePronto } from "@/lib/promos/formato";
 import { esBanco, nombreTarjeta } from "@/lib/promos/normalize";
 import { estadoIngestas, listarPromosActivas, listarTarjetasActivas } from "@/lib/promos/queries";
 import { MODULES_BY_KEY } from "@/components/app-shell/modules";
@@ -21,12 +21,6 @@ import { DesactivarButton } from "./desactivar-button";
 // Alcanza para la ingesta que corre en `after()` desde "Actualizar ahora"
 // (misma duración que la ruta del cron).
 export const maxDuration = 300;
-
-/** "2026-12-31" → "31/12", sin pasar por la zona del servidor. */
-function diaMes(fecha: string): string {
-  const [, m, d] = fecha.split("-");
-  return `${d}/${m}`;
-}
 
 // Itaú se actualiza solo (o con "Actualizar ahora"); GNB, importando a
 // mano el JSON en "Cargar promo" (rechaza los pedidos desde servidores).
@@ -73,12 +67,20 @@ export default async function PromosPage() {
         iconFg={modulo.fg}
         iconBg={modulo.bg}
         actions={
-          <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link href="/config/tarjetas">
-              <CreditCard className="size-4" />
-              Tarjetas
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link href="/promos/todas">
+                <List className="size-4" />
+                Todas
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link href="/config/tarjetas">
+                <CreditCard className="size-4" />
+                Tarjetas
+              </Link>
+            </Button>
+          </div>
         }
       />
 

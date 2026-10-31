@@ -172,3 +172,12 @@ export function comerciosVigentes<C extends { comercio_nombre: string; desde: st
 ): C[] {
   return comercios.filter((c) => (!c.desde || fecha >= c.desde) && (!c.hasta || fecha <= c.hasta));
 }
+
+/**
+ * Las tarjetas de la familia a las que les sirve la promo algún día de su
+ * vigencia (alguna capa las incluye), sin mirar la fecha. Es el "a quién
+ * le sirve" de la lista de todas las promos.
+ */
+export function tarjetasQueAplican<T extends TarjetaParaMatch>(promo: PromoParaMatch, tarjetas: T[]): T[] {
+  return tarjetas.filter((t) => promo.beneficios.some((b) => tarjetaAplica(promo.banco, b.tarjetas, t)));
+}

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { tarjetasQueAplican } from "@/lib/promos/matching";
+import { describirDias, describirOrigen } from "@/lib/promos/formato";
 import {
   beneficioDelDia,
   comerciosVigentes,
@@ -175,5 +177,53 @@ describe("promos de un día para las tarjetas de la familia", () => {
   it("con una Visa de crédito de Sudameris, el primer viernes aparece Cadena Real", () => {
     const matches = promosQueAplican(promos, [...tarjetas, sudamerisVisaCredito], PRIMER_VIERNES);
     expect(matches.map((m) => m.promo)).toEqual([sudamerisCadenaReal]);
+  });
+});
+
+describe("tarjetasQueAplican y formato de la lista", () => {
+  it("devuelve las tarjetas a las que alguna capa les sirve, sin mirar el día", () => {
+    const promo = {
+      banco: "basa",
+      activa: true,
+      vigencia_desde: null,
+      vigencia_hasta: null,
+      beneficios: [
+        {
+          nombre: "Especial",
+          dias_semana: [4],
+          fechas: null,
+          prioridad: 1,
+          componentes: [],
+          tarjetas: [{ regla: "incluye" as const, marca: null, nivel: null, afinidad: "farmacenter", tipo: null }],
+        },
+      ],
+    };
+    const tarjetas = [
+      { id: "a", banco: "basa", marca: "visa", nivel: "clasica", afinidad: "farmacenter", tipo: "credito" },
+      { id: "b", banco: "basa", marca: "visa", nivel: "oro", afinidad: null, tipo: "credito" },
+      { id: "c", banco: "itau", marca: "visa", nivel: "clasica", afinidad: "farmacenter", tipo: "credito" },
+    ];
+    expect(tarjetasQueAplican(promo, tarjetas).map((t) => t.id)).toEqual(["a"]);
+  });
+
+  it("describe los días de una capa", () => {
+    expect(describirDias({ dias_semana: [4, 1], fechas: null })).toBe("lunes y jueves");
+    expect(describirDias({ dias_semana: [0, 6, 5], fechas: [] })).toBe("viernes, sábado y domingo");
+    expect(describirDias({ dias_semana: [0, 1, 2, 3, 4, 5, 6], fechas: null })).toBe("todos los días");
+    expect(describirDias({ dias_semana: null, fechas: null })).toBe("todos los días");
+    expect(describirDias({ dias_semana: [], fechas: ["2026-08-07", "2026-07-03"] })).toBe("03/07 y 07/08");
+    expect(
+      describirDias({
+        dias_semana: [],
+        fechas: ["2026-01-05", "2026-02-02", "2026-03-02", "2026-04-06", "2026-05-04", "2026-06-01", "2026-07-06", "2026-08-03"],
+      }),
+    ).toBe("05/01, 02/02, 02/03, 06/04, 04/05, 01/06 y 2 fechas más");
+  });
+
+  it("describe el origen", () => {
+    expect(describirOrigen({ origen: "web", archivo_path: null })).toBe("web del banco");
+    expect(describirOrigen({ origen: "api", archivo_path: null })).toBe("importación");
+    expect(describirOrigen({ origen: "manual", archivo_path: "f/promos/x.pdf" })).toBe("carga manual");
+    expect(describirOrigen({ origen: "manual", archivo_path: null })).toBe("mail");
   });
 });
