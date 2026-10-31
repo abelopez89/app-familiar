@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import type { Db } from "@/lib/services/types";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { INGESTA_EN_CURSO_MS, type Banco } from "./constants";
 import type { PromoParaMatch } from "./matching";
@@ -53,7 +54,15 @@ export const listarPromosDesactivadas = cache(async function listarPromosDesacti
 });
 
 async function listarPromos(desde: string, activa: boolean): Promise<PromoConCapas[]> {
-  const supabase = await createClient();
+  return leerPromos(await createClient(), desde, activa);
+}
+
+/**
+ * La consulta de promos con el cliente que se le pase: el de sesión para
+ * las pantallas, el admin para los avisos del cron (las promos son
+ * globales, no hay `family_id` que filtrar).
+ */
+export async function leerPromos(supabase: Db, desde: string, activa: boolean): Promise<PromoConCapas[]> {
   let query = supabase
     .from("promociones")
     .select(SELECT_PROMO)

@@ -11,9 +11,7 @@ import { getTelegramBotToken } from "@/lib/env";
 export type InlineKeyboardButton = { text: string; callback_data: string };
 export type InlineKeyboardMarkup = { inline_keyboard: InlineKeyboardButton[][] };
 
-export function escapeTelegramHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+export { escapeTelegramHtml } from "./escape";
 
 type ApiResult<T> = { ok: true; result: T } | { ok: false; description?: string; error_code?: number };
 

@@ -56,3 +56,22 @@ export type Rubro = keyof typeof RUBROS;
  * vieja, se murió a mitad de camino y no bloquea una corrida nueva.
  */
 export const INGESTA_EN_CURSO_MS = 6 * 60_000;
+
+/**
+ * Avisos de promos por Telegram (Fase 5), prendidos o apagados en el
+ * código, igual que `FEATURES`: se tocan pocas veces y no justifican una
+ * pantalla ni una columna. El semanal arranca apagado (es opcional).
+ */
+export const PROMOS_AVISOS = {
+  /** Resumen de las promos de hoy, desde las 07:00. */
+  diario: true,
+  /** Promos con fecha puntual que valen mañana, desde las 20:00. */
+  vispera: true,
+  /** Promos cargadas a mano (PDF o mail) que vencen en 7 días o menos. */
+  vencimiento: true,
+  /** Los lunes, las promos de los próximos 7 días. */
+  semanal: false,
+} as const;
+
+export const HORA_AVISO_DIARIO = 7;
+export const HORA_AVISO_VISPERA = 20;

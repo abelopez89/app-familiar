@@ -57,7 +57,9 @@ acá primero):
   con `Authorization: Bearer <CRON_SECRET>`. `GET /api/cron/promos-itau`
   (diario, 05:15) va a ir ahí también, no en Vercel Cron (confirmado por
   el usuario), pero **todavía no está creado**: por ahora la ingesta se
-  dispara con "Actualizar ahora" en `/promos`.
+  dispara con "Actualizar ahora" en `/promos`. `GET /api/cron/promos-avisos`
+  (cada hora, mismo `CRON_SECRET`) manda los avisos de promos por
+  Telegram (Fase 5); hay que crearlo en cron-job.org.
 - **Telegram**: webhook apuntando a `/api/telegram/webhook` con
   `secret_token` = `TELEGRAM_WEBHOOK_SECRET` (sin `allowed_updates`, así
   llegan los toques de botón), y menú registrado con `setMyCommands`:
@@ -78,8 +80,9 @@ acá primero):
   (carga manual: PDF/captura de Sudameris y BASA con vista previa
   editable y versionado, e importación del JSON de GNB) escrita.
   Ingesta por mail (newsletters de Gmail enviados por un Google Apps
-  Script) en producción y funcionando; ver la
-  sección "Promociones de tarjetas" más abajo (puntos 19–21).
+  Script) en producción y funcionando. Fase 5 (avisos por Telegram)
+  escrita, pendiente de crear el job horario en cron-job.org; ver la
+  sección "Promociones de tarjetas" más abajo (puntos 19–23).
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
   producción** (Vercel + Supabase), incluyendo registro, login con
@@ -243,7 +246,9 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `app/api/telegram/webhook/route.ts` (POST, lo llama Telegram),
   `app/api/cron/recordatorios/route.ts` (GET, lo llama cron-job.org) y
   `app/api/cron/tareas/route.ts` (GET, lo llama cron-job.org, Fase 3) y
-  `app/api/cron/promos-itau/route.ts` (GET, cron-job.org, promociones) y
+  `app/api/cron/promos-itau/route.ts` (GET, cron-job.org, promociones),
+  `app/api/cron/promos-avisos/route.ts` (GET, cron-job.org cada hora,
+  avisos de promos) y
   `app/api/inbound/promos/route.ts` (POST, lo llama el Apps Script de
   Gmail, `scripts/gmail-promos.gs`).
   Desde la Fase 7 la lógica de negocio de esas mutaciones vive en
@@ -1807,6 +1812,30 @@ avisos de Telegram).
     `mias`, `estado=desactivadas`), con links y sin JS de cliente. Las
     desactivadas excluyen las reemplazadas por una versión nueva (son
     historial) y se pueden reactivar (`reactivarPromo`). Sin migración.
+23. **Avisos por Telegram (Fase 5)**: `/api/cron/promos-avisos`, llamado
+    **cada hora** por cron-job.org; la ruta decide qué toca según la hora
+    de Asunción (`hourInFamilyTimezone`). Textos en `lib/promos/avisos.ts`
+    (puro, con tests) y envío en `lib/promos/avisos-envio.ts`. Cuatro
+    avisos, prendidos o apagados con `PROMOS_AVISOS` en
+    `lib/promos/constants.ts` (constante en código, mismo criterio que
+    `FEATURES`): **diario** desde las 07:00 (las promos de hoy para las
+    tarjetas de la familia, por rubro, con la mejor tarjeta y su dueño:
+    el mismo `promosQueAplican` de `/promos`); **víspera** desde las 20:00
+    (solo las que mañana valen por una **fecha puntual**, no las de todas
+    las semanas, que ya salen en el diario); **vencimiento** desde las
+    07:00 (promos `manual` —PDF, captura o mail— que le sirven a la
+    familia y vencen en 7 días o menos, una sola vez por promo y por
+    miembro: Itaú se actualiza solo); y **semanal** los lunes, apagado
+    por defecto (es opcional). Cada familia recibe lo calculado con sus
+    tarjetas, a todos sus miembros con Telegram vinculado; sin nada que
+    decir no se manda nada. **Idempotencia sin migración**, igual que los
+    mails: antes de mandar se reclama `aviso:<tipo>:<memberId>:<fecha>`
+    (o `aviso:vence:<memberId>:<promoId>`) en `promo_descartadas`; si
+    choca, ya se mandó; si Telegram falla, se borra la clave y reintenta
+    la hora siguiente. Las claves `aviso:` de más de 45 días se limpian
+    en la misma ruta. `escapeTelegramHtml` se movió a
+    `lib/telegram/escape.ts` (sin cambios; `client.ts` la reexporta)
+    para poder usarla en código puro y tests.
 
 ## Comandos útiles
 
