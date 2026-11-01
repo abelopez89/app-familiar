@@ -55,9 +55,9 @@ acá primero):
 - **cron-job.org**: `GET /api/cron/recordatorios` (cada hora) y
   `GET /api/cron/tareas` (diario, 07:00 `America/Asuncion`), los dos
   con `Authorization: Bearer <CRON_SECRET>`. `GET /api/cron/promos-itau`
-  (diario, 05:15) va a ir ahí también, no en Vercel Cron (confirmado por
-  el usuario), pero **todavía no está creado**: por ahora la ingesta se
-  dispara con "Actualizar ahora" en `/promos`. `GET /api/cron/promos-avisos`
+  (diario, 05:15) también está ahí, no en Vercel Cron (confirmado por el
+  usuario): ya creado y funcionando; "Actualizar Itaú" en `/promos` sigue
+  sirviendo para forzar una corrida. `GET /api/cron/promos-avisos`
   (cada hora, mismo `CRON_SECRET`) manda los avisos de promos por
   Telegram (Fase 5): ya creado en cron-job.org y funcionando.
 - **Telegram**: webhook apuntando a `/api/telegram/webhook` con
@@ -69,8 +69,9 @@ acá primero):
 
 ## Estado del proyecto
 
-- **Módulo de promociones de tarjetas: en curso, por fases, a pedido
-  del usuario** (excepción explícita al modo mantenimiento). Fase 1
+- **Módulo de promociones de tarjetas: fases 1 a 5 terminadas y en
+  producción, a pedido del usuario** (excepción explícita al modo
+  mantenimiento; de acá en adelante, mejoras mínimas como el resto). Fase 1
   (schema, "Mis tarjetas" y matching con tests) verificada por el
   usuario. Fase 2 ("Promos de hoy" en `/promos`, normalización con
   Claude) en producción, pero **GNB rechaza los pedidos desde servidores
