@@ -41,7 +41,9 @@ export function describirTopes(componentes: ComponenteBeneficio[]): string[] {
   const vistos = new Set<string>();
   for (const c of componentes) {
     if (!c.tope_monto) continue;
-    const texto = `tope ${formatGuaranies(c.tope_monto)}${c.tope_periodo ? PERIODO[c.tope_periodo] : ""}`;
+    const nombre =
+      c.tope_tipo === "compra" ? "tope de compra" : c.tope_tipo === "descuento" ? (c.tipo === "reintegro" ? "tope de reintegro" : "tope de descuento") : "tope";
+    const texto = `${nombre} ${formatGuaranies(c.tope_monto)}${c.tope_periodo ? PERIODO[c.tope_periodo] : ""}`;
     vistos.add(c.tope_alcance ? `${texto} (${c.tope_alcance})` : texto);
   }
   return [...vistos];

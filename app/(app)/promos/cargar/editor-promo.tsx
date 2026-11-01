@@ -157,6 +157,25 @@ function Componente({
               </SelectContent>
             </Select>
           </Campo>
+          {componente.tope_monto != null && (
+            <Campo label="El tope limita" className="col-span-2">
+              <Select
+                value={componente.tope_tipo ?? NINGUNO}
+                onValueChange={(v) =>
+                  set({ tope_tipo: v === NINGUNO ? null : (v as NonNullable<ComponenteNormalizado["tope_tipo"]>) })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NINGUNO}>Sin definir</SelectItem>
+                  <SelectItem value="compra">El monto de compra</SelectItem>
+                  <SelectItem value="descuento">El descuento o reintegro</SelectItem>
+                </SelectContent>
+              </Select>
+            </Campo>
+          )}
         </div>
       )}
     </div>

@@ -1231,6 +1231,7 @@ export type Database = {
           tope_monto: number | null;
           tope_periodo: "dia" | "mes" | "promo" | null;
           tope_alcance: string | null;
+          tope_tipo: "compra" | "descuento" | null;
         };
         Insert: {
           id?: string;
@@ -1244,6 +1245,7 @@ export type Database = {
           tope_monto?: number | null;
           tope_periodo?: "dia" | "mes" | "promo" | null;
           tope_alcance?: string | null;
+          tope_tipo?: "compra" | "descuento" | null;
         };
         Update: {
           id?: string;
@@ -1257,6 +1259,7 @@ export type Database = {
           tope_monto?: number | null;
           tope_periodo?: "dia" | "mes" | "promo" | null;
           tope_alcance?: string | null;
+          tope_tipo?: "compra" | "descuento" | null;
         };
         Relationships: [
           {
@@ -1351,6 +1354,62 @@ export type Database = {
           terminada_en?: string | null;
           ok?: boolean;
           detalle?: Json | null;
+        };
+        Relationships: [];
+      };
+      promo_usos: {
+        Row: {
+          id: string;
+          family_id: string;
+          promo_id: string | null;
+          promo_titulo: string;
+          banco: string;
+          tarjeta_id: string | null;
+          tarjeta_alias: string;
+          shopping_list_id: string | null;
+          fuel_log_id: string | null;
+          fecha: string;
+          monto_bruto: number;
+          descuento_caja: number;
+          reintegro: number;
+          monto_caja: number;
+          costo_final: number;
+          reintegro_acreditado: boolean;
+          detalle: Json;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          promo_id?: string | null;
+          promo_titulo: string;
+          banco: string;
+          tarjeta_id?: string | null;
+          tarjeta_alias: string;
+          shopping_list_id?: string | null;
+          fuel_log_id?: string | null;
+          fecha: string;
+          monto_bruto: number;
+          descuento_caja?: number;
+          reintegro?: number;
+          reintegro_acreditado?: boolean;
+          detalle?: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          promo_id?: string | null;
+          promo_titulo?: string;
+          banco?: string;
+          tarjeta_id?: string | null;
+          tarjeta_alias?: string;
+          fecha?: string;
+          monto_bruto?: number;
+          descuento_caja?: number;
+          reintegro?: number;
+          reintegro_acreditado?: boolean;
+          detalle?: Json;
         };
         Relationships: [];
       };
@@ -1458,3 +1517,5 @@ export type ExpenseSplitMethod = Expense["split_method"];
 export type TarjetaFamilia = Database["hogar"]["Tables"]["tarjetas_familia"]["Row"];
 export type Promocion = Database["hogar"]["Tables"]["promociones"]["Row"];
 export type PromoIngesta = Database["hogar"]["Tables"]["promo_ingestas"]["Row"];
+
+export type PromoUso = Database["hogar"]["Tables"]["promo_usos"]["Row"];

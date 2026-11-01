@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
+import { BadgePercent } from "lucide-react";
 import { toast } from "sonner";
 import { deleteFuelLog, updateFuelLog } from "./actions";
 import type { FuelLog } from "@/lib/supabase/types";
@@ -107,6 +109,13 @@ export function FuelLogEditDialog({ log, trigger }: { log: FuelLog; trigger: Rea
             <Label htmlFor="notes">Notas</Label>
             <Textarea id="notes" name="notes" defaultValue={log.notes ?? ""} />
           </div>
+
+          <Button asChild variant="outline" className="gap-2">
+            <Link href={`/promos/usar?carga=${log.id}`}>
+              <BadgePercent className="size-4" />
+              Promo de tarjeta usada en esta carga
+            </Link>
+          </Button>
 
           <DialogFooter className="flex-row items-center justify-between sm:justify-between">
             {confirmingDelete ? (

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
-import type { ShoppingList, ShoppingListItem } from "@/lib/supabase/types";
+import { ArrowLeft, BadgePercent, CheckCircle2 } from "lucide-react";
+import type { PromoUso, ShoppingList, ShoppingListItem } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/dates";
@@ -11,9 +11,11 @@ import { RenameListDialog } from "../rename-list-dialog";
 export function ClosedListSummary({
   list,
   items,
+  uso,
 }: {
   list: ShoppingList;
   items: ShoppingListItem[];
+  uso: PromoUso | null;
 }) {
   const checkedCount = items.filter((i) => i.is_checked).length;
 
@@ -50,6 +52,36 @@ export function ClosedListSummary({
             <p className="text-base font-medium text-foreground">
               Total: {formatGuaranies(list.total_amount)}
             </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="gap-0 py-0">
+        <CardContent className="flex flex-col gap-2 p-4 text-sm">
+          {uso ? (
+            <>
+              <p className="flex items-center gap-2 font-medium">
+                <BadgePercent className="size-4 text-mod-promos" />
+                {uso.promo_titulo} · {uso.tarjeta_alias}
+              </p>
+              <p className="text-muted-foreground">
+                En caja {formatGuaranies(uso.monto_caja)}
+                {uso.descuento_caja > 0 ? ` (−${formatGuaranies(uso.descuento_caja)})` : ""}
+                {uso.reintegro > 0
+                  ? ` · reintegro ${formatGuaranies(uso.reintegro)}${uso.reintegro_acreditado ? " acreditado" : " pendiente"}`
+                  : ""}
+              </p>
+              <Button asChild variant="outline" size="sm" className="self-start">
+                <Link href={`/promos/usar?compra=${list.id}`}>Cambiar promo</Link>
+              </Button>
+            </>
+          ) : (
+            <Button asChild variant="outline" className="gap-2">
+              <Link href={`/promos/usar?compra=${list.id}`}>
+                <BadgePercent className="size-4" />
+                ¿Pagaste con una promo de tarjeta?
+              </Link>
+            </Button>
           )}
         </CardContent>
       </Card>

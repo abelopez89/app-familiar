@@ -20,6 +20,7 @@ import { VehicleFormDialog } from "../vehiculos/vehicle-form-dialog";
 import { PerformanceChart } from "./performance-chart";
 import { PriceChart } from "./price-chart";
 import { FuelLogEditDialog } from "./fuel-log-edit-dialog";
+import { usosPorReferencia } from "@/lib/promos/usos";
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ vehicleId: string }> }) {
   const context = await getCurrentFamilyContext();
@@ -34,6 +35,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   ]);
 
   if (!vehicle) notFound();
+  const usos = await usosPorReferencia(context.family.id, "fuel_log_id", logs.map((l) => l.id));
 
   const pendingTasks = FEATURES.tareas && vehicle.asset_id ? await listPendingTaskDefinitionsForAsset(vehicle.asset_id) : [];
 
@@ -177,6 +179,11 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
                       {log.total_amount != null && <span>{formatGuaranies(log.total_amount)}</span>}
                       {!log.is_full_tank && <span>Parcial</span>}
                       {log.resets_calculation && <span>Reinicia cálculo</span>}
+                      {usos.get(log.id) && (
+                        <span className="text-mod-promos">
+                          Promo −{formatGuaranies(usos.get(log.id)!.descuento_caja + usos.get(log.id)!.reintegro)}
+                        </span>
+                      )}
                     </span>
                   </button>
                 }

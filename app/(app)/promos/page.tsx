@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BadgePercent, CreditCard, FileUp, List } from "lucide-react";
+import { BadgePercent, CreditCard, FileUp, List, PiggyBank } from "lucide-react";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { listActiveMembers } from "@/lib/members";
 import { dateOnlyToFamilyMidnightUtc, formatDate, formatDateTime, todayInFamilyTimezone } from "@/lib/dates";
@@ -171,6 +171,12 @@ export default async function PromosPage() {
       <section className="flex flex-col gap-1 px-1 text-xs text-muted-foreground">
         <div className="flex flex-wrap gap-2">
           <ActualizarButton enCurso={estadoPorBanco.get("itau")?.enCurso ?? false} />
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link href="/promos/ahorros">
+              <PiggyBank className="size-4" />
+              Ahorros
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link href="/promos/cargar">
               <FileUp className="size-4" />
