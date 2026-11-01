@@ -48,6 +48,7 @@ describe("esquema de salida para Claude", () => {
                   alcance: "",
                   tope_monto: 0,
                   tope_periodo: "sin_tope",
+                  tope_tipo: "no_dice",
                   tope_alcance: "",
                 },
               ],

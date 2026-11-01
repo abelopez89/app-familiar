@@ -30,8 +30,9 @@ Cómo trabajar una mejora mínima:
 3. **Lógica de negocio en `lib/services/`** cuando el bot también la usa
    (Fase 7): un cambio de regla se hace una vez y lo ven la app y el
    bot. Toda consulta con el admin client filtra por `family_id`.
-4. **Migraciones**: la próxima es la `015` (confirmalo mirando
-   `supabase/migrations/`; la `014` es del módulo de promociones). Se escribe el archivo y la aplica el usuario
+4. **Migraciones**: la próxima es la `016` (confirmalo mirando
+   `supabase/migrations/`; la `015` es del uso de promos en compras y
+   combustible). Se escribe el archivo y la aplica el usuario
    desde el SQL Editor; no avanzar con el código que depende de ella
    hasta que confirme.
 5. **Antes de cada PR**: `npm run build` y `npm run lint` sin errores, y
@@ -45,10 +46,11 @@ acá primero):
 
 - **Vercel**: variables de entorno (ver "Variables de entorno") y deploy
   automático de `main`.
-- **Supabase**: migraciones `001`–`014` aplicadas y bucket privado
-  `documentos` creado. La `014` (promociones) la aplicó Claude con
+- **Supabase**: migraciones `001`–`015` aplicadas y bucket privado
+  `documentos` creado. La `014` (promociones) y la `015` (uso de promos)
+  las aplicó Claude con
   `execute_sql` del MCP de Supabase, en una transacción y con
-  autorización explícita del usuario para ese caso (sin
+  autorización explícita del usuario para cada una (sin
   `apply_migration`, para no escribir el historial de migraciones del
   proyecto compartido). La regla 3 de la base sigue valiendo: sin esa
   autorización, la migración la aplica el usuario.
@@ -217,9 +219,9 @@ acá primero):
   incluye: eventos que se repiten por chat, subir documentos por foto,
   divisiones de gastos por pesos o importes exactos por chat, ni chats
   de grupo.
-- Migraciones `001` a `014` aplicadas y confirmadas en la base
+- Migraciones `001` a `015` aplicadas y confirmadas en la base
   compartida. Antes de escribir la
-  migración `015`, mirá `supabase/migrations/` para confirmar el próximo
+  migración `016`, mirá `supabase/migrations/` para confirmar el próximo
   número — no lo asumas.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
@@ -468,7 +470,7 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `014` corridas en Supabase y confirmadas funcionando —
+`001` a `015` corridas en Supabase y confirmadas funcionando —
 incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 
 | Archivo | Contenido |
@@ -487,8 +489,9 @@ incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 | `012_telegram_bot.sql` | `telegram_sessions` y `telegram_updates`: RLS con política `using (false)`, **sin** grants a `authenticated`/`anon` (revocados explícitos, porque el default privilege de la 005 se los daría), grants solo a `service_role` (ver sección Fase 7). |
 | `013_save_expense_bot.sql` | `hogar.save_expense()` acepta `family_id`/`created_by` en el payload **solo** si quien llama es `service_role` y no hay sesión; verifica que el grupo y el miembro sean de esa familia. Para `authenticated` no cambia nada (ver sección Fase 7). |
 | `014_promos.sql` | Promos globales (`promociones`, `promo_comercios`, `promo_beneficios`, `promo_beneficio_componentes`, `promo_beneficio_tarjetas`, `promo_descartadas`, `promo_ingestas`: solo lectura para `authenticated`, escritura solo `service_role`) y por familia (`tarjetas_familia`, `comercios_favoritos`, RLS estándar). Ver "Promociones de tarjetas". |
+| `015_promo_usos.sql` | `promo_beneficio_componentes.tope_tipo` (`compra`/`descuento`, null = sin definir) y `promo_usos` (por familia, RLS estándar): la promo y la tarjeta usadas en una compra o una carga de combustible, con el cálculo copiado en `detalle`. Ver punto 25 de "Promociones de tarjetas". |
 
-La próxima migración de cualquier fase nueva es `015_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `016_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
@@ -620,6 +623,10 @@ Tres clientes separados, no los mezcles:
     origen) con el editor de la carga manual. `/promos/[id]/archivo` —
     Route Handler GET que redirige a la URL firmada del PDF o la captura
     original (solo las cargadas a mano guardan archivo).
+  - `/promos/usar?compra=<id>` / `?carga=<id>` — "¿Pagaste con promo?":
+    promo y tarjeta usadas en una compra cerrada o una carga de
+    combustible. `/promos/ahorros?mes=yyyy-MM` — ahorros del mes,
+    reintegros por acreditar y topes por tarjeta.
   - `/config/gastos` — ABM de categorías de gastos (+ "agregar
     sugeridas"), Fase 6.
   - `/gastos` — grupos abiertos (con total y tu balance) y cerrados,
@@ -1861,6 +1868,33 @@ avisos de Telegram).
     sesión**, así las políticas de `storage.objects` solo dejan bajar
     archivos de la propia familia. Los mails no guardan archivo: sus
     imágenes se leen y se descartan.
+25. **Uso de promos en compras y combustible (migración 015)**, a pedido
+    del usuario. Desde el resumen de una compra cerrada
+    (`closed-list-summary.tsx`), el resultado de `/combustible/nueva` y
+    el diálogo de una carga se llega a `/promos/usar`: se elige promo y
+    tarjeta entre las que **valían ese día** para el rubro (compras:
+    supermercado, farmacia, electrodomésticos; carga: combustible; las
+    del comercio cargado en `store`/`station` van primero) y se carga el
+    monto **bruto, antes del descuento** (decisión del usuario): la app
+    dice cuánto deberían cobrar en caja, para controlar al cajero, y el
+    reintegro pendiente. `total_amount` de la compra o la carga no se
+    toca. El cálculo es puro (`lib/promos/ahorro.ts`, con tests): los
+    componentes se suman (las cuotas no), los que tienen `alcance` no se
+    aplican por defecto (se tildan), guaraníes enteros y nunca más que
+    el bruto. **Topes por tarjeta** (decisión del usuario), acumulados en
+    la ventana del período (día, mes calendario o toda la promo) a partir
+    de los usos anteriores de la misma promo y tarjeta. `tope_tipo` dice
+    si el tope limita la compra o el descuento; sin dato se toma como de
+    descuento y se avisa con un link a Editar (las promos viejas las
+    corrige el usuario; Claude lo lee en las nuevas). El navegador
+    calcula la vista previa, pero `guardarUsoPromo` vuelve a leer la
+    promo, verifica que valía ese día para esa tarjeta y recalcula. Un uso
+    por compra o carga (`unique`), con copia del cálculo en `detalle`
+    (la clave de cada componente es tipo + alcance + período, para que
+    sobreviva a una edición de la promo). `/promos/ahorros`: totales del
+    mes (caja, reintegros), reintegros por acreditar de cualquier mes con
+    su tilde, y lo usado de cada tope (`lib/promos/topes.ts`, puro). Solo
+    la app: el bot todavía no registra promos.
 
 ## Comandos útiles
 

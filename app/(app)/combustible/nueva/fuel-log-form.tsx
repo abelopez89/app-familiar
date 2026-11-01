@@ -337,6 +337,11 @@ export function FuelLogForm({
       {result?.success && (
         <Card>
           <CardContent className="flex flex-col gap-2 pt-4 text-sm">
+            {result.id && (
+              <Button asChild variant="outline" className="mb-1">
+                <Link href={`/promos/usar?carga=${result.id}`}>¿Pagaste con una promo de tarjeta?</Link>
+              </Button>
+            )}
             {result.interval ? (
               <>
                 <p className="font-medium">Rendimiento del tramo: {formatEfficiency(result.interval.kmPerLiter, unit)}</p>

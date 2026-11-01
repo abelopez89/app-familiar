@@ -24,6 +24,12 @@ export const componenteSchema = z.object({
   tope_monto: z.number().nullable().describe("Tope de compra o de reintegro en guaraníes"),
   tope_periodo: z.enum(["dia", "mes", "promo"]).nullable(),
   tope_alcance: z.string().nullable().describe("Ej. 'por cuenta, compartido entre comercios'"),
+  // Migración 015. Opcional: las promos y fixtures anteriores no lo tienen.
+  tope_tipo: z
+    .enum(["compra", "descuento"])
+    .nullable()
+    .optional()
+    .describe("Si el tope limita el monto de compra o el del descuento/reintegro"),
 });
 
 export const reglaTarjetaSchema = z.object({
@@ -88,6 +94,9 @@ const componenteModelo = z.object({
   alcance: z.string().describe(`Sobre qué productos aplica, ej. "medicamentos". ${SIN_DATO}`),
   tope_monto: z.number().describe("Tope de compra o de reintegro en guaraníes. 0 si no hay tope."),
   tope_periodo: z.enum(["dia", "mes", "promo", "sin_tope"]),
+  tope_tipo: z
+    .enum(["compra", "descuento", "no_dice"])
+    .describe('"compra" si limita el monto de compra ("compras hasta…"), "descuento" si limita el descuento o reintegro ("reintegro hasta…"). "no_dice" si no hay tope o no queda claro.'),
   tope_alcance: z.string().describe(`Ej. "por cuenta, compartido entre comercios". ${SIN_DATO}`),
 });
 
@@ -163,6 +172,7 @@ export function deSalidaModelo(salida: SalidaModelo): PromoNormalizada[] {
         tope_monto: numero(c.tope_monto),
         tope_periodo: c.tope_periodo === "sin_tope" ? null : c.tope_periodo,
         tope_alcance: texto(c.tope_alcance),
+        tope_tipo: c.tope_tipo === "no_dice" || !numero(c.tope_monto) ? null : c.tope_tipo,
       })),
       tarjetas: b.tarjetas.map((t) => ({
         regla: t.regla,

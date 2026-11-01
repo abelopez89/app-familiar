@@ -4,6 +4,7 @@ import { getCurrentFamilyContext } from "@/lib/family";
 import { markListInProgress } from "./actions";
 import { SupermercadoView } from "./supermercado-view";
 import { ClosedListSummary } from "./closed-list-summary";
+import { usosPorReferencia } from "@/lib/promos/usos";
 
 export default async function ComprarPage({
   params,
@@ -25,11 +26,11 @@ export default async function ComprarPage({
   if (!list) notFound();
 
   if (list.status === "cerrada") {
-    const { data: items } = await supabase
-      .from("shopping_list_items")
-      .select("*")
-      .eq("list_id", id);
-    return <ClosedListSummary list={list} items={items ?? []} />;
+    const [{ data: items }, usos] = await Promise.all([
+      supabase.from("shopping_list_items").select("*").eq("list_id", id),
+      usosPorReferencia(context.family.id, "shopping_list_id", [id]),
+    ]);
+    return <ClosedListSummary list={list} items={items ?? []} uso={usos.get(id) ?? null} />;
   }
 
   if (list.status === "abierta") {

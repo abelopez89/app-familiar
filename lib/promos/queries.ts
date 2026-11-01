@@ -18,7 +18,7 @@ const SELECT_PROMO = `
   promo_comercios ( comercio_nombre, desde, hasta ),
   promo_beneficios (
     nombre, dias_semana, fechas, prioridad,
-    promo_beneficio_componentes ( tipo, porcentaje, monto, cuotas, es_hasta, alcance, tope_monto, tope_periodo, tope_alcance ),
+    promo_beneficio_componentes ( tipo, porcentaje, monto, cuotas, es_hasta, alcance, tope_monto, tope_periodo, tope_alcance, tope_tipo ),
     promo_beneficio_tarjetas ( regla, marca, nivel, afinidad, tipo )
   )
 `;
@@ -211,7 +211,7 @@ export async function obtenerPromoParaEditar(id: string): Promise<PromoParaEdita
        promo_comercios ( comercio_nombre, desde, hasta ),
        promo_beneficios (
          nombre, dias_semana, fechas, prioridad,
-         promo_beneficio_componentes ( tipo, porcentaje, monto, cuotas, es_hasta, alcance, tope_monto, tope_periodo, tope_alcance ),
+         promo_beneficio_componentes ( tipo, porcentaje, monto, cuotas, es_hasta, alcance, tope_monto, tope_periodo, tope_alcance, tope_tipo ),
          promo_beneficio_tarjetas ( regla, marca, nivel, afinidad, tipo )
        )`,
     )

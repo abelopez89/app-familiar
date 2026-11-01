@@ -37,6 +37,8 @@ export type ComponenteBeneficio = {
   tope_monto: number | null;
   tope_periodo: "dia" | "mes" | "promo" | null;
   tope_alcance: string | null;
+  /** Migración 015: qué limita el tope; null = sin definir. */
+  tope_tipo?: "compra" | "descuento" | null;
 };
 
 export type BeneficioParaMatch = {

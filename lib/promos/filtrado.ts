@@ -46,6 +46,7 @@ function sanearComponente(c: ComponenteNormalizado): ComponenteNormalizado | nul
     tope_monto: positivo(c.tope_monto) != null ? Math.round(c.tope_monto!) : null,
     alcance: c.alcance?.trim() || null,
     tope_alcance: c.tope_alcance?.trim() || null,
+    tope_tipo: positivo(c.tope_monto) != null ? (c.tope_tipo ?? null) : null,
   };
   if (componente.tipo === "cuotas") return componente.cuotas ? componente : null;
   if (componente.tipo === "descuento_monto") return componente.monto ? componente : null;
