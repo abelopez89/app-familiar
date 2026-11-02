@@ -87,8 +87,10 @@ acá primero):
   Script) en producción y funcionando. Fase 5 (avisos por Telegram)
   en producción y funcionando (job horario creado en cron-job.org).
   Editar una promo guardada y bajar su archivo original: verificados
-  por el usuario. Ver la sección "Promociones de tarjetas" más abajo
-  (puntos 19–24).
+  por el usuario. Uso de promos en compras y combustible (migración
+  `015`, `/promos/usar` y `/promos/ahorros`): verificado por el usuario
+  en producción. Ver la sección "Promociones de tarjetas" más abajo
+  (puntos 19–25).
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
   producción** (Vercel + Supabase), incluyendo registro, login con
