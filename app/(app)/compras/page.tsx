@@ -9,9 +9,11 @@ import { PageHeader, SectionTitle } from "@/components/app-shell/page-header";
 import { MODULES_BY_KEY } from "@/components/app-shell/modules";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
+import { isPhoneRequest } from "@/lib/device";
+import { ComprasEscritorio } from "./escritorio";
 
-export default async function ComprasPage() {
-  const context = await getCurrentFamilyContext();
+export default async function ComprasPage({ searchParams }: { searchParams: Promise<{ lista?: string }> }) {
+  const [context, isPhone] = await Promise.all([getCurrentFamilyContext(), isPhoneRequest()]);
   if (!context) redirect("/login");
 
   const supabase = await createClient();
@@ -34,7 +36,7 @@ export default async function ComprasPage() {
   const abiertas = openLists ?? [];
   const cerradas = closedLists ?? [];
 
-  return (
+  const mobile = (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Compras"
@@ -125,5 +127,23 @@ export default async function ComprasPage() {
         </section>
       )}
     </div>
+  );
+
+  // Panel web (escritorio): un teléfono recibe solo la vista de siempre;
+  // en una computadora van las dos y el ancho decide con `lg:`.
+  if (isPhone) return mobile;
+
+  return (
+    <>
+      <div className="lg:hidden">{mobile}</div>
+      <div className="hidden lg:block">
+        <ComprasEscritorio
+          familyId={context.family.id}
+          abiertas={abiertas}
+          cerradas={cerradas}
+          selectedId={(await searchParams).lista}
+        />
+      </div>
+    </>
   );
 }

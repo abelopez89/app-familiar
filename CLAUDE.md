@@ -208,7 +208,7 @@ acá primero):
   y layout), PR 2 (inicio-tablero), PR 3 (documentos) y PR 4
   (calendario) verificados en producción: etapa 1 completa. Después, a
   pedido del usuario, el resto de los módulos con el mismo criterio, un
-  PR por pantalla y en este orden: Gastos (hecho), Compras, Combustible
+  PR por pantalla y en este orden: Gastos (verificado), Compras (hecho), Combustible
   y Promos. Familia y Ajustes quedan como están (decisión del usuario).
   La etapa 2 (búsqueda global, subir varios, vista semana) no empezó. Ver "Panel web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
@@ -2058,6 +2058,19 @@ global, subir varios, vista semana: etapa 2).
     gastos del tablero (antes estaban escritas dentro del tablero).
     Balances y gastos van uno debajo del otro: lado a lado, las barras
     quedaban sin lugar.
+11. **Compras de escritorio (`app/(app)/compras/escritorio.tsx`)**: mismo
+    corte por user-agent. Listas abiertas e historial (las mismas
+    consultas de la página) a la izquierda, y la lista elegida
+    (`?lista=<id>`; sin parámetro, la abierta más reciente o la última
+    cerrada) a la derecha: estado, comercio, productos, tildados y
+    progreso (o total si está cerrada, con la promo usada si hay), y los
+    productos por categoría en dos columnas, con la misma agrupación que
+    el modo supermercado (`sort_order` de la categoría, "Sin categoría"
+    al final, lo que falta primero). **Es de solo lectura, a propósito**:
+    editar la lista, ir a comprar, ver el resumen y cargar la promo
+    llevan a sus pantallas de siempre (`/compras/[id]` es optimista y el
+    modo supermercado tiene realtime y wake lock; duplicar eso acá sería
+    una segunda versión de las reglas de la Fase 1). Sin JS nuevo.
 
 ## Comandos útiles
 
