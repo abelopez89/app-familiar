@@ -205,7 +205,7 @@ acá primero):
 - **Panel web de escritorio (etapa 1, en curso por PRs, a pedido del
   usuario)**: rediseño solo para `lg:` (≥ 1024px), sin migraciones ni
   cambios de reglas de negocio; el celular no cambia. PR 1 (menú lateral
-  y layout) verificado en el preview; PR 2 (inicio-tablero) hecho;
+  y layout) verificado y mergeado; PR 2 (inicio-tablero) mergeado;
   faltan documentos y calendario de escritorio. Ver "Panel web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
   en producción** (el usuario probó todos los comandos desde el
