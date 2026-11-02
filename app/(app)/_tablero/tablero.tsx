@@ -1,13 +1,13 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { AlertTriangle, CalendarPlus, FilePlus2, Fuel, ShoppingCart } from "lucide-react";
+import { CalendarPlus, FilePlus2, Fuel, ShoppingCart } from "lucide-react";
 import { MODULES_BY_KEY, type ModuleKey } from "@/components/app-shell/modules";
 import { EVENT_CATEGORY_CHIP } from "@/components/app-shell/event-chips";
 import { PerformanceChart } from "@/app/(app)/combustible/[vehicleId]/performance-chart";
 import { EVENT_CATEGORIES } from "@/lib/events/constants";
 import { formatEfficiency } from "@/lib/fuel/efficiency";
 import { balanceTone } from "@/lib/expenses/constants";
-import { sortBalancesForDisplay, simplifyDebts } from "@/lib/expenses/settlement";
+import { BalanceBars } from "@/app/(app)/gastos/balance-bars";
 import { RUBROS, type Rubro } from "@/lib/promos/constants";
 import { comerciosVigentes } from "@/lib/promos/matching";
 import { describirComponente } from "@/lib/promos/formato";
@@ -484,12 +484,6 @@ async function BloqueGastos() {
       </Panel>
     );
   }
-  const names = new Map(bundle.participants.map((p) => [p.id, p.display_name]));
-  const balances = sortBalancesForDisplay(bundle.balances.balances);
-  const maxAbs = Math.max(1, ...balances.map((b) => Math.abs(b.balance)));
-  // Mismo criterio que `/gastos/[id]/balances`: si la suma no da cero, se
-  // avisa y no se proponen transferencias.
-  const transfers = bundle.balances.isConsistent ? simplifyDebts(bundle.balances.balances) : [];
   return (
     <Panel
       modulo="gastos"
@@ -499,48 +493,7 @@ async function BloqueGastos() {
       linkLabel="Balances"
       className="col-span-6"
     >
-      {!bundle.balances.isConsistent && (
-        <p className="flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">
-          <AlertTriangle className="size-4 shrink-0" />
-          Los balances no suman cero (diferencia {formatGuaranies(bundle.balances.sum)}). Revisá el grupo.
-        </p>
-      )}
-      <ul className="flex flex-col gap-2 text-sm">
-        {balances.map((b) => {
-          const width = `${(Math.abs(b.balance) / maxAbs) * 100}%`;
-          return (
-            <li key={b.participantId} className="grid grid-cols-[7rem_1fr_7.5rem] items-center gap-3">
-              <span className="truncate">{names.get(b.participantId) ?? "—"}</span>
-              <span className="grid h-2.5 grid-cols-2">
-                <span className="flex justify-end border-r border-border">
-                  {b.balance < 0 && <span className="h-full rounded-l-full bg-destructive" style={{ width }} />}
-                </span>
-                <span className="flex">
-                  {b.balance > 0 && <span className="h-full rounded-r-full bg-success" style={{ width }} />}
-                </span>
-              </span>
-              <span className={cn("text-right text-xs font-medium tabular-nums", balanceTone(b.balance))}>
-                {b.balance > 0 ? "+" : b.balance < 0 ? "−" : ""}
-                {formatGuaranies(Math.abs(b.balance))}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      {transfers.length > 0 && (
-        <div className="flex flex-col gap-1 border-t pt-3">
-          <p className="text-xs font-medium text-muted-foreground">Para quedar a mano</p>
-          <ul className="flex flex-col gap-1 text-sm">
-            {transfers.map((t, i) => (
-              <li key={i}>
-                <span className="font-medium">{names.get(t.from)}</span> le paga{" "}
-                <span className="font-medium tabular-nums">{formatGuaranies(t.amount)}</span> a{" "}
-                <span className="font-medium">{names.get(t.to)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <BalanceBars bundle={bundle} />
     </Panel>
   );
 }
