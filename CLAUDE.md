@@ -205,9 +205,9 @@ acá primero):
 - **Panel web de escritorio (etapa 1, en curso por PRs, a pedido del
   usuario)**: rediseño solo para `lg:` (≥ 1024px), sin migraciones ni
   cambios de reglas de negocio; el celular no cambia. PR 1 (menú lateral
-  y layout) y PR 2 (inicio-tablero) verificados en producción; PR 3
-  (documentos) verificado en el preview y mergeado; falta el
-  calendario de escritorio. Ver "Panel web (escritorio)".
+  y layout), PR 2 (inicio-tablero) y PR 3 (documentos) verificados y
+  mergeados; PR 4 (calendario) hecho, con eso se completa la etapa 1.
+  La etapa 2 (búsqueda global, subir varios, vista semana) no empezó. Ver "Panel web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
   en producción** (el usuario probó todos los comandos desde el
   celular: `/menu`, `/hoy`, `/compra`, `/gasto`, `/nafta`, `/evento`).
@@ -2015,6 +2015,30 @@ global, subir varios, vista semana: etapa 2).
    diálogo en `/documentos` sumaba ~50 kB al JS inicial que también paga
    el celular. Por debajo de `2xl` la categoría va como subtítulo del
    documento en vez de columna propia (si no, aplasta el título).
+9. **Calendario de escritorio (`app/(app)/eventos/escritorio.tsx`)**:
+   mismo corte por user-agent. Grilla mensual que empieza en lunes, con
+   chips por categoría (`EVENT_CATEGORY_CHIP`; la hora del chip aparece
+   desde 1400px, más angosto le come el título) y hoy resaltado;
+   navegación mes anterior / "Hoy" / mes siguiente y "Nuevo evento".
+   A la derecha, la agenda del día elegido (hora, participantes o "Toda
+   la familia", categoría y aviso por Telegram) y el link a
+   `/config/calendario` (feed ICS). **Mes y día van en la URL**
+   (`?mes=yyyy-MM&dia=yyyy-MM-dd`) y se resuelven en el servidor con
+   `buildDisplayEvents` y la aritmética de `lib/dates.ts` (la cuenta de
+   celdas es la de `month-grid.tsx`, sin helpers que dependan de la zona
+   del navegador); la vista del celular no cambió (estado local). Lo
+   único de cliente es `EventFormDialog` (nuevo y editar al tocar un
+   evento de la agenda; los cumpleaños no se editan), que la vista del
+   celular ya carga. **`?nuevo=1`**: el diálogo se abre por un portal,
+   que el `lg:hidden` del contenedor no oculta, así que en una
+   computadora solo lo abre la vista de escritorio (si no, se abrían
+   dos); en un teléfono lo sigue abriendo `CalendarView`. **Ojo con el
+   "First Load JS" del build**: importar `next/link` en `/eventos` lo
+   sube ~3 kB, pero es el chunk de `Link` que el layout ya carga en todas
+   las pantallas (está en las dos listas de `.next/app-build-manifest.json`
+   y el navegador lo baja una vez): el celular no baja nada nuevo. Para
+   medir lo que de verdad suma una página, compará los chunks de la
+   página que no están en los del layout.
 
 ## Comandos útiles
 
