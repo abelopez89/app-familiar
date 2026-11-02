@@ -18,7 +18,7 @@ export function FloatingAction({
 }) {
   return (
     <div
-      className={cn("fixed right-4 z-30", className)}
+      className={cn("fixed right-4 z-30 lg:right-10", className)}
       style={{ bottom: "calc(var(--nav-total) + 0.75rem)" }}
     >
       {children}
@@ -40,7 +40,7 @@ export function StickyBottomBar({
 }) {
   return (
     <div
-      className={cn("glass fixed inset-x-0 z-30 mx-auto max-w-lg border-t px-4 py-3", className)}
+      className={cn("glass fixed inset-x-0 z-30 mx-auto max-w-lg border-t px-4 py-3 lg:left-(--sidebar-width)", className)}
       style={{ bottom: "var(--nav-total)" }}
     >
       {children}

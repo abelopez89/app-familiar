@@ -202,6 +202,11 @@ acá primero):
   avisar por Telegram (bandera `tareasAvisos`) y se puede crear una
   tarea desde `/tareas`, sin volver al inicio. Ver "Mejoras post-Fase 6"
   más abajo.
+- **Panel web de escritorio (etapa 1, en curso por PRs, a pedido del
+  usuario)**: rediseño solo para `lg:` (≥ 1024px), sin migraciones ni
+  cambios de reglas de negocio; el celular no cambia. PR 1 (menú lateral
+  y layout) hecho; faltan inicio-tablero, documentos y calendario de
+  escritorio. Ver "Panel web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
   en producción** (el usuario probó todos los comandos desde el
   celular: `/menu`, `/hoy`, `/compra`, `/gasto`, `/nafta`, `/evento`).
@@ -301,7 +306,9 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   con un `bottom-16`/`bottom-20` a ojo: usá `FloatingAction` o
   `StickyBottomBar` de `components/app-shell/floating-action.tsx`, y
   `pb-nav` para el contenido. Sin esto, en un iPhone con indicador de
-  inicio los botones quedan medio tapados.
+  inicio los botones quedan medio tapados. En escritorio (`lg:`) no hay
+  tab bar y `--nav-total` vale solo el inset inferior (ver "Panel web
+  (escritorio)").
 - **Teclado abierto al cambiar de pantalla (iOS, app instalada).** Si
   se navega con un campo de texto enfocado, el campo desaparece del DOM
   e iOS cierra el teclado sin recalcular el alto de la pantalla: el tab
@@ -918,6 +925,9 @@ Tres clientes separados, no los mezcles:
     "completarlo" con datos (último rendimiento, próxima carga
     estimada), pensalo dos veces — el criterio original de este módulo
     fue justamente no meter ruido de combustible en el dashboard.
+    **Solo en celular**: en escritorio (`lg:`) el inicio es un tablero y
+    sí muestra combustible — ver la excepción en "Panel web
+    (escritorio)". No la "corrijas" de vuelta.
 11. **`/combustible/nueva` acepta `?vehicle=<id>`** para preseleccionar
     el vehículo (usado por los botones "Cargar combustible" que aparecen
     en cada tarjeta de `/combustible` cuando hay más de un vehículo, y
@@ -1050,12 +1060,15 @@ Tres clientes separados, no los mezcles:
    día. El orden importa y fue el pedido explícito: con el tablero
    ocupando toda la pantalla, llegar a combustible o documentos obligaba
    a pasar por la pestaña "Más". Si agregás algo al inicio, va **debajo**
-   de la grilla, no entre el saludo y las tarjetas.
+   de la grilla, no entre el saludo y las tarjetas. **Vale en celular**;
+   en escritorio (`lg:`) el inicio es un tablero a propósito — ver la
+   excepción en "Panel web (escritorio)".
 2. **Los contadores de las tarjetas solo aparecen cuando reclaman
    atención** (tareas vencidas, documentos por vencer). Un número que
    está siempre presente deja de significar algo. Por el mismo motivo
    **no se muestran datos de combustible en el inicio** — sigue valiendo
-   la regla 10 de la Fase 4.
+   la regla 10 de la Fase 4. **Vale en celular**; en escritorio (`lg:`)
+   ver la excepción en "Panel web (escritorio)".
 3. **`components/app-shell/modules.ts` es la única fuente de verdad del
    ecosistema.** La grilla del inicio, los encabezados de pantalla, los
    colores de módulo y el rótulo de sección del header salen todos de
@@ -1071,7 +1084,8 @@ Tres clientes separados, no los mezcles:
    módulos de uso diario con ajustes y no decía a dónde llevaba ninguna
    de sus filas. `ROOT_PATHS` (en `modules.ts`) tiene esas rutas (filtra
    `/tareas` según la bandera) y es lo que usan el botón de volver y el
-   header.
+   header. En escritorio (`lg:`) el tab bar y el header se ocultan y los
+   reemplaza el menú lateral (ver "Panel web (escritorio)").
 5. **Configuración es una sola sección.** Todo lo que se ajusta una vez
    y no se toca más está en `/config`, agrupado (familia, catálogos,
    avisos y sincronización, sesión). Los catálogos que además son
@@ -1132,7 +1146,8 @@ Tres clientes separados, no los mezcles:
 14. **Qué no hacer:** no volver a meter colores de Tailwind escritos a
     mano en las pantallas (usá los tokens); no agregar un selector manual
     de tema (lo decide el sistema); no devolverle datos al inicio que lo
-    conviertan otra vez en un tablero; no reintroducir una pestaña
+    conviertan otra vez en un tablero (en celular; en escritorio el
+    tablero es la excepción de "Panel web (escritorio)"); no reintroducir una pestaña
     "Más"; no posicionar nada fijo al pie sin `--nav-total`; y no tocar
     `lib/recurrence.ts`, `lib/tasks/schedule.ts`, `lib/fuel/consumption.ts`,
     `lib/documents/schedule.ts` ni `lib/ics.ts` por motivos de interfaz —
@@ -1897,6 +1912,55 @@ avisos de Telegram).
     mes (caja, reintegros), reintegros por acreditar de cualquier mes con
     su tilde, y lo usado de cada tope (`lib/promos/topes.ts`, puro). Solo
     la app: el bot todavía no registra promos.
+
+## Panel web (escritorio): decisiones a respetar
+
+Etapa 1, por PRs (1: layout; 2: inicio-tablero; 3: documentos; 4:
+calendario), a pedido del usuario. Solo rediseño con datos y funciones que
+ya existen: sin migraciones, sin variables de entorno, sin reglas de
+negocio nuevas, y **sin controles que todavía no funcionan** (búsqueda
+global, subir varios, vista semana: etapa 2).
+
+1. **Breakpoint `lg` (≥ 1024px), y por debajo nada cambia.** Ni el
+   diseño, ni las consultas, ni el JS inicial del celular. Todo lo de
+   escritorio va con clases `lg:`; lo que el celular no necesita no se
+   consulta ni se manda (ver la excepción del inicio, abajo).
+2. **Excepción solo para escritorio (`lg:`, ≥ 1024px).** En escritorio
+   el inicio **es un tablero** (indicadores, semana, combustible, gastos,
+   promos) y **sí muestra datos de combustible**. Esto deja sin efecto,
+   *únicamente en escritorio*, la regla 1 y la regla 2 de la Fase Extra
+   ("el inicio es un lanzador, no un tablero"; contadores solo cuando
+   reclaman atención; sin datos de combustible en el inicio), el punto
+   de "Qué no hacer" de la Fase Extra sobre no devolverle datos al
+   inicio, y la regla 10 de la Fase 4. **En celular esas reglas siguen
+   vigentes sin cambios**: el inicio móvil es el lanzador y no lleva
+   datos de combustible. El celular no debe pagar las consultas ni el JS
+   del tablero de escritorio.
+3. **Menú lateral fijo (`components/app-shell/sidebar.tsx`)**, de
+   `--sidebar-width` (14.5rem, en `globals.css`) de ancho: reemplaza al
+   header y al tab bar **solo en `lg:`** (`AppHeader` y `BottomNav` llevan
+   `lg:hidden`; el menú es `hidden lg:flex`). Arriba el nombre de la
+   familia y "Panel familiar"; en el medio Inicio y un ítem por módulo
+   de `LAUNCHER_MODULES` (sigue siendo `modules.ts` la única fuente de
+   verdad, y respeta `FEATURES.tareas`), con el ícono en el color del
+   módulo; abajo Ajustes y el miembro actual. El activo va con fondo
+   `card` y sombra suave sobre el fondo `muted` del menú. Es un Server
+   Component que no consulta nada (familia y miembro salen del
+   `getCurrentFamilyContext()` del layout); solo `SidebarLink` es de
+   cliente (necesita la ruta para marcar el activo; `exclude` hace que
+   `/config/miembros` sea "Familia" y no "Ajustes").
+4. **`--nav-total` en escritorio vale solo `--safe-bottom`** (media
+   query `min-width: 64rem` en `globals.css`): sin tab bar, el alto del
+   tab bar dejaría un hueco abajo. `FloatingAction`, `StickyBottomBar` y
+   `pb-nav` se ajustan solos. Las barras fijas al pie centradas
+   (`StickyBottomBar` y la de "Cerrar compra" del modo supermercado)
+   llevan `lg:left-(--sidebar-width)` para centrarse en el contenido y no
+   debajo del menú.
+5. **Contenido fluido en escritorio**: `main` pasa de `max-w-lg` a
+   `lg:max-w-6xl` con `lg:px-10`. Sin header, el botón de volver global
+   (`BackButton`, el mismo componente, que no se muestra en las
+   pantallas raíz) va arriba del contenido. `KeyboardDismiss` no
+   cambia.
 
 ## Comandos útiles
 

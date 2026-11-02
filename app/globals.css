@@ -37,6 +37,11 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --nav-total: calc(var(--nav-height) + var(--safe-bottom));
 
+  /* Panel web de escritorio (lg, ≥ 1024px): ancho del menú lateral que
+     reemplaza al header y al tab bar. Las barras fijas al pie se corren
+     este ancho a la derecha para centrarse en el contenido. */
+  --sidebar-width: 14.5rem;
+
   /* --- Superficies y texto (neutros cálidos, no grises puros) --- */
   --background: oklch(0.977 0.005 85);
   --foreground: oklch(0.22 0.014 60);
@@ -272,6 +277,15 @@
      documentos) deben tener inercia nativa en iOS. */
   [data-scroll-momentum] {
     -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* En escritorio no hay tab bar: lo fijo al pie (FloatingAction,
+   StickyBottomBar, `pb-nav`) solo tiene que respetar el inset inferior.
+   Sin esto quedaría un hueco del alto del tab bar oculto. 64rem = `lg`. */
+@media (min-width: 64rem) {
+  :root {
+    --nav-total: var(--safe-bottom);
   }
 }
 

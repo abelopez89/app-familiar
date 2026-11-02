@@ -30,7 +30,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="glass fixed inset-x-0 bottom-0 z-40 border-t"
+      className="glass fixed inset-x-0 bottom-0 z-40 border-t lg:hidden"
       // El inset de seguridad del iPhone va como padding del propio tab
       // bar: así la barra se pinta hasta el borde inferior de la pantalla
       // pero los íconos quedan por encima del indicador de inicio.

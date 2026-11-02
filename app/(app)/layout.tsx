@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-shell/header";
 import { BottomNav } from "@/components/app-shell/bottom-nav";
+import { BackButton } from "@/components/app-shell/back-button";
+import { Sidebar } from "@/components/app-shell/sidebar";
 import { KeyboardDismiss } from "@/components/app-shell/keyboard-dismiss";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { createClient } from "@/lib/supabase/server";
@@ -28,12 +30,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col lg:pl-(--sidebar-width)">
+      {/* Escritorio (lg): el menú lateral reemplaza al header y al tab bar,
+          que se ocultan con `lg:hidden`. En el celular el menú es `hidden`. */}
+      <Sidebar
+        familyName={context.family.name}
+        memberName={context.member.display_name}
+        memberColor={context.member.color}
+      />
       <AppHeader familyName={context.family.name} />
       {/* `pb-nav` deja libre el alto del tab bar más el inset de seguridad
           del iPhone — un solo número, definido en globals.css, en vez de
-          un `pb-24` distinto por pantalla. */}
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 pt-5 pb-nav">
+          un `pb-24` distinto por pantalla. En escritorio `--nav-total` es
+          solo el inset, y el contenido pasa a ser fluido y ancho. */}
+      <main className="mx-auto w-full max-w-lg flex-1 px-4 pt-5 pb-nav lg:max-w-6xl lg:px-10 lg:pt-8">
+        {/* Sin header en escritorio, el botón de volver global vive acá
+            (mismo componente: no se muestra en las pantallas raíz). */}
+        <div className="-mt-3 mb-3 hidden lg:block">
+          <BackButton />
+        </div>
         {children}
       </main>
       <BottomNav />
