@@ -43,7 +43,10 @@ export function PerformanceChart({
     return { x, y };
   });
 
-  const average = values.reduce((s, v) => s + v, 0) / values.length;
+  // El promedio se saca en km/L y recién después se convierte, igual que el
+  // "Promedio" de las estadísticas: promediar los valores en L/100 km da
+  // otro número (no es lineal) y la línea no coincidía con el dato de al lado.
+  const average = efficiencyValue(intervals.reduce((s, i) => s + i.kmPerLiter, 0) / intervals.length, unit);
   const averageY = HEIGHT - PADDING - ((average - min) / range) * (HEIGHT - PADDING * 2);
 
   const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");

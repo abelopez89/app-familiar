@@ -208,7 +208,7 @@ acá primero):
   y layout), PR 2 (inicio-tablero), PR 3 (documentos) y PR 4
   (calendario) verificados en producción: etapa 1 completa. Después, a
   pedido del usuario, el resto de los módulos con el mismo criterio, un
-  PR por pantalla y en este orden: Gastos (verificado), Compras (hecho), Combustible
+  PR por pantalla y en este orden: Gastos y Compras (verificados), Combustible (hecho)
   y Promos. Familia y Ajustes quedan como están (decisión del usuario).
   La etapa 2 (búsqueda global, subir varios, vista semana) no empezó. Ver "Panel web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
@@ -2071,6 +2071,28 @@ global, subir varios, vista semana: etapa 2).
     llevan a sus pantallas de siempre (`/compras/[id]` es optimista y el
     modo supermercado tiene realtime y wake lock; duplicar eso acá sería
     una segunda versión de las reglas de la Fase 1). Sin JS nuevo.
+12. **Combustible de escritorio (`app/(app)/combustible/escritorio.tsx`)**:
+    mismo corte por user-agent. Vehículos arriba como tarjetas (último
+    rendimiento y última carga) y el elegido (`?vehiculo=<id>`; sin
+    parámetro, el último cargado) abajo: las seis estadísticas del
+    detalle, los dos gráficos grandes (`PriceChart` ganó `width`/`height`
+    opcionales, como `PerformanceChart`) y el historial en tabla con el
+    rendimiento del tramo que cierra cada carga y la promo usada.
+    Respeta la cookie `fuel_unit` (el selector está en el encabezado).
+    **Las estadísticas salen de `vehicleStats` (`lib/fuel/stats.ts`,
+    pura)**, que ahora usa también el detalle del vehículo: antes el
+    cálculo estaba escrito en la página. Solo agrega lo que devuelve
+    `computeFuelIntervals`; `lib/fuel/consumption.ts` no se tocó.
+    **Editar una carga**: el lápiz lleva a
+    `/combustible/[vehicleId]?carga=<id>`, que abre el diálogo de siempre
+    (`FuelLogEditDialog` ganó `defaultOpen`). Importar el diálogo en
+    `/combustible`, **aun con `next/dynamic`**, sumaba ~30 kB al JS inicial
+    del celular: `next/dynamic` desde un Server Component igual deja los
+    chunks en la lista de la página en `app-build-manifest.json`.
+    **Promedio del gráfico**: la línea punteada de `PerformanceChart`
+    (también la del tablero) promedia en km/L y convierte después, igual
+    que el "Promedio" de las estadísticas. Promediar directo en L/100 km
+    daba otro número (no es lineal) y no coincidía con el dato de al lado.
 
 ## Comandos útiles
 

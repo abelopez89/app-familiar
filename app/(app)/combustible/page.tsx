@@ -16,11 +16,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { MODULES_BY_KEY } from "@/components/app-shell/modules";
 import { FloatingAction } from "@/components/app-shell/floating-action";
+import { isPhoneRequest } from "@/lib/device";
+import { CombustibleEscritorio } from "./escritorio";
 
 const AVERAGE_LOOKBACK = 5;
 
-export default async function CombustiblePage() {
-  const context = await getCurrentFamilyContext();
+export default async function CombustiblePage({ searchParams }: { searchParams: Promise<{ vehiculo?: string }> }) {
+  const [context, isPhone] = await Promise.all([getCurrentFamilyContext(), isPhoneRequest()]);
   if (!context) redirect("/login");
 
   const [vehicles, unit] = await Promise.all([listVehicles(), getFuelUnit()]);
@@ -40,7 +42,7 @@ export default async function CombustiblePage() {
 
   const { fg, bg } = MODULES_BY_KEY.combustible;
 
-  return (
+  const mobile = (
     <div className="flex flex-col gap-5 pb-20">
       <PageHeader
         title="Combustible"
@@ -121,5 +123,23 @@ export default async function CombustiblePage() {
         </Button>
       </FloatingAction>
     </div>
+  );
+
+  // Panel web (escritorio): un teléfono recibe solo la vista de siempre;
+  // en una computadora van las dos y el ancho decide con `lg:`.
+  if (isPhone) return mobile;
+
+  return (
+    <>
+      <div className="lg:hidden">{mobile}</div>
+      <div className="hidden lg:block">
+        <CombustibleEscritorio
+          familyId={context.family.id}
+          summaries={vehicles.map((vehicle, i) => ({ vehicle, logs: logsByVehicle[i] }))}
+          unit={unit}
+          selectedId={(await searchParams).vehiculo}
+        />
+      </div>
+    </>
   );
 }
