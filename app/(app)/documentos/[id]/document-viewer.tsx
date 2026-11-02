@@ -20,11 +20,14 @@ export function DocumentViewer({
   fileUrls,
   categories,
   members,
+  openEdit = false,
 }: {
   document: DocumentWithFiles;
   fileUrls: { file: DocumentFile; url: string | null }[];
   categories: DocumentCategory[];
   members: FamilyMember[];
+  /** `?editar=1`: abre el diálogo de edición al entrar (botón "Editar" del panel de escritorio). */
+  openEdit?: boolean;
 }) {
   const [index, setIndex] = useState(0);
   const [zoomed, setZoomed] = useState(false);
@@ -173,7 +176,7 @@ export function DocumentViewer({
           {document.notes && <p className="text-muted-foreground">{document.notes}</p>}
 
           <div className="mt-2 flex gap-2">
-            <EditDocumentDialog document={document} categories={categories} members={members} />
+            <EditDocumentDialog document={document} categories={categories} members={members} defaultOpen={openEdit} />
             <DeleteDocumentButton id={document.id} />
           </div>
         </CardContent>

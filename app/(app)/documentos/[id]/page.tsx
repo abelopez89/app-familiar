@@ -5,7 +5,13 @@ import { getSignedDocumentUrls } from "@/lib/documents/storage";
 import { createClient } from "@/lib/supabase/server";
 import { DocumentViewer } from "./document-viewer";
 
-export default async function DocumentoDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DocumentoDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ editar?: string }>;
+}) {
   const context = await getCurrentFamilyContext();
   if (!context) redirect("/login");
 
@@ -33,6 +39,7 @@ export default async function DocumentoDetailPage({ params }: { params: Promise<
       fileUrls={fileUrls}
       categories={categories}
       members={membersRes.data ?? []}
+      openEdit={(await searchParams).editar === "1"}
     />
   );
 }

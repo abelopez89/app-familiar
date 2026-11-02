@@ -205,8 +205,8 @@ acá primero):
 - **Panel web de escritorio (etapa 1, en curso por PRs, a pedido del
   usuario)**: rediseño solo para `lg:` (≥ 1024px), sin migraciones ni
   cambios de reglas de negocio; el celular no cambia. PR 1 (menú lateral
-  y layout) verificado y mergeado; PR 2 (inicio-tablero) mergeado;
-  faltan documentos y calendario de escritorio. Ver "Panel web (escritorio)".
+  y layout) y PR 2 (inicio-tablero) verificados en producción; PR 3
+  (documentos) hecho; falta el calendario de escritorio. Ver "Panel web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
   en producción** (el usuario probó todos los comandos desde el
   celular: `/menu`, `/hoy`, `/compra`, `/gasto`, `/nafta`, `/evento`).
@@ -611,6 +611,9 @@ Tres clientes separados, no los mezcles:
     metadatos, Fase 5.
   - `/documentos/[id]` — visor (zoom, navegación entre páginas, PDF en
     pestaña nueva), editar metadatos, agregar/quitar páginas, Fase 5.
+    `?editar=1` abre el diálogo de edición al entrar.
+    `/documentos/[id]/archivo?pagina=<n>[&descargar=1]` — Route Handler
+    GET que redirige a la URL firmada de esa página (panel de escritorio).
   - `/config/documentos` — ABM de categorías de documentos + espacio
     usado, Fase 5. También enlazado desde `/config` (catálogos).
   - `/config/activos` — redirect a `/tareas/activos`, Fase 6. Es la
@@ -1989,6 +1992,28 @@ global, subir varios, vista semana: etapa 2).
    módulo (escolar → combustible, médico → documentos, familiar → gastos,
    cumpleaños → promos, otro → `muted`) en vez de agregar colores. Los
    va a usar también el calendario de escritorio.
+8. **Documentos de escritorio (`app/(app)/documentos/escritorio.tsx`)**:
+   mismo corte por user-agent que el inicio (un teléfono recibe solo la
+   vista de siempre). Tres columnas: filtros a la izquierda (miembro con
+   contador, categoría y "Por vencer" = `isDocumentExpiryDue`, el mismo
+   criterio del aviso), fijados y tabla en el centro, vista previa a la
+   derecha. **Los filtros, la búsqueda (`q`, formulario GET), la
+   selección (`?doc=<id>`) y la página (`?pagina=<n>`) son parámetros de
+   la URL y se resuelven en el servidor**, sin JS de cliente (en el
+   celular los filtros siguen siendo estado local de
+   `documents-browser.tsx`). Cambiar solo los parámetros no muestra el
+   esqueleto de `loading.tsx`: Next deja la pantalla anterior hasta que
+   llega la nueva (probado). Las URLs firmadas del documento elegido se
+   piden recién al seleccionarlo, con el **cliente de sesión**
+   (`getSignedDocumentUrls`, regla 2 de la Fase 5). Como el panel puede
+   quedar abierto más de 60 s, "Descargar" y "Ver PDF" apuntan a
+   `/documentos/[id]/archivo?pagina=<n>[&descargar=1]`, un Route Handler
+   que firma al hacer clic (mismo patrón que `/promos/[id]/archivo`).
+   "Editar" lleva al detalle con `?editar=1`, que abre el diálogo de
+   siempre (`EditDocumentDialog` ganó `defaultOpen`): importar el
+   diálogo en `/documentos` sumaba ~50 kB al JS inicial que también paga
+   el celular. Por debajo de `2xl` la categoría va como subtítulo del
+   documento en vez de columna propia (si no, aplasta el título).
 
 ## Comandos útiles
 

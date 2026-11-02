@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { MODULES_BY_KEY } from "@/components/app-shell/modules";
 import { DocumentsBrowser } from "./documents-browser";
+import { isPhoneRequest } from "@/lib/device";
+import { DocumentosEscritorio, type DocumentosParams } from "./escritorio";
 
-export default async function DocumentosPage() {
-  const context = await getCurrentFamilyContext();
+export default async function DocumentosPage({ searchParams }: { searchParams: Promise<DocumentosParams> }) {
+  const [context, isPhone] = await Promise.all([getCurrentFamilyContext(), isPhoneRequest()]);
   if (!context) redirect("/login");
 
   const [documents, categories, members] = await Promise.all([
@@ -34,7 +36,7 @@ export default async function DocumentosPage() {
 
   const { fg, bg } = MODULES_BY_KEY.documentos;
 
-  return (
+  const mobile = (
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Documentos"
@@ -56,5 +58,25 @@ export default async function DocumentosPage() {
         thumbnails={thumbnails}
       />
     </div>
+  );
+
+  // Panel web (escritorio): un teléfono recibe solo la vista de siempre.
+  // En una computadora van las dos y el ancho decide con `lg:` (mismo
+  // criterio que el inicio, ver CLAUDE.md "Panel web (escritorio)").
+  if (isPhone) return mobile;
+
+  return (
+    <>
+      <div className="lg:hidden">{mobile}</div>
+      <div className="hidden lg:block">
+        <DocumentosEscritorio
+          documents={documents}
+          categories={categories}
+          members={members}
+          thumbnails={thumbnails}
+          params={await searchParams}
+        />
+      </div>
+    </>
   );
 }

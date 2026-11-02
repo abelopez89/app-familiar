@@ -30,12 +30,14 @@ export function EditDocumentDialog({
   document,
   categories,
   members,
+  defaultOpen = false,
 }: {
   document: DocumentWithFiles;
   categories: DocumentCategory[];
   members: FamilyMember[];
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [memberId, setMemberId] = useState(document.member_id ?? "");
   const [categoryId, setCategoryId] = useState(document.category_id ?? "");
   const [docType, setDocType] = useState(document.doc_type ?? "");
