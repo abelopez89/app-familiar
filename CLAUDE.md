@@ -205,8 +205,11 @@ acá primero):
 - **Panel web de escritorio (etapa 1, en curso por PRs, a pedido del
   usuario)**: rediseño solo para `lg:` (≥ 1024px), sin migraciones ni
   cambios de reglas de negocio; el celular no cambia. PR 1 (menú lateral
-  y layout), PR 2 (inicio-tablero) y PR 3 (documentos) verificados y
-  mergeados; PR 4 (calendario) hecho, con eso se completa la etapa 1.
+  y layout), PR 2 (inicio-tablero), PR 3 (documentos) y PR 4
+  (calendario) verificados en producción: etapa 1 completa. Después, a
+  pedido del usuario, el resto de los módulos con el mismo criterio, un
+  PR por pantalla y en este orden: Gastos (hecho), Compras, Combustible
+  y Promos. Familia y Ajustes quedan como están (decisión del usuario).
   La etapa 2 (búsqueda global, subir varios, vista semana) no empezó. Ver "Panel web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
   en producción** (el usuario probó todos los comandos desde el
@@ -1920,7 +1923,9 @@ avisos de Telegram).
 ## Panel web (escritorio): decisiones a respetar
 
 Etapa 1, por PRs (1: layout; 2: inicio-tablero; 3: documentos; 4:
-calendario), a pedido del usuario. Solo rediseño con datos y funciones que
+calendario), a pedido del usuario, y después el mismo criterio para
+Gastos, Compras, Combustible y Promos (un PR cada una; Familia y Ajustes
+no). Solo rediseño con datos y funciones que
 ya existen: sin migraciones, sin variables de entorno, sin reglas de
 negocio nuevas, y **sin controles que todavía no funcionan** (búsqueda
 global, subir varios, vista semana: etapa 2).
@@ -2039,6 +2044,20 @@ global, subir varios, vista semana: etapa 2).
    y el navegador lo baja una vez): el celular no baja nada nuevo. Para
    medir lo que de verdad suma una página, compará los chunks de la
    página que no están en los del layout.
+10. **Gastos de escritorio (`app/(app)/gastos/escritorio.tsx`)**: mismo
+    corte por user-agent. Grupos a la izquierda (abiertos y cerrados,
+    con total, tu balance y el aviso si no cierra) y el grupo elegido
+    (`?grupo=<id>`; sin parámetro, el abierto más reciente) a la derecha:
+    encabezado con total, cantidad de gastos y tu balance, balances en
+    barras con las transferencias sugeridas y la lista de gastos. Sale de
+    `listGroupSummaries` y `getGroupBundle`, sin cálculos nuevos. Las
+    acciones (cargar gasto, balances y pagos, participantes, editar un
+    gasto) llevan a sus pantallas de siempre: no hay formularios ni JS
+    nuevo. **Las barras divergentes son `BalanceBars`
+    (`app/(app)/gastos/balance-bars.tsx`)**, compartido con el bloque de
+    gastos del tablero (antes estaban escritas dentro del tablero).
+    Balances y gastos van uno debajo del otro: lado a lado, las barras
+    quedaban sin lugar.
 
 ## Comandos útiles
 

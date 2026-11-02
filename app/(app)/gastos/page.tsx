@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, SectionTitle } from "@/components/app-shell/page-header";
 import { MODULES_BY_KEY } from "@/components/app-shell/modules";
+import { isPhoneRequest } from "@/lib/device";
+import { GastosEscritorio } from "./escritorio";
 
 /**
  * Gastos compartidos: repartir gastos entre varias personas y saber quién
@@ -18,8 +20,8 @@ import { MODULES_BY_KEY } from "@/components/app-shell/modules";
  * número que uno quiere ver de un vistazo —, los cerrados (archivados)
  * abajo.
  */
-export default async function GastosPage() {
-  const context = await getCurrentFamilyContext();
+export default async function GastosPage({ searchParams }: { searchParams: Promise<{ grupo?: string }> }) {
+  const [context, isPhone] = await Promise.all([getCurrentFamilyContext(), isPhoneRequest()]);
   if (!context) redirect("/login");
 
   const summaries = await listGroupSummaries(context.member.id);
@@ -27,7 +29,7 @@ export default async function GastosPage() {
   const closed = summaries.filter((s) => s.group.status === "cerrado");
   const { fg, bg } = MODULES_BY_KEY.gastos;
 
-  return (
+  const mobile = (
     <div className="flex flex-col gap-6">
       <PageHeader title="Gastos compartidos" icon={HandCoins} iconFg={fg} iconBg={bg} />
 
@@ -77,6 +79,23 @@ export default async function GastosPage() {
         </>
       )}
     </div>
+  );
+
+  // Panel web (escritorio): un teléfono recibe solo la vista de siempre;
+  // en una computadora van las dos y el ancho decide con `lg:`.
+  if (isPhone) return mobile;
+
+  return (
+    <>
+      <div className="lg:hidden">{mobile}</div>
+      <div className="hidden lg:block">
+        <GastosEscritorio
+          summaries={summaries}
+          selectedId={(await searchParams).grupo}
+          memberId={context.member.id}
+        />
+      </div>
+    </>
   );
 }
 
