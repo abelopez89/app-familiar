@@ -72,15 +72,24 @@ export async function listDocumentsByMember(memberId: string): Promise<DocumentW
  * corresponde mostrar en el bloque de alertas del dashboard "Hoy".
  */
 export const listExpiringDocuments = cache(async function listExpiringDocuments(): Promise<FamilyDocument[]> {
+  const today = todayInFamilyTimezone();
+  return (await listDocumentsWithExpiry()).filter((doc) => isDocumentExpiryDue(doc, today));
+});
+
+/**
+ * Todos los documentos con fecha de vencimiento, del más próximo al más
+ * lejano. Es la consulta de `listExpiringDocuments` sin el filtro por la
+ * ventana de aviso: el tablero de escritorio cuenta los que vencen en 30
+ * días, y con `cache()` las dos comparten una sola consulta por request.
+ */
+export const listDocumentsWithExpiry = cache(async function listDocumentsWithExpiry(): Promise<FamilyDocument[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("documents")
     .select("*")
     .not("expires_at", "is", null)
     .order("expires_at", { ascending: true });
-
-  const today = todayInFamilyTimezone();
-  return (data ?? []).filter((doc) => isDocumentExpiryDue(doc, today));
+  return data ?? [];
 });
 
 /**

@@ -17,6 +17,8 @@ import { ModuleTile } from "@/components/app-shell/module-tile";
 import { LAUNCHER_MODULES, MODULES_BY_KEY, type ModuleKey } from "@/components/app-shell/modules";
 import { FEATURES } from "@/lib/features";
 import { getCurrentFamilyContext } from "@/lib/family";
+import { isPhoneRequest } from "@/lib/device";
+import { Tablero } from "./_tablero/tablero";
 import { getOpenShoppingList } from "@/lib/shopping/queries";
 import { listEventsWithDetails } from "@/lib/events/queries";
 import { listActiveMembers } from "@/lib/members";
@@ -49,17 +51,37 @@ import {
  * hasta que responden las cinco consultas.
  */
 export default async function InicioPage() {
-  const context = await getCurrentFamilyContext();
+  const [context, isPhone] = await Promise.all([getCurrentFamilyContext(), isPhoneRequest()]);
   const hour = hourInFamilyTimezone();
   const saludo = hour < 6 ? "Buenas noches" : hour < 12 ? "Buen día" : hour < 19 ? "Buenas tardes" : "Buenas noches";
   const nombre = context?.member.display_name?.split(" ")[0];
 
+  const lanzador = <Lanzador saludo={saludo} nombre={nombre} familyName={context?.family.name} />;
+
+  // Panel web (escritorio): el tablero solo se arma si el pedido no viene
+  // de un teléfono, así el celular no paga sus consultas ni su HTML. En
+  // una computadora (o un iPad) van las dos vistas y el ancho decide con
+  // `lg:`, para que achicar la ventana siga mostrando lo correcto.
+  if (isPhone) return lanzador;
+
+  return (
+    <>
+      <div className="lg:hidden">{lanzador}</div>
+      <div className="hidden lg:block">
+        <Tablero saludo={saludo} nombre={nombre ?? context?.family.name ?? "Tu familia"} today={todayInFamilyTimezone()} />
+      </div>
+    </>
+  );
+}
+
+/** El inicio del celular (y de cualquier ventana angosta): el lanzador de siempre. */
+function Lanzador({ saludo, nombre, familyName }: { saludo: string; nombre?: string; familyName?: string }) {
   return (
     <div className="flex flex-col gap-7">
       <div>
         <p className="text-sm text-muted-foreground">{saludo}</p>
         <h1 className="text-[1.75rem] font-semibold tracking-tight">
-          {nombre ? nombre : (context?.family.name ?? "Tu familia")}
+          {nombre ? nombre : (familyName ?? "Tu familia")}
         </h1>
       </div>
 
