@@ -205,8 +205,8 @@ acá primero):
 - **Panel web de escritorio (etapa 1, en curso por PRs, a pedido del
   usuario)**: rediseño solo para `lg:` (≥ 1024px), sin migraciones ni
   cambios de reglas de negocio; el celular no cambia. PR 1 (menú lateral
-  y layout) hecho; faltan inicio-tablero, documentos y calendario de
-  escritorio. Ver "Panel web (escritorio)".
+  y layout) verificado y mergeado; PR 2 (inicio-tablero) mergeado;
+  faltan documentos y calendario de escritorio. Ver "Panel web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
   en producción** (el usuario probó todos los comandos desde el
   celular: `/menu`, `/hoy`, `/compra`, `/gasto`, `/nafta`, `/evento`).
@@ -1961,6 +1961,34 @@ global, subir varios, vista semana: etapa 2).
    (`BackButton`, el mismo componente, que no se muestra en las
    pantallas raíz) va arriba del contenido. `KeyboardDismiss` no
    cambia.
+6. **Inicio-tablero (`app/(app)/_tablero/`)**: el inicio decide en el
+   servidor con el user-agent (`isPhoneRequest` en `lib/device.ts`:
+   iPhone, Android con "Mobile", "Mobi"). **Un teléfono recibe solo el
+   lanzador**, exactamente como antes: ni el HTML ni las consultas del
+   tablero. Cualquier otro (computadora, iPad, sin user-agent) recibe las
+   dos vistas, el lanzador con `lg:hidden` y el tablero con
+   `hidden lg:block`, así achicar la ventana sigue mostrando lo correcto.
+   El tablero es todo Server Components (cero JS de cliente) y cada
+   indicador y cada bloque va en su propio `Suspense`; los loaders de
+   `data.ts` están en `cache()` y solo reusan consultas y cálculos que ya
+   existen: `buildDisplayEvents` (semana: hoy + 6 días, un evento en
+   curso cuenta en "Hoy"), `listItems` (lista abierta),
+   `computeFuelIntervals` + `PerformanceChart` (último vehículo cargado,
+   últimos 10 tramos; el gráfico ganó `width`/`height`/`showAverage`
+   opcionales, sin cambiar el detalle del vehículo; respeta la cookie
+   `fuel_unit`), `listDocumentsWithExpiry` (documentos que vencen en 30
+   días o vencidos; `listExpiringDocuments` ahora filtra sobre ella, una
+   sola consulta) + garantías de `listAssets` que vencen en 30 días,
+   `listGroupSummaries` + `getGroupBundle` del grupo abierto más reciente
+   (barras divergentes, mismo chequeo de suma cero y `simplifyDebts`
+   que `/gastos/[id]/balances`), `usosEntre`/`reintegrosPendientes`
+   (ahorro del mes anterior, misma cuenta que `/promos/ahorros`) y
+   `promosQueAplican` (promos de hoy).
+7. **Chips de eventos por categoría** (`EVENT_CATEGORY_CHIP` en
+   `components/app-shell/event-chips.ts`): reusan los pares de tokens de
+   módulo (escolar → combustible, médico → documentos, familiar → gastos,
+   cumpleaños → promos, otro → `muted`) en vez de agregar colores. Los
+   va a usar también el calendario de escritorio.
 
 ## Comandos útiles
 

@@ -1,0 +1,600 @@
+import { Suspense } from "react";
+import Link from "next/link";
+import { AlertTriangle, CalendarPlus, FilePlus2, Fuel, ShoppingCart } from "lucide-react";
+import { MODULES_BY_KEY, type ModuleKey } from "@/components/app-shell/modules";
+import { EVENT_CATEGORY_CHIP } from "@/components/app-shell/event-chips";
+import { PerformanceChart } from "@/app/(app)/combustible/[vehicleId]/performance-chart";
+import { EVENT_CATEGORIES } from "@/lib/events/constants";
+import { formatEfficiency } from "@/lib/fuel/efficiency";
+import { balanceTone } from "@/lib/expenses/constants";
+import { sortBalancesForDisplay, simplifyDebts } from "@/lib/expenses/settlement";
+import { RUBROS, type Rubro } from "@/lib/promos/constants";
+import { comerciosVigentes } from "@/lib/promos/matching";
+import { describirComponente } from "@/lib/promos/formato";
+import { formatGuaranies, formatQuantity } from "@/lib/format";
+import { addDaysToDateOnly, dateOnlyInFamilyTimezone, dateOnlyToFamilyMidnightUtc, formatDate, formatTime } from "@/lib/dates";
+import { cn } from "@/lib/utils";
+import {
+  DIAS_VENCIMIENTO,
+  datosAhorro,
+  datosCombustible,
+  datosGastos,
+  datosLista,
+  datosPromos,
+  datosSemana,
+  datosVencimientos,
+} from "./data";
+
+/**
+ * Inicio de escritorio (`lg:`, ≥ 1024px): un tablero. Es la excepción de
+ * escritorio a "el inicio es un lanzador" (ver CLAUDE.md, "Panel web
+ * (escritorio)"). El inicio no lo arma para un teléfono, así que el
+ * celular no paga ninguna de estas consultas; todo es Server Component
+ * (sin JS de cliente) y cada bloque va en su propio `Suspense`.
+ */
+export function Tablero({ saludo, nombre, today }: { saludo: string; nombre: string; today: string }) {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-end justify-between gap-6">
+        <div>
+          <p className="text-sm text-muted-foreground first-letter:uppercase">
+            {formatDate(dateOnlyToFamilyMidnightUtc(today), "EEEE d 'de' MMMM")}
+          </p>
+          <h1 className="text-[1.75rem] font-semibold tracking-tight">
+            {saludo}, {nombre}
+          </h1>
+        </div>
+        <div className="flex gap-2">
+          {ACCESOS.map(({ href, label, icon: Icon, modulo }) => (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-opacity hover:opacity-80",
+                MODULES_BY_KEY[modulo].bg,
+                MODULES_BY_KEY[modulo].fg,
+              )}
+            >
+              <Icon className="size-4" />+ {label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4">
+        <Suspense fallback={<Esqueleto className="h-28" />}>
+          <IndicadorEventos />
+        </Suspense>
+        <Suspense fallback={<Esqueleto className="h-28" />}>
+          <IndicadorDocumentos />
+        </Suspense>
+        <Suspense fallback={<Esqueleto className="h-28" />}>
+          <IndicadorBalance />
+        </Suspense>
+        <Suspense fallback={<Esqueleto className="h-28" />}>
+          <IndicadorAhorro />
+        </Suspense>
+      </div>
+
+      <div className="grid grid-cols-12 gap-4">
+        <Suspense fallback={<Esqueleto className="col-span-8 h-64" />}>
+          <BloqueSemana />
+        </Suspense>
+        <Suspense fallback={<Esqueleto className="col-span-4 h-64" />}>
+          <BloqueLista />
+        </Suspense>
+        <Suspense fallback={<Esqueleto className="col-span-8 h-72" />}>
+          <BloqueCombustible />
+        </Suspense>
+        <Suspense fallback={<Esqueleto className="col-span-4 h-72" />}>
+          <BloqueVencimientos />
+        </Suspense>
+        <Suspense fallback={<Esqueleto className="col-span-6 h-72" />}>
+          <BloqueGastos />
+        </Suspense>
+        <Suspense fallback={<Esqueleto className="col-span-6 h-72" />}>
+          <BloquePromos />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
+
+const ACCESOS: { href: string; label: string; icon: typeof Fuel; modulo: ModuleKey }[] = [
+  { href: "/compras/nueva", label: "Lista", icon: ShoppingCart, modulo: "compras" },
+  { href: "/eventos?nuevo=1", label: "Evento", icon: CalendarPlus, modulo: "eventos" },
+  { href: "/combustible/nueva", label: "Nafta", icon: Fuel, modulo: "combustible" },
+  { href: "/documentos/nuevo", label: "Documento", icon: FilePlus2, modulo: "documentos" },
+];
+
+// ============ Piezas comunes ============
+
+function Esqueleto({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-2xl border bg-card/60", className)} />;
+}
+
+function Indicador({
+  modulo,
+  href,
+  label,
+  value,
+  valueClassName,
+  detail,
+}: {
+  modulo: ModuleKey;
+  href: string;
+  label: string;
+  value: React.ReactNode;
+  valueClassName?: string;
+  detail: React.ReactNode;
+}) {
+  const { icon: Icon, fg, bg } = MODULES_BY_KEY[modulo];
+  return (
+    <Link
+      href={href}
+      className="flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-4 shadow-sm transition-colors hover:border-ring/40"
+    >
+      <span className="flex items-center gap-2">
+        <span className={cn("flex size-7 items-center justify-center rounded-lg", bg)}>
+          <Icon className={cn("size-4", fg)} />
+        </span>
+        <span className="truncate text-xs font-medium text-muted-foreground">{label}</span>
+      </span>
+      <span className={cn("truncate text-2xl font-semibold tabular-nums", valueClassName)}>{value}</span>
+      <span className="truncate text-xs text-muted-foreground">{detail}</span>
+    </Link>
+  );
+}
+
+function Panel({
+  modulo,
+  title,
+  subtitle,
+  href,
+  linkLabel,
+  className,
+  children,
+}: {
+  modulo: ModuleKey;
+  title: string;
+  subtitle?: React.ReactNode;
+  href: string;
+  linkLabel: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const { icon: Icon, fg, bg } = MODULES_BY_KEY[modulo];
+  return (
+    <section className={cn("flex min-w-0 flex-col gap-4 rounded-2xl border bg-card p-5 shadow-sm", className)}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", bg)}>
+            <Icon className={cn("size-4", fg)} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-semibold">{title}</h2>
+            {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
+          </div>
+        </div>
+        <Link href={href} className="shrink-0 text-xs font-medium text-muted-foreground hover:text-foreground">
+          {linkLabel} →
+        </Link>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Vacio({ children }: { children: React.ReactNode }) {
+  return <p className="py-6 text-center text-sm text-muted-foreground">{children}</p>;
+}
+
+/** "Hoy", "Mañana" o el día, en la zona de la familia. */
+function etiquetaDia(day: string, today: string): string {
+  if (day <= today) return "Hoy";
+  if (day === addDaysToDateOnly(today, 1)) return "Mañana";
+  return formatDate(dateOnlyToFamilyMidnightUtc(day), "EEE d");
+}
+
+function plural(n: number, uno: string, varios: string) {
+  return `${n} ${n === 1 ? uno : varios}`;
+}
+
+// ============ Indicadores ============
+
+async function IndicadorEventos() {
+  const { today, total, next } = await datosSemana();
+  return (
+    <Indicador
+      modulo="eventos"
+      href="/eventos"
+      label="Eventos esta semana"
+      value={total}
+      detail={
+        next
+          ? `Próximo: ${next.title} · ${etiquetaDia(dateOnlyInFamilyTimezone(next.starts_at), today)}${
+              next.all_day ? "" : ` ${formatTime(next.starts_at)}`
+            }`
+          : "Nada en los próximos 7 días"
+      }
+    />
+  );
+}
+
+async function IndicadorDocumentos() {
+  const { docsSoon, docsExpired } = await datosVencimientos();
+  return (
+    <Indicador
+      modulo="documentos"
+      href="/documentos"
+      label="Documentos por vencer"
+      value={docsSoon}
+      valueClassName={docsSoon > 0 ? "text-warning" : undefined}
+      detail={`En ${DIAS_VENCIMIENTO} días${docsExpired > 0 ? ` · y ${plural(docsExpired, "vencido", "vencidos")}` : ""}`}
+    />
+  );
+}
+
+async function IndicadorBalance() {
+  const data = await datosGastos();
+  if (!data || data.myGroups === 0) {
+    return (
+      <Indicador
+        modulo="gastos"
+        href="/gastos"
+        label="Tu balance en gastos"
+        value="—"
+        detail={data?.openCount ? "No participás de los grupos abiertos" : "Sin grupos abiertos"}
+      />
+    );
+  }
+  return (
+    <Indicador
+      modulo="gastos"
+      href="/gastos"
+      label="Tu balance en gastos"
+      value={formatGuaranies(Math.abs(data.myTotal))}
+      valueClassName={balanceTone(data.myTotal)}
+      detail={
+        data.allConsistent
+          ? `${data.myTotal > 0 ? "Te deben" : data.myTotal < 0 ? "Debés" : "Al día"} en ${plural(data.myGroups, "grupo abierto", "grupos abiertos")}`
+          : "Algún grupo no cierra: revisalo"
+      }
+    />
+  );
+}
+
+async function IndicadorAhorro() {
+  const data = await datosAhorro();
+  return (
+    <Indicador
+      modulo="promos"
+      href={data ? `/promos/ahorros?mes=${data.mes.slice(0, 7)}` : "/promos/ahorros"}
+      label="Ahorro con promos"
+      value={formatGuaranies(data?.total ?? 0)}
+      valueClassName="text-success"
+      detail={`${
+        data ? `${formatDate(dateOnlyToFamilyMidnightUtc(data.mes), "MMMM")} · ` : ""
+      }por acreditar ${formatGuaranies(data?.porAcreditar ?? 0)}`}
+    />
+  );
+}
+
+// ============ Bloques ============
+
+async function BloqueSemana() {
+  const { today, days, byDay } = await datosSemana();
+  return (
+    <Panel modulo="eventos" title="Esta semana" subtitle="Hoy y los 6 días siguientes" href="/eventos" linkLabel="Calendario" className="col-span-8">
+      <div className="grid grid-cols-7 gap-2">
+        {days.map((day) => {
+          const events = byDay.get(day) ?? [];
+          const isToday = day === today;
+          return (
+            <div
+              key={day}
+              className={cn(
+                "flex min-h-40 min-w-0 flex-col gap-1.5 rounded-xl p-2",
+                isToday ? "bg-accent ring-1 ring-primary/30" : "bg-muted/60",
+              )}
+            >
+              <p
+                className={cn(
+                  "text-xs font-semibold capitalize",
+                  isToday ? "text-accent-foreground" : "text-muted-foreground",
+                )}
+              >
+                {isToday ? "Hoy" : formatDate(dateOnlyToFamilyMidnightUtc(day), "EEE d")}
+              </p>
+              {events.slice(0, 4).map((e) => (
+                <span
+                  key={e.id}
+                  title={`${e.title} · ${EVENT_CATEGORIES[e.category].label}`}
+                  className={cn(
+                    "flex flex-col rounded-md px-1.5 py-1 text-[11px] font-medium leading-tight",
+                    EVENT_CATEGORY_CHIP[e.category],
+                  )}
+                >
+                  {!e.all_day && <span className="tabular-nums opacity-80">{formatTime(e.starts_at)}</span>}
+                  <span className="line-clamp-2 hyphens-auto break-words">{e.title}</span>
+                </span>
+              ))}
+              {events.length > 4 && (
+                <span className="px-1 text-[11px] text-muted-foreground">+{events.length - 4} más</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+
+async function BloqueLista() {
+  const data = await datosLista();
+  if (!data) {
+    return (
+      <Panel modulo="compras" title="Lista abierta" href="/compras" linkLabel="Compras" className="col-span-4">
+        <Vacio>
+          No hay ninguna lista abierta.{" "}
+          <Link href="/compras/nueva" className="font-medium text-foreground underline-offset-2 hover:underline">
+            Crear una
+          </Link>
+        </Vacio>
+      </Panel>
+    );
+  }
+  const { list, items } = data;
+  const checked = items.filter((i) => i.is_checked).length;
+  const missing = items.filter((i) => !i.is_checked);
+  return (
+    <Panel
+      modulo="compras"
+      title={list.name ?? "Lista abierta"}
+      subtitle={list.status === "en_curso" ? "Compra en curso" : "Lista abierta"}
+      href={`/compras/${list.id}`}
+      linkLabel="Abrir"
+      className="col-span-4"
+    >
+      <div className="flex flex-col gap-1.5">
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>
+            {checked} de {items.length} tildados
+          </span>
+          <span className="tabular-nums">{items.length > 0 ? Math.round((checked / items.length) * 100) : 0}%</span>
+        </div>
+        <span className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <span
+            className="block h-full rounded-full bg-mod-compras"
+            style={{ width: `${items.length > 0 ? (checked / items.length) * 100 : 0}%` }}
+          />
+        </span>
+      </div>
+      {missing.length === 0 ? (
+        <Vacio>{items.length === 0 ? "La lista está vacía." : "No falta nada."}</Vacio>
+      ) : (
+        <ul className="flex flex-col divide-y divide-border text-sm">
+          {missing.slice(0, 7).map((item) => (
+            <li key={item.id} className="flex justify-between gap-2 py-1.5">
+              <span className="truncate">{item.name}</span>
+              <span className="shrink-0 text-muted-foreground">{formatQuantity(item.quantity, item.unit)}</span>
+            </li>
+          ))}
+          {missing.length > 7 && (
+            <li className="py-1.5 text-xs text-muted-foreground">y {plural(missing.length - 7, "producto más", "productos más")}</li>
+          )}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+async function BloqueCombustible() {
+  const data = await datosCombustible();
+  if (!data.vehicle) {
+    return (
+      <Panel modulo="combustible" title="Rendimiento de combustible" href="/combustible/vehiculos" linkLabel="Vehículos" className="col-span-8">
+        <Vacio>Todavía no hay vehículos cargados.</Vacio>
+      </Panel>
+    );
+  }
+  const { vehicle, unit, intervals, logDates, last, averageKmPerLiter, costPerKm, vehicleCount } = data;
+  return (
+    <Panel
+      modulo="combustible"
+      title={`Rendimiento · ${vehicle.name}`}
+      subtitle={
+        vehicleCount > 1
+          ? `Último vehículo cargado · últimos ${plural(intervals.length, "tramo", "tramos")}`
+          : `Últimos ${plural(intervals.length, "tramo", "tramos")} entre tanques llenos`
+      }
+      href={`/combustible/${vehicle.id}`}
+      linkLabel="Detalle"
+      className="col-span-8"
+    >
+      <div className="grid grid-cols-3 gap-4">
+        <Dato label="Último tramo" value={last ? formatEfficiency(last.kmPerLiter, unit) : "—"} />
+        <Dato label="Promedio" value={averageKmPerLiter ? formatEfficiency(averageKmPerLiter, unit) : "—"} />
+        <Dato label="Costo por km" value={costPerKm ? formatGuaranies(costPerKm) : "—"} />
+      </div>
+      <PerformanceChart intervals={intervals} logDates={logDates} unit={unit} width={640} height={170} showAverage />
+    </Panel>
+  );
+}
+
+function Dato({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <p className="truncate text-xs text-muted-foreground">{label}</p>
+      <p className="truncate text-lg font-semibold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+async function BloqueVencimientos() {
+  const { items } = await datosVencimientos();
+  return (
+    <Panel
+      modulo="documentos"
+      title="Por vencer"
+      subtitle={`Próximos ${DIAS_VENCIMIENTO} días`}
+      href="/documentos"
+      linkLabel="Documentos"
+      className="col-span-4"
+    >
+      {items.length === 0 ? (
+        <Vacio>Nada vence en los próximos {DIAS_VENCIMIENTO} días.</Vacio>
+      ) : (
+        <ul className="flex flex-col divide-y divide-border text-sm">
+          {items.slice(0, 7).map((item) => (
+            <li key={`${item.kind}:${item.id}`}>
+              <Link href={item.href} className="flex items-center justify-between gap-2 py-1.5 hover:text-foreground">
+                <span className="min-w-0">
+                  <span className="block truncate">{item.title}</span>
+                  <span className="block text-xs text-muted-foreground">{formatDate(item.date)}</span>
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 text-xs font-medium tabular-nums",
+                    item.days < 0 ? "text-destructive" : item.days <= 7 ? "text-warning" : "text-muted-foreground",
+                  )}
+                >
+                  {item.days < 0
+                    ? `venció hace ${plural(-item.days, "día", "días")}`
+                    : item.days === 0
+                      ? "vence hoy"
+                      : `en ${plural(item.days, "día", "días")}`}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+async function BloqueGastos() {
+  const data = await datosGastos();
+  const bundle = data?.latest;
+  if (!bundle) {
+    return (
+      <Panel modulo="gastos" title="Gastos compartidos" href="/gastos" linkLabel="Gastos" className="col-span-6">
+        <Vacio>No hay grupos abiertos.</Vacio>
+      </Panel>
+    );
+  }
+  const names = new Map(bundle.participants.map((p) => [p.id, p.display_name]));
+  const balances = sortBalancesForDisplay(bundle.balances.balances);
+  const maxAbs = Math.max(1, ...balances.map((b) => Math.abs(b.balance)));
+  // Mismo criterio que `/gastos/[id]/balances`: si la suma no da cero, se
+  // avisa y no se proponen transferencias.
+  const transfers = bundle.balances.isConsistent ? simplifyDebts(bundle.balances.balances) : [];
+  return (
+    <Panel
+      modulo="gastos"
+      title={bundle.group.name}
+      subtitle={`Grupo abierto más reciente · total ${formatGuaranies(bundle.totalPyg)}`}
+      href={`/gastos/${bundle.group.id}/balances`}
+      linkLabel="Balances"
+      className="col-span-6"
+    >
+      {!bundle.balances.isConsistent && (
+        <p className="flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">
+          <AlertTriangle className="size-4 shrink-0" />
+          Los balances no suman cero (diferencia {formatGuaranies(bundle.balances.sum)}). Revisá el grupo.
+        </p>
+      )}
+      <ul className="flex flex-col gap-2 text-sm">
+        {balances.map((b) => {
+          const width = `${(Math.abs(b.balance) / maxAbs) * 100}%`;
+          return (
+            <li key={b.participantId} className="grid grid-cols-[7rem_1fr_7.5rem] items-center gap-3">
+              <span className="truncate">{names.get(b.participantId) ?? "—"}</span>
+              <span className="grid h-2.5 grid-cols-2">
+                <span className="flex justify-end border-r border-border">
+                  {b.balance < 0 && <span className="h-full rounded-l-full bg-destructive" style={{ width }} />}
+                </span>
+                <span className="flex">
+                  {b.balance > 0 && <span className="h-full rounded-r-full bg-success" style={{ width }} />}
+                </span>
+              </span>
+              <span className={cn("text-right text-xs font-medium tabular-nums", balanceTone(b.balance))}>
+                {b.balance > 0 ? "+" : b.balance < 0 ? "−" : ""}
+                {formatGuaranies(Math.abs(b.balance))}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {transfers.length > 0 && (
+        <div className="flex flex-col gap-1 border-t pt-3">
+          <p className="text-xs font-medium text-muted-foreground">Para quedar a mano</p>
+          <ul className="flex flex-col gap-1 text-sm">
+            {transfers.map((t, i) => (
+              <li key={i}>
+                <span className="font-medium">{names.get(t.from)}</span> le paga{" "}
+                <span className="font-medium tabular-nums">{formatGuaranies(t.amount)}</span> a{" "}
+                <span className="font-medium">{names.get(t.to)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+async function BloquePromos() {
+  const { hoy, hasCards, matches, members } = await datosPromos();
+  const names = new Map(members.map((m) => [m.id, m.display_name]));
+  return (
+    <Panel
+      modulo="promos"
+      title="Promos de hoy"
+      subtitle={hasCards ? plural(matches.length, "promo para tus tarjetas", "promos para tus tarjetas") : undefined}
+      href="/promos"
+      linkLabel="Ver todas"
+      className="col-span-6"
+    >
+      {!hasCards ? (
+        <Vacio>
+          Cargá las tarjetas de la familia en{" "}
+          <Link href="/config/tarjetas" className="font-medium text-foreground underline-offset-2 hover:underline">
+            Mis tarjetas
+          </Link>
+          .
+        </Vacio>
+      ) : matches.length === 0 ? (
+        <Vacio>Hoy no hay promos para tus tarjetas.</Vacio>
+      ) : (
+        <ul className="flex flex-col divide-y divide-border text-sm">
+          {matches.slice(0, 6).map(({ promo, tarjeta, beneficio }) => {
+            const comercios = comerciosVigentes(promo.comercios, hoy).map((c) => c.comercio_nombre);
+            const duenio = names.get(tarjeta.member_id);
+            const rubro = RUBROS[promo.rubro as Rubro];
+            return (
+              <li key={promo.id} className="flex items-start gap-3 py-2">
+                <span className="pt-0.5" title={rubro?.label}>
+                  {rubro?.emoji ?? "🏷️"}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">
+                    {comercios.length > 0 ? comercios.join(", ") : promo.titulo}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {tarjeta.alias}
+                    {duenio ? ` · ${duenio}` : ""}
+                  </span>
+                </span>
+                <span className="shrink-0 rounded-md bg-mod-promos-soft px-2 py-0.5 text-xs font-medium text-mod-promos">
+                  {beneficio.componentes.map(describirComponente).join(" + ")}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Panel>
+  );
+}
