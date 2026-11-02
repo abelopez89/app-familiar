@@ -344,7 +344,7 @@ export function SupermercadoView({
       })}
 
       <div
-        className="glass fixed inset-x-0 z-30 mx-auto max-w-lg border-t px-4 py-3"
+        className="glass fixed inset-x-0 z-30 mx-auto max-w-lg border-t px-4 py-3 lg:left-(--sidebar-width)"
         style={{ bottom: "var(--nav-total)" }}
       >
         <CloseListButton listId={listId} />

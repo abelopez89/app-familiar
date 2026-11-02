@@ -22,7 +22,7 @@ export function AppHeader({ familyName }: { familyName: string }) {
 
   return (
     <header
-      className="glass sticky top-0 z-30 border-b"
+      className="glass sticky top-0 z-30 border-b lg:hidden"
       style={{ paddingTop: "var(--safe-top)" }}
     >
       <div className="mx-auto flex h-13 max-w-lg items-center gap-1 px-3">
