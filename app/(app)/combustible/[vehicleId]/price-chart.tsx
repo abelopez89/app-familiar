@@ -2,11 +2,18 @@ import type { FuelLog } from "@/lib/supabase/types";
 import { formatDate } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
 
-const WIDTH = 320;
-const HEIGHT = 140;
 const PADDING = 24;
 
-export function PriceChart({ logs }: { logs: FuelLog[] }) {
+export function PriceChart({
+  logs,
+  width: WIDTH = 320,
+  height: HEIGHT = 140,
+}: {
+  logs: FuelLog[];
+  /** Tamaño del viewBox: `/combustible` en escritorio lo usa más ancho y bajo. */
+  width?: number;
+  height?: number;
+}) {
   const withPrice = logs
     .filter((l) => l.price_per_liter != null)
     .sort((a, b) => Date.parse(a.filled_at) - Date.parse(b.filled_at));

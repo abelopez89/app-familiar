@@ -8,6 +8,7 @@ import {
   listPendingTaskDefinitionsForAsset,
 } from "@/lib/fuel/queries";
 import { computeFuelIntervals } from "@/lib/fuel/consumption";
+import { vehicleStats } from "@/lib/fuel/stats";
 import { FUEL_TYPES } from "@/lib/fuel/constants";
 import { formatEfficiency } from "@/lib/fuel/efficiency";
 import { getFuelUnit } from "@/lib/fuel/unit";
@@ -22,11 +23,19 @@ import { PriceChart } from "./price-chart";
 import { FuelLogEditDialog } from "./fuel-log-edit-dialog";
 import { usosPorReferencia } from "@/lib/promos/usos";
 
-export default async function VehicleDetailPage({ params }: { params: Promise<{ vehicleId: string }> }) {
+export default async function VehicleDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ vehicleId: string }>;
+  /** `?carga=<id>` abre el diálogo de esa carga al entrar (lápiz del historial de `/combustible` en escritorio). */
+  searchParams: Promise<{ carga?: string }>;
+}) {
   const context = await getCurrentFamilyContext();
   if (!context) redirect("/login");
 
   const { vehicleId } = await params;
+  const { carga } = await searchParams;
   const [vehicle, logs, linkableAssets, unit] = await Promise.all([
     getVehicle(vehicleId),
     listFuelLogs(vehicleId),
@@ -42,18 +51,12 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   const intervals = computeFuelIntervals(logs);
   const logDates = Object.fromEntries(logs.map((l) => [l.id, l.filled_at]));
 
-  const averageKmPerLiter =
-    intervals.length > 0 ? intervals.reduce((s, i) => s + i.kmPerLiter, 0) / intervals.length : null;
-  const best = intervals.length > 0 ? intervals.reduce((a, b) => (b.kmPerLiter > a.kmPerLiter ? b : a)) : null;
-  const worst = intervals.length > 0 ? intervals.reduce((a, b) => (b.kmPerLiter < a.kmPerLiter ? b : a)) : null;
-  const totalKm = intervals.reduce((s, i) => s + i.km, 0);
-  const totalAmountAllIntervals = intervals.reduce((s, i) => s + i.totalAmount, 0);
-  const costPerKm = totalKm > 0 ? totalAmountAllIntervals / totalKm : null;
-
   const currentYear = todayInFamilyTimezone().slice(0, 4);
-  const logsThisYear = logs.filter((l) => l.filled_at.startsWith(currentYear));
-  const litersThisYear = logsThisYear.reduce((s, l) => s + l.liters, 0);
-  const spentThisYear = logsThisYear.reduce((s, l) => s + (l.total_amount ?? 0), 0);
+  const { averageKmPerLiter, best, worst, costPerKm, litersThisYear, spentThisYear } = vehicleStats(
+    logs,
+    intervals,
+    currentYear,
+  );
 
   const historyDesc = [...logs].sort((a, b) => Date.parse(b.filled_at) - Date.parse(a.filled_at));
 
@@ -168,6 +171,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
               <FuelLogEditDialog
                 key={log.id}
                 log={log}
+                defaultOpen={log.id === carga}
                 trigger={
                   <button type="button" className="flex w-full flex-col gap-0.5 px-4 py-3 text-left text-sm">
                     <span className="flex items-center justify-between">

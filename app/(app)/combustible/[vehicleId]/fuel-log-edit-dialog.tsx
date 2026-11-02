@@ -21,8 +21,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function FuelLogEditDialog({ log, trigger }: { log: FuelLog; trigger: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+export function FuelLogEditDialog({
+  log,
+  trigger,
+  defaultOpen = false,
+}: {
+  log: FuelLog;
+  trigger: React.ReactNode;
+  /** Abierto al entrar: `/combustible/[vehicleId]?carga=<id>`. */
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const [isFullTank, setIsFullTank] = useState(log.is_full_tank);
   const [resetsCalculation, setResetsCalculation] = useState(log.resets_calculation);
   const [isPending, startTransition] = useTransition();
