@@ -578,17 +578,25 @@ async function BloquePromos() {
                 <span className="pt-0.5" title={rubro?.label}>
                   {rubro?.emoji ?? "🏷️"}
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">
+                {/* El beneficio va en su propia línea, debajo del nombre, y
+                    se corta a dos renglones: hay promos con varios
+                    componentes y alcances ("20% en caja (perfumería…) + 10%
+                    reintegro…") que, al costado, empujaban el nombre fuera
+                    de la tarjeta. El texto completo queda en el `title`. */}
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="truncate font-medium">
                     {comercios.length > 0 ? comercios.join(", ") : promo.titulo}
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground">
+                  <span
+                    title={beneficio.componentes.map(describirComponente).join(" + ")}
+                    className="line-clamp-2 w-fit max-w-full rounded-md bg-mod-promos-soft px-2 py-0.5 text-xs font-medium text-mod-promos"
+                  >
+                    {beneficio.componentes.map(describirComponente).join(" + ")}
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">
                     {tarjeta.alias}
                     {duenio ? ` · ${duenio}` : ""}
                   </span>
-                </span>
-                <span className="shrink-0 rounded-md bg-mod-promos-soft px-2 py-0.5 text-xs font-medium text-mod-promos">
-                  {beneficio.componentes.map(describirComponente).join(" + ")}
                 </span>
               </li>
             );

@@ -206,7 +206,8 @@ acá primero):
   usuario)**: rediseño solo para `lg:` (≥ 1024px), sin migraciones ni
   cambios de reglas de negocio; el celular no cambia. PR 1 (menú lateral
   y layout) y PR 2 (inicio-tablero) verificados en producción; PR 3
-  (documentos) hecho; falta el calendario de escritorio. Ver "Panel web (escritorio)".
+  (documentos) verificado en el preview y mergeado; falta el
+  calendario de escritorio. Ver "Panel web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
   en producción** (el usuario probó todos los comandos desde el
   celular: `/menu`, `/hoy`, `/compra`, `/gasto`, `/nafta`, `/evento`).
