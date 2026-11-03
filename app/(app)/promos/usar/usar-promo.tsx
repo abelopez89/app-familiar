@@ -184,7 +184,11 @@ export function UsarPromo({
         </div>
       )}
 
-      {opcion && opcion.componentes.filter((c) => c.tipo !== "cuotas").length > 1 && (
+      {/* Con un solo componente también se muestra si tiene alcance: así se
+          lee la condición ("con pago QR") y se puede destildar. */}
+      {opcion &&
+        (opcion.componentes.filter((c) => c.tipo !== "cuotas").length > 1 ||
+          opcion.componentes.some((c) => c.tipo !== "cuotas" && c.alcance)) && (
         <div className="flex flex-col gap-1">
           <Label>Qué se aplicó</Label>
           {opcion.componentes.map((c, i) =>
