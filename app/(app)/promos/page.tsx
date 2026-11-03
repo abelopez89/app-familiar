@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ActualizarButton } from "./actualizar-button";
 import { AccionesPromo } from "./acciones-promo";
+import { isPhoneRequest } from "@/lib/device";
+import { PromosEscritorio, type PromosParams } from "./escritorio";
 
 // Alcanza para la ingesta que corre en `after()` desde "Actualizar ahora"
 // (misma duración que la ruta del cron).
@@ -33,8 +35,8 @@ const BANCOS_CON_ESTADO = ["itau", "gnb"] as const;
  * 7 días o menos van primero y marcadas. Abajo, la línea de estado de la
  * ingesta por banco, para notar si una fuente dejó de actualizarse.
  */
-export default async function PromosPage() {
-  const context = await getCurrentFamilyContext();
+export default async function PromosPage({ searchParams }: { searchParams: Promise<PromosParams> }) {
+  const [context, isPhone] = await Promise.all([getCurrentFamilyContext(), isPhoneRequest()]);
   if (!context) redirect("/login");
 
   const hoy = todayInFamilyTimezone();
@@ -58,7 +60,7 @@ export default async function PromosPage() {
 
   const estadoPorBanco = new Map(ingestas.map((e) => [e.banco, e]));
 
-  return (
+  const mobile = (
     <div className="flex flex-col gap-6 pb-nav">
       <PageHeader
         title="Promos de hoy"
@@ -204,5 +206,26 @@ export default async function PromosPage() {
         })}
       </section>
     </div>
+  );
+
+  // Panel web (escritorio): un teléfono recibe solo la vista de siempre;
+  // en una computadora van las dos y el ancho decide con `lg:`.
+  if (isPhone) return mobile;
+
+  return (
+    <>
+      <div className="lg:hidden">{mobile}</div>
+      <div className="hidden lg:block">
+        <PromosEscritorio
+          familyId={context.family.id}
+          hoy={hoy}
+          promos={promos}
+          tarjetas={tarjetas}
+          members={members}
+          ingestas={ingestas}
+          params={await searchParams}
+        />
+      </div>
+    </>
   );
 }

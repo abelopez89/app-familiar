@@ -208,8 +208,8 @@ acá primero):
   y layout), PR 2 (inicio-tablero), PR 3 (documentos) y PR 4
   (calendario) verificados en producción: etapa 1 completa. Después, a
   pedido del usuario, el resto de los módulos con el mismo criterio, un
-  PR por pantalla y en este orden: Gastos y Compras (verificados), Combustible (hecho)
-  y Promos. Familia y Ajustes quedan como están (decisión del usuario).
+  PR por pantalla y en este orden: Gastos, Compras y Combustible (verificados)
+  y Promos (hecho). Familia y Ajustes quedan como están (decisión del usuario).
   La etapa 2 (búsqueda global, subir varios, vista semana) no empezó. Ver "Panel web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
   en producción** (el usuario probó todos los comandos desde el
@@ -2098,6 +2098,19 @@ global, subir varios, vista semana: etapa 2).
     (también la del tablero) promedia en km/L y convierte después, igual
     que el "Promedio" de las estadísticas. Promediar directo en L/100 km
     daba otro número (no es lineal) y no coincidía con el dato de al lado.
+13. **Promos de escritorio (`app/(app)/promos/escritorio.tsx`)**: mismo
+    corte por user-agent. Filtros a la izquierda (rubro y banco con
+    contador, tarjeta), como parámetros de la URL (`rubro`, `banco`,
+    `tarjeta`); las promos de hoy en grilla al centro, con la misma
+    tarjeta, topes, vigencia y acciones (`AccionesPromo`) que el celular;
+    a la derecha los ahorros del mes en curso (misma cuenta que
+    `/promos/ahorros`: `usosEntre`, `reintegrosPendientes`, `estadoTopes`)
+    y el estado de la ingesta por banco con "Actualizar". **Con una
+    tarjeta elegida, `promosQueAplican` se corre contra esa sola**: con
+    todas, se queda con la mejor tarjeta de la familia por promo y una
+    promo que también le sirve a la elegida podía figurar con otra. Lo
+    único de cliente (acciones de cada promo y "Actualizar") ya lo cargaba
+    la vista del celular: `/promos` no suma JS.
 
 ## Comandos útiles
 
