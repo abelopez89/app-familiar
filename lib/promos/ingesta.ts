@@ -5,7 +5,7 @@ import { todayInFamilyTimezone } from "@/lib/dates";
 import { INGESTA_EN_CURSO_MS, type Banco } from "./constants";
 import { filtrarPromos } from "./filtrado";
 import { normalizarPromo } from "./normalizar";
-import { guardarPromoAutomatica, hashContenido, registrarDescartada } from "./persistencia";
+import { claveBloqueo, guardarPromoAutomatica, hashContenido, registrarDescartada } from "./persistencia";
 
 /**
  * Esqueleto común de las ingestas (Itaú automática; el JSON de GNB
@@ -46,6 +46,8 @@ export type ResumenIngesta = {
   normalizadas: number;
   descartadas: number;
   desactivadas: number;
+  /** Desactivadas a mano: se saltean (ni se reactivan ni se normalizan). */
+  bloqueadas?: number;
   pendientes: number;
   errores: string[];
 };
@@ -104,6 +106,7 @@ export async function correrIngesta(
     normalizadas: 0,
     descartadas: 0,
     desactivadas: 0,
+    bloqueadas: 0,
     pendientes: 0,
     errores: [],
   };
@@ -117,11 +120,14 @@ export async function correrIngesta(
     resumen.total = items.length;
 
     const prefijo = `${input.banco}:`;
-    const [{ data: existentes, error: e1 }, { data: descartadas, error: e2 }] = await Promise.all([
-      db.from("promociones").select("id, clave_externa, hash_contenido, activa").eq("banco", input.banco).eq("origen", input.origen),
-      db.from("promo_descartadas").select("clave_externa, hash").like("clave_externa", `${prefijo}%`),
-    ]);
-    if (e1 || e2) throw e1 ?? e2;
+    const [{ data: existentes, error: e1 }, { data: descartadas, error: e2 }, { data: bloqueos, error: e3 }] =
+      await Promise.all([
+        db.from("promociones").select("id, clave_externa, hash_contenido, activa").eq("banco", input.banco).eq("origen", input.origen),
+        db.from("promo_descartadas").select("clave_externa, hash").like("clave_externa", `${prefijo}%`),
+        db.from("promo_descartadas").select("clave_externa").like("clave_externa", `${claveBloqueo(prefijo)}%`),
+      ]);
+    if (e1 || e2 || e3) throw e1 ?? e2 ?? e3;
+    const bloqueadas = new Set((bloqueos ?? []).map((b) => b.clave_externa));
 
     const porClave = new Map((existentes ?? []).map((p) => [p.clave_externa, p]));
     const descartadaPorClave = new Map((descartadas ?? []).map((d) => [d.clave_externa, d.hash]));
@@ -132,6 +138,12 @@ export async function correrIngesta(
     for (const item of items) {
       if (vistas.has(item.clave)) continue;
       vistas.add(item.clave);
+      // Desactivada a mano (`desactivarPromo`): no se reactiva ni se
+      // vuelve a leer con Claude, aunque el banco la siga publicando.
+      if (bloqueadas.has(claveBloqueo(item.clave))) {
+        resumen.bloqueadas = (resumen.bloqueadas ?? 0) + 1;
+        continue;
+      }
       const hash = hashContenido(item.firma);
       const existente = porClave.get(item.clave);
 
