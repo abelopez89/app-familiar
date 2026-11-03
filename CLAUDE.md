@@ -92,11 +92,12 @@ acá primero):
   en producción. Ver la sección "Promociones de tarjetas" más abajo
   (puntos 19–25).
 
-- **Calificaciones del colegio (en Documentos): parte 1 de 2 en curso,
-  a pedido del usuario** (excepción al modo mantenimiento, con tablas
-  nuevas confirmadas por el usuario). Parte 1: migración `016`, carga del
-  informe mensual en PDF con lectura de puntajes y vista previa editable.
-  Parte 2 (pendiente): pantalla de resumen por hijo, materia y mes. Ver
+- **Calificaciones del colegio (en Documentos): partes 1 y 2
+  implementadas, a pedido del usuario** (excepción al modo mantenimiento,
+  con tablas nuevas confirmadas por el usuario). Parte 1 (verificada en
+  el preview por el usuario): migración `016`, carga del informe mensual
+  en PDF con lectura de puntajes y vista previa editable. Parte 2:
+  resumen por hijo, materia y mes en `/documentos/calificaciones`. Ver
   "Calificaciones del colegio" más abajo.
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
@@ -626,6 +627,8 @@ Tres clientes separados, no los mezcles:
     `?editar=1` abre el diálogo de edición al entrar.
     `/documentos/[id]/archivo?pagina=<n>[&descargar=1]` — Route Handler
     GET que redirige a la URL firmada de esa página (panel de escritorio).
+  - `/documentos/calificaciones?miembro=<id>&anio=<yyyy>` — resumen de
+    calificaciones: acumulado por materia, mes a mes e informes cargados.
   - `/documentos/calificaciones/cargar` — informe mensual del colegio
     en PDF: se guarda como documento "Calificaciones" del hijo y se
     revisan los puntajes leídos antes de guardarlos. `?doc=<id>` edita
@@ -2179,6 +2182,24 @@ sus puntajes para un resumen por materia y mes. Sin avisos por Telegram
    guardados se editan esos (con las correcciones hechas); si no, se lee
    el PDF. Sirve también para los informes subidos por el formulario
    común de documentos.
+6. **Resumen (`/documentos/calificaciones`, `vista.tsx`)**: hijo y año en
+   la URL, resueltos en el servidor y sin JS de cliente. Los cálculos
+   están en `lib/calificaciones/resumen.ts` (puro, con tests). **El
+   acumulado suma puntos sobre la suma de máximos**, no promedia
+   porcentajes: un mes con 42 puntos posibles pesa más que uno con 5,
+   igual que en el colegio. Una materia que no se evaluó en un mes
+   muestra "–" y no cuenta. Bajo 70% va en color de advertencia, y una
+   baja de 10 puntos porcentuales o más entre los dos últimos meses
+   evaluados (`BAJA_DESTACADA`) se marca con la observación del colegio.
+   La tabla mes a mes se desplaza dentro de su tarjeta (columna de
+   materia fija), sin desbordar la página en el celular.
+7. **Accesos**: el botón con el birrete en `/documentos` (celular y
+   escritorio), que aparece solo si hay algún documento de tipo
+   "Calificaciones" (sale de los documentos ya leídos, sin otra
+   consulta); "Calificaciones del colegio" en la ficha del miembro (mismo
+   criterio, con sus documentos); "Ver resumen" en el visor del
+   documento; y al guardar un informe se vuelve al resumen de ese hijo y
+   ese año.
 
 ## Comandos útiles
 

@@ -125,6 +125,16 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
         </Card>
       )}
 
+      {documents.some((d) => d.doc_type === "calificaciones") && (
+        <Link
+          href={`/documentos/calificaciones?miembro=${member.id}`}
+          className="tap-target flex items-center justify-between rounded-xl border bg-card px-4 py-3 text-sm font-medium"
+        >
+          Calificaciones del colegio
+          <span className="text-muted-foreground">›</span>
+        </Link>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Documentos</CardTitle>

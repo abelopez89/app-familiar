@@ -162,7 +162,7 @@ export function CargarInforme({
     setGuardando(false);
     if (res.error) return toast.error(res.error);
     toast.success("Calificaciones guardadas.");
-    router.push(`/documentos/${documentId}`);
+    router.push(`/documentos/calificaciones?miembro=${memberId}&anio=${numero(year)}`);
     router.refresh();
   }
 
