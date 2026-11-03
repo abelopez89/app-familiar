@@ -34,6 +34,7 @@ export const DOCUMENT_TYPES: { value: string; label: string }[] = [
   { value: "pasaporte", label: "Pasaporte" },
   { value: "seguro_medico", label: "Seguro médico" },
   { value: "estudio", label: "Estudio" },
+  { value: "calificaciones", label: "Calificaciones" },
   { value: "receta", label: "Receta" },
   { value: "reposo", label: "Reposo" },
   { value: "factura", label: "Factura" },

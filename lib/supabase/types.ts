@@ -1413,6 +1413,74 @@ export type Database = {
         };
         Relationships: [];
       };
+      school_reports: {
+        Row: {
+          id: string;
+          family_id: string;
+          member_id: string;
+          document_id: string | null;
+          year: number;
+          month: number;
+          grade: string | null;
+          late_arrivals: number | null;
+          absences: number | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          member_id: string;
+          document_id?: string | null;
+          year: number;
+          month: number;
+          grade?: string | null;
+          late_arrivals?: number | null;
+          absences?: number | null;
+          created_by?: string | null;
+        };
+        Update: {
+          member_id?: string;
+          document_id?: string | null;
+          year?: number;
+          month?: number;
+          grade?: string | null;
+          late_arrivals?: number | null;
+          absences?: number | null;
+        };
+        Relationships: [];
+      };
+      school_report_scores: {
+        Row: {
+          id: string;
+          family_id: string;
+          report_id: string;
+          subject: string;
+          sort_order: number;
+          points: number;
+          max_points: number;
+          observations: string | null;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          report_id: string;
+          subject: string;
+          sort_order?: number;
+          points: number;
+          max_points: number;
+          observations?: string | null;
+        };
+        Update: {
+          subject?: string;
+          sort_order?: number;
+          points?: number;
+          max_points?: number;
+          observations?: string | null;
+        };
+        Relationships: [];
+      };
       tarjetas_familia: {
         Row: {
           id: string;
@@ -1519,3 +1587,5 @@ export type Promocion = Database["hogar"]["Tables"]["promociones"]["Row"];
 export type PromoIngesta = Database["hogar"]["Tables"]["promo_ingestas"]["Row"];
 
 export type PromoUso = Database["hogar"]["Tables"]["promo_usos"]["Row"];
+export type SchoolReport = Database["hogar"]["Tables"]["school_reports"]["Row"];
+export type SchoolReportScore = Database["hogar"]["Tables"]["school_report_scores"]["Row"];

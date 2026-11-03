@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ChevronLeft, ChevronRight, Download, FileText, Pin, Share2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, Download, FileText, GraduationCap, Pin, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { toggleDocumentPinned } from "../actions";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/constants";
@@ -174,6 +175,15 @@ export function DocumentViewer({
           {document.issued_at && <p className="text-muted-foreground">Emitido: {formatDate(document.issued_at)}</p>}
           {document.expires_at && <p className="text-muted-foreground">Vence: {formatDate(document.expires_at)}</p>}
           {document.notes && <p className="text-muted-foreground">{document.notes}</p>}
+
+          {document.doc_type === "calificaciones" && (
+            <Button asChild variant="outline" className="mt-1 gap-2 self-start">
+              <Link href={`/documentos/calificaciones/cargar?doc=${document.id}`}>
+                <GraduationCap className="size-4" />
+                Puntajes del informe
+              </Link>
+            </Button>
+          )}
 
           <div className="mt-2 flex gap-2">
             <EditDocumentDialog document={document} categories={categories} members={members} defaultOpen={openEdit} />

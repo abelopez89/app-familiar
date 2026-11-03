@@ -30,9 +30,9 @@ Cómo trabajar una mejora mínima:
 3. **Lógica de negocio en `lib/services/`** cuando el bot también la usa
    (Fase 7): un cambio de regla se hace una vez y lo ven la app y el
    bot. Toda consulta con el admin client filtra por `family_id`.
-4. **Migraciones**: la próxima es la `016` (confirmalo mirando
-   `supabase/migrations/`; la `015` es del uso de promos en compras y
-   combustible). Se escribe el archivo y la aplica el usuario
+4. **Migraciones**: la próxima es la `017` (confirmalo mirando
+   `supabase/migrations/`; la `016` es de las calificaciones del
+   colegio). Se escribe el archivo y la aplica el usuario
    desde el SQL Editor; no avanzar con el código que depende de ella
    hasta que confirme.
 5. **Antes de cada PR**: `npm run build` y `npm run lint` sin errores, y
@@ -46,9 +46,9 @@ acá primero):
 
 - **Vercel**: variables de entorno (ver "Variables de entorno") y deploy
   automático de `main`.
-- **Supabase**: migraciones `001`–`015` aplicadas y bucket privado
-  `documentos` creado. La `014` (promociones) y la `015` (uso de promos)
-  las aplicó Claude con
+- **Supabase**: migraciones `001`–`016` aplicadas y bucket privado
+  `documentos` creado. La `014` (promociones), la `015` (uso de promos)
+  y la `016` (calificaciones) las aplicó Claude con
   `execute_sql` del MCP de Supabase, en una transacción y con
   autorización explícita del usuario para cada una (sin
   `apply_migration`, para no escribir el historial de migraciones del
@@ -91,6 +91,13 @@ acá primero):
   `015`, `/promos/usar` y `/promos/ahorros`): verificado por el usuario
   en producción. Ver la sección "Promociones de tarjetas" más abajo
   (puntos 19–25).
+
+- **Calificaciones del colegio (en Documentos): parte 1 de 2 en curso,
+  a pedido del usuario** (excepción al modo mantenimiento, con tablas
+  nuevas confirmadas por el usuario). Parte 1: migración `016`, carga del
+  informe mensual en PDF con lectura de puntajes y vista previa editable.
+  Parte 2 (pendiente): pantalla de resumen por hijo, materia y mes. Ver
+  "Calificaciones del colegio" más abajo.
 
 - **Fase 0 (base) y Fase 1 (compras): implementadas y verificadas en
   producción** (Vercel + Supabase), incluyendo registro, login con
@@ -230,9 +237,9 @@ acá primero):
   incluye: eventos que se repiten por chat, subir documentos por foto,
   divisiones de gastos por pesos o importes exactos por chat, ni chats
   de grupo.
-- Migraciones `001` a `015` aplicadas y confirmadas en la base
+- Migraciones `001` a `016` aplicadas y confirmadas en la base
   compartida. Antes de escribir la
-  migración `016`, mirá `supabase/migrations/` para confirmar el próximo
+  migración `017`, mirá `supabase/migrations/` para confirmar el próximo
   número — no lo asumas.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
@@ -483,7 +490,7 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `015` corridas en Supabase y confirmadas funcionando —
+`001` a `016` corridas en Supabase y confirmadas funcionando —
 incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 
 | Archivo | Contenido |
@@ -503,8 +510,9 @@ incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 | `013_save_expense_bot.sql` | `hogar.save_expense()` acepta `family_id`/`created_by` en el payload **solo** si quien llama es `service_role` y no hay sesión; verifica que el grupo y el miembro sean de esa familia. Para `authenticated` no cambia nada (ver sección Fase 7). |
 | `014_promos.sql` | Promos globales (`promociones`, `promo_comercios`, `promo_beneficios`, `promo_beneficio_componentes`, `promo_beneficio_tarjetas`, `promo_descartadas`, `promo_ingestas`: solo lectura para `authenticated`, escritura solo `service_role`) y por familia (`tarjetas_familia`, `comercios_favoritos`, RLS estándar). Ver "Promociones de tarjetas". |
 | `015_promo_usos.sql` | `promo_beneficio_componentes.tope_tipo` (`compra`/`descuento`, null = sin definir) y `promo_usos` (por familia, RLS estándar): la promo y la tarjeta usadas en una compra o una carga de combustible, con el cálculo copiado en `detalle`. Ver punto 25 de "Promociones de tarjetas". |
+| `016_calificaciones.sql` | `school_reports` (un informe por hijo y mes, con grado, asistencia y el documento PDF) y `school_report_scores` (puntos/máximo/observación por materia), por familia, RLS estándar. Ver "Calificaciones del colegio". |
 
-La próxima migración de cualquier fase nueva es `016_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `017_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
@@ -618,6 +626,10 @@ Tres clientes separados, no los mezcles:
     `?editar=1` abre el diálogo de edición al entrar.
     `/documentos/[id]/archivo?pagina=<n>[&descargar=1]` — Route Handler
     GET que redirige a la URL firmada de esa página (panel de escritorio).
+  - `/documentos/calificaciones/cargar` — informe mensual del colegio
+    en PDF: se guarda como documento "Calificaciones" del hijo y se
+    revisan los puntajes leídos antes de guardarlos. `?doc=<id>` edita
+    los de un informe que ya está en Documentos.
   - `/config/documentos` — ABM de categorías de documentos + espacio
     usado, Fase 5. También enlazado desde `/config` (catálogos).
   - `/config/activos` — redirect a `/tareas/activos`, Fase 6. Es la
@@ -2127,6 +2139,46 @@ global, subir varios, vista semana: etapa 2).
     promo que también le sirve a la elegida podía figurar con otra. Lo
     único de cliente (acciones de cada promo y "Actualizar") ya lo cargaba
     la vista del celular: `/promos` no suma JS.
+
+## Calificaciones del colegio: decisiones a respetar
+
+A pedido del usuario: el informe mensual del colegio de los hijos (mismo
+colegio y formato para todos, "Informe cuantitativo" con puntos
+logrados/posibles por materia) se guarda en Documentos y además se leen
+sus puntajes para un resumen por materia y mes. Sin avisos por Telegram
+(decisión del usuario).
+
+1. **El PDF vive en Documentos, los puntajes en tablas propias.** El
+   documento es uno más (`doc_type = 'calificaciones'`, `member_id` = el
+   hijo, primera categoría de tipo `educacion` si hay), con las mismas
+   reglas de la Fase 5 (subida directa del navegador, cliente de sesión,
+   bucket privado). `school_reports` apunta a él con `document_id`
+   (`on delete set null`: borrar el PDF no borra los puntajes).
+2. **Un informe por hijo y mes** (`unique(member_id, year, month)`).
+   Cargar otra vez el mismo mes reemplaza sus puntajes (la vista previa
+   lo avisa) y el registro pasa a apuntar al documento nuevo; el PDF
+   viejo queda en Documentos. Una materia 0/0 (no se evaluó ese mes) no
+   se guarda.
+3. **Lectura sin Claude** (`lib/calificaciones/parse.ts`, puro, con tests
+   en `tests/calificaciones/`): el PDF del colegio trae texto, que extrae
+   `unpdf` en el servidor (`lib/calificaciones/leer.ts`, baja el archivo
+   con el cliente de sesión). Las materias se reconocen contra
+   `KNOWN_SUBJECTS`; lo que no se reconoce queda con un aviso en la vista
+   previa, nunca inventado. Si el colegio cambia el formato, se ajusta el
+   parser (y sus tests), no se agrega Claude por las dudas. Los tests usan
+   el texto real con el nombre del alumno reemplazado: los PDF de los
+   chicos **no** se suben al repo.
+4. **Vista previa editable antes de guardar** (`cargar-informe.tsx`), y
+   `guardarInforme` vuelve a validar con Zod (puntos ≤ máximo, máximo > 0,
+   materias sin repetir). Sin transacción, en orden seguro: informe →
+   borrar puntajes → insertar puntajes; si falla el último paso la vista
+   previa sigue en pantalla para reintentar. Al guardar, el documento se
+   renombra "Calificaciones <Mes> <Año>".
+5. **`?doc=<id>`**: desde el visor de un documento de tipo
+   "Calificaciones" ("Puntajes del informe"). Si ya tiene puntajes
+   guardados se editan esos (con las correcciones hechas); si no, se lee
+   el PDF. Sirve también para los informes subidos por el formulario
+   común de documentos.
 
 ## Comandos útiles
 
