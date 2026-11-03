@@ -177,12 +177,21 @@ export function DocumentViewer({
           {document.notes && <p className="text-muted-foreground">{document.notes}</p>}
 
           {document.doc_type === "calificaciones" && (
-            <Button asChild variant="outline" className="mt-1 gap-2 self-start">
-              <Link href={`/documentos/calificaciones/cargar?doc=${document.id}`}>
-                <GraduationCap className="size-4" />
-                Puntajes del informe
-              </Link>
-            </Button>
+            <div className="mt-1 flex flex-wrap gap-2">
+              <Button asChild variant="outline" className="gap-2">
+                <Link href={`/documentos/calificaciones/cargar?doc=${document.id}`}>
+                  <GraduationCap className="size-4" />
+                  Puntajes del informe
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link
+                  href={`/documentos/calificaciones${document.member_id ? `?miembro=${document.member_id}` : ""}`}
+                >
+                  Ver resumen
+                </Link>
+              </Button>
+            </div>
           )}
 
           <div className="mt-2 flex gap-2">

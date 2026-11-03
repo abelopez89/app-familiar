@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { FileText, Plus } from "lucide-react";
+import { FileText, GraduationCap, Plus } from "lucide-react";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { listDocumentCategories, listDocumentsWithFiles } from "@/lib/documents/queries";
 import { listActiveMembers } from "@/lib/members";
@@ -35,6 +35,9 @@ export default async function DocumentosPage({ searchParams }: { searchParams: P
   );
 
   const { fg, bg } = MODULES_BY_KEY.documentos;
+  // El acceso al resumen de calificaciones aparece solo si hay algún
+  // informe en Documentos (sale de lo ya leído, sin otra consulta).
+  const conCalificaciones = documents.some((d) => d.doc_type === "calificaciones");
 
   const mobile = (
     <div className="flex flex-col gap-5">
@@ -44,11 +47,20 @@ export default async function DocumentosPage({ searchParams }: { searchParams: P
         iconFg={fg}
         iconBg={bg}
         actions={
-          <Button asChild size="icon" className="size-10">
-            <Link href="/documentos/nuevo" aria-label="Nuevo documento">
-              <Plus className="size-5" />
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            {conCalificaciones && (
+              <Button asChild size="icon" variant="outline" className="size-10">
+                <Link href="/documentos/calificaciones" aria-label="Calificaciones">
+                  <GraduationCap className="size-5" />
+                </Link>
+              </Button>
+            )}
+            <Button asChild size="icon" className="size-10">
+              <Link href="/documentos/nuevo" aria-label="Nuevo documento">
+                <Plus className="size-5" />
+              </Link>
+            </Button>
+          </div>
         }
       />
       <DocumentsBrowser
@@ -75,6 +87,7 @@ export default async function DocumentosPage({ searchParams }: { searchParams: P
           members={members}
           thumbnails={thumbnails}
           params={await searchParams}
+          conCalificaciones={conCalificaciones}
         />
       </div>
     </>

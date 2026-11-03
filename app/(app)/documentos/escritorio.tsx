@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download, ExternalLink, FileText, Pencil, Pin, Plus, Search } from "lucide-react";
+import { Download, ExternalLink, FileText, GraduationCap, Pencil, Pin, Plus, Search } from "lucide-react";
 import type { DocumentCategory, FamilyMember } from "@/lib/supabase/types";
 import type { DocumentWithFiles } from "@/lib/documents/queries";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/documents/constants";
@@ -61,12 +61,14 @@ export async function DocumentosEscritorio({
   members,
   thumbnails,
   params,
+  conCalificaciones,
 }: {
   documents: DocumentWithFiles[];
   categories: DocumentCategory[];
   members: FamilyMember[];
   thumbnails: Record<string, string>;
   params: DocumentosParams;
+  conCalificaciones: boolean;
 }) {
   const today = todayInFamilyTimezone();
   const membersById = new Map(members.map((m) => [m.id, m]));
@@ -106,6 +108,14 @@ export async function DocumentosEscritorio({
               <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input name="q" defaultValue={query} placeholder="Buscar por título o tag…" className="w-64 pl-9" />
             </form>
+            {conCalificaciones && (
+              <Button asChild variant="outline">
+                <Link href="/documentos/calificaciones">
+                  <GraduationCap className="size-4" />
+                  Calificaciones
+                </Link>
+              </Button>
+            )}
             <Button asChild>
               <Link href="/documentos/nuevo">
                 <Plus className="size-4" />
