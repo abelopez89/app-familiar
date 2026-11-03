@@ -1838,7 +1838,17 @@ avisos de Telegram).
     `urlImagenPermitida`): no es recorrer el sitio del banco.
 21. **"Desactivar" en cada promo de `/promos`** (`desactivarPromo`): para
     lo que se leyó mal, sobre todo de los mails. Deja `activa = false`
-    (no borra) para todos, porque las promos son globales.
+    (no borra) para todos, porque las promos son globales. **En las
+    automáticas (Itaú, GNB) la desactivación se respeta en las ingestas
+    siguientes**: se guarda `bloqueada:<clave_externa>` en
+    `promo_descartadas` (`claveBloqueo` en `persistencia.ts`, sin
+    migración, como los mails y los avisos) y `correrIngesta` saltea esas
+    claves antes de todo: no las reactiva, no pide el detalle al banco y
+    no llama a Claude (cuenta en `resumen.bloqueadas`). `reactivarPromo`
+    borra la marca. Antes, la ingesta reactivaba toda promo inactiva que
+    seguía en la fuente con el mismo hash (pensado para las que
+    desaparecen del sitio un día y vuelven), y lo desactivado a mano
+    volvía cada mañana (pasó con HP Store, Casa Corbellani y Condor).
 22. **"Todas las promos" (`/promos/todas`)**, a pedido del usuario: la
     lista completa de promos vigentes, no solo las de hoy. Cada promo
     muestra todas sus capas con los días (`describirDias`: días de la

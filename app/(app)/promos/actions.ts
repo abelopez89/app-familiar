@@ -8,7 +8,7 @@ import { getCurrentFamilyContext } from "@/lib/family";
 import { ingestaEnCurso } from "@/lib/promos/ingesta";
 import { promoNormalizadaSchema } from "@/lib/promos/esquema";
 import { filtrarPromo } from "@/lib/promos/filtrado";
-import { actualizarPromo } from "@/lib/promos/persistencia";
+import { actualizarPromo, claveBloqueo } from "@/lib/promos/persistencia";
 import { ingestarItau } from "@/lib/promos/ingesta-itau";
 
 export type ActionResult = { error?: string; success?: boolean };
@@ -56,10 +56,30 @@ export async function desactivarPromo(promoId: string): Promise<ActionResult> {
   const id = z.string().uuid().safeParse(promoId);
   if (!id.success) return { error: "Promo inválida." };
 
-  const { error } = await createAdminClient().from("promociones").update({ activa: false }).eq("id", id.data);
+  const admin = createAdminClient();
+  const { data: promo, error } = await admin
+    .from("promociones")
+    .update({ activa: false })
+    .eq("id", id.data)
+    .select("clave_externa")
+    .maybeSingle();
   if (error) {
     console.error("[desactivarPromo]", error);
     return { error: "No se pudo desactivar la promo." };
+  }
+  // Las automáticas (Itaú, GNB) quedan marcadas para que la próxima
+  // ingesta no las vuelva a activar (ver `claveBloqueo`).
+  if (promo?.clave_externa) {
+    const { error: e2 } = await admin.from("promo_descartadas").upsert(
+      {
+        clave_externa: claveBloqueo(promo.clave_externa),
+        hash: "",
+        motivo: "desactivada a mano",
+        descartada_en: new Date().toISOString(),
+      },
+      { onConflict: "clave_externa" },
+    );
+    if (e2) console.error("[desactivarPromo] marca", e2);
   }
   revalidatePath("/promos");
   revalidatePath("/promos/todas");
@@ -73,14 +93,20 @@ export async function reactivarPromo(promoId: string): Promise<ActionResult> {
   const id = z.string().uuid().safeParse(promoId);
   if (!id.success) return { error: "Promo inválida." };
 
-  const { error } = await createAdminClient()
+  const admin = createAdminClient();
+  const { data: promo, error } = await admin
     .from("promociones")
     .update({ activa: true })
     .eq("id", id.data)
-    .is("reemplazada_por", null);
+    .is("reemplazada_por", null)
+    .select("clave_externa")
+    .maybeSingle();
   if (error) {
     console.error("[reactivarPromo]", error);
     return { error: "No se pudo reactivar la promo." };
+  }
+  if (promo?.clave_externa) {
+    await admin.from("promo_descartadas").delete().eq("clave_externa", claveBloqueo(promo.clave_externa));
   }
   revalidatePath("/promos");
   revalidatePath("/promos/todas");

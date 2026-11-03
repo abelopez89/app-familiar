@@ -117,6 +117,20 @@ export async function guardarPromoAutomatica(
   await db.from("promo_descartadas").delete().eq("clave_externa", input.clave);
 }
 
+/**
+ * Marca de "la desactivó una persona" para una promo automática (Itaú,
+ * GNB), en `promo_descartadas` (el registro de "ya visto" del módulo,
+ * igual que los mails y los avisos): sin migración. La ingesta saltea las
+ * claves marcadas, así una promo desactivada a mano no vuelve a aparecer
+ * en la corrida siguiente. Antes, toda promo inactiva que seguía en la
+ * fuente con el mismo hash se reactivaba (se pensó para las que
+ * desaparecen del sitio un día y vuelven) y no había forma de que una
+ * desactivada a mano se quedara así.
+ */
+export function claveBloqueo(claveExterna: string): string {
+  return `bloqueada:${claveExterna}`;
+}
+
 export async function registrarDescartada(db: Db, clave: string, hash: string, motivo: string): Promise<void> {
   const { error } = await db
     .from("promo_descartadas")
