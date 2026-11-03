@@ -1904,8 +1904,13 @@ avisos de Telegram).
     reintegro pendiente. `total_amount` de la compra o la carga no se
     toca. El cálculo es puro (`lib/promos/ahorro.ts`, con tests): los
     componentes se suman (las cuotas no), los que tienen `alcance` no se
-    aplican por defecto (se tildan), guaraníes enteros y nunca más que
-    el bruto. **Topes por tarjeta** (decisión del usuario), acumulados en
+    aplican por defecto (se tildan), **salvo que la capa tenga un solo
+    componente que mueve plata**: ahí el alcance es una condición de toda
+    la promo ("con pago QR", "por la app Mi Enex") y se aplica; "Qué se
+    aplicó" se muestra también con un solo componente si tiene alcance,
+    para poder destildarlo (bug real: con Copetrol de GNB el descuento
+    daba 0 y no había casilla para tildar). Guaraníes enteros y nunca más
+    que el bruto. **Topes por tarjeta** (decisión del usuario), acumulados en
     la ventana del período (día, mes calendario o toda la promo) a partir
     de los usos anteriores de la misma promo y tarjeta. `tope_tipo` dice
     si el tope limita la compra o el descuento; sin dato se toma como de

@@ -59,8 +59,20 @@ export function claveComponente(c: Pick<ComponenteBeneficio, "tipo" | "alcance" 
   return [c.tipo, (c.alcance ?? "").trim().toLowerCase(), c.tope_periodo ?? ""].join("|");
 }
 
-/** Los componentes que se aplican por defecto: los que valen para toda la compra (sin alcance). */
+/**
+ * Los componentes que se aplican por defecto: los que valen para toda la
+ * compra (sin alcance). Con varios componentes, uno con alcance
+ * ("perfumería", "medicamentos") suele cubrir solo parte de la compra y se
+ * tilda a mano. **Si hay un solo componente que mueve plata, se aplica
+ * aunque tenga alcance**: ahí el alcance es una condición de toda la promo
+ * ("con pago QR", "por la app", "Shell V-Power") y quien la elige es
+ * porque la cumplió. Antes quedaba sin aplicar y, como la pantalla solo
+ * mostraba la lista para tildar con más de un componente, el descuento
+ * daba 0 sin forma de corregirlo (pasó con Copetrol de GNB).
+ */
 export function seleccionPorDefecto(componentes: ComponenteBeneficio[]): number[] {
+  const conPlata = componentes.flatMap((c, i) => (c.tipo !== "cuotas" ? [i] : []));
+  if (conPlata.length === 1) return conPlata;
   return componentes.flatMap((c, i) => (c.tipo !== "cuotas" && !c.alcance ? [i] : []));
 }
 

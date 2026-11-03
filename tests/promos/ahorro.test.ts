@@ -118,4 +118,12 @@ describe("calcularDescuento", () => {
     const comps = [comp({ porcentaje: 25, alcance: "excepto medicamentos" }), comp({ porcentaje: 20 }), comp({ tipo: "cuotas", porcentaje: null, cuotas: 3 })];
     expect(seleccionPorDefecto(comps)).toEqual([1]);
   });
+
+  it("con un solo componente que mueve plata, se aplica aunque tenga alcance", () => {
+    // Copetrol de GNB: "20% reintegro (15% con tarjeta física + 5% adicional con pago QR)".
+    const comps = [comp({ tipo: "reintegro", porcentaje: 20, alcance: "15% con tarjeta física + 5% adicional con pago QR" })];
+    expect(seleccionPorDefecto(comps)).toEqual([0]);
+    const conCuotas = [comp({ tipo: "cuotas", porcentaje: null, cuotas: 6 }), comp({ porcentaje: 25, alcance: "Shell V-Power" })];
+    expect(seleccionPorDefecto(conCuotas)).toEqual([1]);
+  });
 });
