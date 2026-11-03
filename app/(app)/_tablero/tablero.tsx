@@ -120,6 +120,7 @@ function Indicador({
   value,
   valueClassName,
   detail,
+  detail2,
 }: {
   modulo: ModuleKey;
   href: string;
@@ -127,6 +128,8 @@ function Indicador({
   value: React.ReactNode;
   valueClassName?: string;
   detail: React.ReactNode;
+  /** Segunda línea opcional (el indicador de promos compara con el mes anterior). */
+  detail2?: React.ReactNode;
 }) {
   const { icon: Icon, fg, bg } = MODULES_BY_KEY[modulo];
   return (
@@ -141,7 +144,16 @@ function Indicador({
         <span className="truncate text-xs font-medium text-muted-foreground">{label}</span>
       </span>
       <span className={cn("truncate text-2xl font-semibold tabular-nums", valueClassName)}>{value}</span>
-      <span className="truncate text-xs text-muted-foreground">{detail}</span>
+      <span className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+        <span className="truncate" title={typeof detail === "string" ? detail : undefined}>
+          {detail}
+        </span>
+        {detail2 && (
+          <span className="truncate" title={typeof detail2 === "string" ? detail2 : undefined}>
+            {detail2}
+          </span>
+        )}
+      </span>
     </Link>
   );
 }
@@ -194,6 +206,14 @@ function etiquetaDia(day: string, today: string): string {
   if (day <= today) return "Hoy";
   if (day === addDaysToDateOnly(today, 1)) return "Mañana";
   return formatDate(dateOnlyToFamilyMidnightUtc(day), "EEE d");
+}
+
+function miles(n: number): string {
+  return Math.round(n).toLocaleString("es-PY");
+}
+
+function capitalizar(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
 function plural(n: number, uno: string, varios: string) {
@@ -269,13 +289,26 @@ async function IndicadorAhorro() {
   return (
     <Indicador
       modulo="promos"
-      href={data ? `/promos/ahorros?mes=${data.mes.slice(0, 7)}` : "/promos/ahorros"}
-      label="Ahorro con promos"
+      href="/promos/ahorros"
+      label={
+        data ? `Descuentos de ${formatDate(dateOnlyToFamilyMidnightUtc(data.mes), "MMMM")}` : "Descuentos con promos"
+      }
       value={formatGuaranies(data?.total ?? 0)}
       valueClassName="text-success"
-      detail={`${
-        data ? `${formatDate(dateOnlyToFamilyMidnightUtc(data.mes), "MMMM")} · ` : ""
-      }por acreditar ${formatGuaranies(data?.porAcreditar ?? 0)}`}
+      // Montos sin "Gs." en el detalle: el valor de arriba ya dice la moneda,
+      // y con el prefijo las dos líneas no entraban a 1280px.
+      detail={
+        data
+          ? data.usos === 0
+            ? "Todavía sin promos este mes"
+            : `Caja ${miles(data.caja)} · reintegros ${miles(data.reintegro)}`
+          : "—"
+      }
+      detail2={
+        data
+          ? `${capitalizar(formatDate(dateOnlyToFamilyMidnightUtc(data.mesAnterior), "MMMM"))} ${miles(data.totalAnterior)} · a cobrar ${miles(data.porAcreditar)}`
+          : undefined
+      }
     />
   );
 }

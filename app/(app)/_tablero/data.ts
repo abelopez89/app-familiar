@@ -161,20 +161,35 @@ export const datosGastos = cache(async function datosGastos() {
   };
 });
 
-/** Ahorro con promos del mes anterior (misma cuenta que `/promos/ahorros`) y reintegros por acreditar. */
+/**
+ * Descuentos con promos del mes en curso (en caja y reintegros), el total
+ * del mes anterior para comparar y los reintegros por acreditar. Misma
+ * cuenta que `/promos/ahorros`. Una sola consulta de usos: desde el 1 del
+ * mes anterior hasta fin de este mes, repartida en memoria.
+ */
 export const datosAhorro = cache(async function datosAhorro() {
   const context = await getCurrentFamilyContext();
   if (!context) return null;
   const hoy = todayInFamilyTimezone();
-  const primerDia = addMonthsToDateOnly(`${hoy.slice(0, 7)}-01`, -1);
-  const ventana = ventanaTope("mes", primerDia)!;
+  const mes = `${hoy.slice(0, 7)}-01`;
+  const mesAnterior = addMonthsToDateOnly(mes, -1);
+  const ventana = ventanaTope("mes", mes)!;
   const [usos, pendientes] = await Promise.all([
-    usosEntre(context.family.id, ventana.desde, ventana.hasta),
+    usosEntre(context.family.id, mesAnterior, ventana.hasta),
     reintegrosPendientes(context.family.id),
   ]);
+  const delMes = usos.filter((u) => u.fecha >= mes);
+  const anteriores = usos.filter((u) => u.fecha < mes);
+  const caja = delMes.reduce((s, u) => s + u.descuento_caja, 0);
+  const reintegro = delMes.reduce((s, u) => s + u.reintegro, 0);
   return {
-    mes: primerDia,
-    total: usos.reduce((s, u) => s + u.descuento_caja + u.reintegro, 0),
+    mes,
+    mesAnterior,
+    caja,
+    reintegro,
+    total: caja + reintegro,
+    usos: delMes.length,
+    totalAnterior: anteriores.reduce((s, u) => s + u.descuento_caja + u.reintegro, 0),
     porAcreditar: pendientes.reduce((s, u) => s + u.reintegro, 0),
   };
 });

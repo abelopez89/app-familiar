@@ -202,15 +202,15 @@ acá primero):
   avisar por Telegram (bandera `tareasAvisos`) y se puede crear una
   tarea desde `/tareas`, sin volver al inicio. Ver "Mejoras post-Fase 6"
   más abajo.
-- **Panel web de escritorio (etapa 1, en curso por PRs, a pedido del
-  usuario)**: rediseño solo para `lg:` (≥ 1024px), sin migraciones ni
-  cambios de reglas de negocio; el celular no cambia. PR 1 (menú lateral
-  y layout), PR 2 (inicio-tablero), PR 3 (documentos) y PR 4
-  (calendario) verificados en producción: etapa 1 completa. Después, a
-  pedido del usuario, el resto de los módulos con el mismo criterio, un
-  PR por pantalla y en este orden: Gastos, Compras y Combustible (verificados)
-  y Promos (hecho). Familia y Ajustes quedan como están (decisión del usuario).
-  La etapa 2 (búsqueda global, subir varios, vista semana) no empezó. Ver "Panel web (escritorio)".
+- **Panel web de escritorio: implementado y verificado en producción,
+  a pedido del usuario**: rediseño solo para `lg:` (≥ 1024px), sin
+  migraciones ni cambios de reglas de negocio; el celular no cambia.
+  Etapa 1 (menú lateral y layout, inicio-tablero, documentos y
+  calendario) y después Gastos, Compras, Combustible y Promos, un PR por
+  pantalla. Familia y Ajustes quedan como están (decisión del usuario).
+  De acá en adelante, mejoras mínimas como el resto. La etapa 2
+  (búsqueda global, subir varios, vista semana) no empezó. Ver "Panel
+  web (escritorio)".
 - **Fase 7 (bot conversacional de Telegram): implementada y verificada
   en producción** (el usuario probó todos los comandos desde el
   celular: `/menu`, `/hoy`, `/compra`, `/gasto`, `/nafta`, `/evento`).
@@ -1996,8 +1996,14 @@ global, subir varios, vista semana: etapa 2).
    `listGroupSummaries` + `getGroupBundle` del grupo abierto más reciente
    (barras divergentes, mismo chequeo de suma cero y `simplifyDebts`
    que `/gastos/[id]/balances`), `usosEntre`/`reintegrosPendientes`
-   (ahorro del mes anterior, misma cuenta que `/promos/ahorros`) y
-   `promosQueAplican` (promos de hoy).
+   (descuentos con promos del **mes en curso**, en caja y reintegros,
+   con el total del mes anterior para comparar y lo que falta acreditar;
+   misma cuenta que `/promos/ahorros`. La primera versión mostraba solo
+   el mes anterior; el usuario pidió ver los descuentos del mes) y
+   `promosQueAplican` (promos de hoy). Los indicadores aceptan una
+   segunda línea de detalle (`detail2`), con el texto completo en el
+   `title`: en el de promos los montos van sin "Gs." porque con el
+   prefijo las dos líneas no entraban a 1280px.
 7. **Chips de eventos por categoría** (`EVENT_CATEGORY_CHIP` en
    `components/app-shell/event-chips.ts`): reusan los pares de tokens de
    módulo (escolar → combustible, médico → documentos, familiar → gastos,
