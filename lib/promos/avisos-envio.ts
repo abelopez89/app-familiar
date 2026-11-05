@@ -1,6 +1,5 @@
 import "server-only";
 import type { Db } from "@/lib/services/types";
-import { env } from "@/lib/env";
 import { dayOfWeekOfDateOnly, hourInFamilyTimezone, todayInFamilyTimezone } from "@/lib/dates";
 import { sendTelegramMessage } from "@/lib/telegram/client";
 import { HORA_AVISO_DIARIO, HORA_AVISO_VISPERA, PROMOS_AVISOS } from "./constants";
@@ -88,7 +87,9 @@ export async function enviarAvisosPromos(db: Db): Promise<ResumenAvisos> {
   ]);
   if (miembrosError) throw miembrosError;
 
-  const pie = `Más en ${env.NEXT_PUBLIC_APP_URL}/promos`;
+  // Sin link a la app: desde Telegram se abriría en su navegador y no en la
+  // app instalada (pedido del usuario).
+  const pie = "Más en la app, en Promos.";
 
   for (const familyId of familias) {
     const deLaFamilia: TarjetaAviso[] = (tarjetas ?? []).filter((t) => t.family_id === familyId);
