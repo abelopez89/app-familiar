@@ -1899,7 +1899,10 @@ avisos de Telegram).
     la hora siguiente. Las claves `aviso:` de más de 45 días se limpian
     en la misma ruta. `escapeTelegramHtml` se movió a
     `lib/telegram/escape.ts` (sin cambios; `client.ts` la reexporta)
-    para poder usarla en código puro y tests.
+    para poder usarla en código puro y tests. **Los avisos no llevan el
+    link de la app** (tampoco el del mail que llegó, punto 20), a pedido
+    del usuario: desde Telegram el link se abre en su navegador y no en
+    la app instalada. El pie dice "Más en la app, en Promos.".
 24. **Editar una promo y bajar su archivo**, a pedido del usuario (Claude
     puede leer mal un punto). Cada promo de `/promos` y `/promos/todas`
     tiene **Editar**, **Archivo** (si tiene) y Desactivar/Reactivar

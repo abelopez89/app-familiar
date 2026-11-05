@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { Db } from "@/lib/services/types";
 import type { Json } from "@/lib/supabase/types";
-import { env } from "@/lib/env";
 import { todayInFamilyTimezone } from "@/lib/dates";
 import { escapeTelegramHtml, sendTelegramMessage } from "@/lib/telegram/client";
 import { BANCOS, RUBROS, type Banco } from "./constants";
@@ -263,7 +262,7 @@ async function avisarGuardadas(db: Db, banco: Banco, resultado: ResultadoMail): 
     "",
     ...lineas,
     "",
-    `Si algo se leyó mal, desactivala en ${escapeTelegramHtml(`${env.NEXT_PUBLIC_APP_URL}/promos`)}`,
+    "Si algo se leyó mal, desactivala desde Promos en la app.",
   ].join("\n");
   await Promise.all(miembros.map((m) => sendTelegramMessage(m.telegram_user_id as number, texto)));
 }
