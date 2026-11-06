@@ -291,6 +291,12 @@ Restricciones deliberadas — no las repliques ni las "mejores":
 ## UI e internacionalización
 
 - Toda la interfaz está en **español** (es-PY informal, "vos").
+- **Skills del proyecto** en `.claude/skills/`: `frontend-design`
+  (anthropics/skills), `web-design-guidelines` y `react-best-practices`
+  (vercel-labs/agent-skills). Las skills de diseño (frontend-design) no
+  reemplazan los tokens de `app/globals.css` ni la identidad visual
+  actual; cualquier cambio de paleta, tipografía o estilo general se
+  propone primero y se espera el OK del usuario.
 - **Sistema de diseño en `app/globals.css`** (Fase Extra). Todo el color
   sale de custom properties; no hay colores de Tailwind escritos a mano
   en las pantallas (`bg-blue-500` y compañía). Los tokens semánticos son
