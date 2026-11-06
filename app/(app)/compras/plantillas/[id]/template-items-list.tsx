@@ -37,6 +37,8 @@ export function TemplateItemsList({
   useEffect(() => setLocalItems(items), [items]);
 
   function handleDelete(id: string) {
+    const name = localItems.find((i) => i.id === id)?.name;
+    if (!window.confirm(`¿Sacar${name ? ` "${name}"` : " este producto"} de la plantilla?`)) return;
     startTransition(async () => {
       const result = await deleteTemplateItem(id, templateId);
       if (result.error) {

@@ -87,6 +87,8 @@ export default async function EditarGastoPage({ params }: { params: Promise<{ id
         initial={initial}
       />
       <DeleteExpenseButton id={expense.id} groupId={id} />
+      {/* Lugar para la barra fija de "Guardar cambios" del formulario. */}
+      <div aria-hidden className="h-16" />
     </div>
   );
 }

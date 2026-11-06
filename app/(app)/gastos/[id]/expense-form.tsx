@@ -20,8 +20,8 @@ import { checkExactAmounts, splitByWeights, splitEqual, toAmountPyg } from "@/li
 import { compressDocumentImage, validateDocumentFileSize } from "@/lib/documents/image";
 import { formatGuaranies } from "@/lib/format";
 import type { ExpenseCategory, ExpensePaymentMethod, ExpenseSplitMethod } from "@/lib/supabase/types";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { StickyBottomBar } from "@/components/app-shell/floating-action";
 import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
@@ -582,9 +582,19 @@ export function ExpenseForm({
         </div>
       )}
 
-      <Button type="submit" disabled={isPending || processingReceipt} className={cn("h-12 text-base")}>
-        {isPending ? "Guardando…" : initial ? "Guardar cambios" : "Guardar gasto"}
-      </Button>
+      {/* Lugar para la barra fija: sin esto tapa el último campo. Al editar,
+          lo pone la pantalla, debajo de "Eliminar gasto". */}
+      {!initial && <div aria-hidden className="h-16" />}
+      {/*
+       * El botón va fijo al pie: con importe, descripción, categoría, quién
+       * pagó, entre quiénes, fecha y método, quedaba debajo del borde de la
+       * pantalla del celular y había que bajar para guardar.
+       */}
+      <StickyBottomBar>
+        <Button type="submit" disabled={isPending || processingReceipt} className="h-12 w-full text-base">
+          {isPending ? "Guardando…" : initial ? "Guardar cambios" : "Guardar gasto"}
+        </Button>
+      </StickyBottomBar>
     </form>
   );
 }

@@ -10,6 +10,7 @@ import { compressDocumentImage, validateDocumentFileSize } from "@/lib/documents
 import { DOCUMENT_TYPES } from "@/lib/documents/constants";
 import type { DocumentCategory, FamilyMember } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
+import { StickyBottomBar } from "@/components/app-shell/floating-action";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -433,15 +434,7 @@ export function DocumentUploadForm({
         <Textarea id="notes" name="notes" />
       </div>
 
-      {!documentId ? (
-        <Button type="submit" disabled={saving} className="h-12 text-base">
-          {saving ? "Guardando…" : "Guardar documento"}
-        </Button>
-      ) : uploading ? (
-        <Button type="button" disabled className="h-12 text-base">
-          Subiendo… {Math.round(overallProgress * 100)}%
-        </Button>
-      ) : failedFiles.length > 0 ? (
+      {documentId && !uploading && failedFiles.length > 0 ? (
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">
             El documento quedó guardado
@@ -457,9 +450,27 @@ export function DocumentUploadForm({
           </div>
         </div>
       ) : (
-        <Button type="button" disabled className="h-12 text-base">
-          Listo
-        </Button>
+        <>
+          {/* Lugar para la barra fija: sin esto tapa el último campo. */}
+          <div aria-hidden className="h-16" />
+          {/* Fijo al pie: con foto, título, miembro, categoría, vencimiento y
+              notas, el botón quedaba fuera de la pantalla del celular. */}
+          <StickyBottomBar>
+            {!documentId ? (
+              <Button type="submit" disabled={saving} className="h-12 w-full text-base">
+                {saving ? "Guardando…" : "Guardar documento"}
+              </Button>
+            ) : uploading ? (
+              <Button type="button" disabled className="h-12 w-full text-base">
+                Subiendo… {Math.round(overallProgress * 100)}%
+              </Button>
+            ) : (
+              <Button type="button" disabled className="h-12 w-full text-base">
+                Listo
+              </Button>
+            )}
+          </StickyBottomBar>
+        </>
       )}
     </form>
   );

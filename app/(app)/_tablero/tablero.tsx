@@ -14,6 +14,7 @@ import { describirComponente } from "@/lib/promos/formato";
 import { formatGuaranies, formatQuantity } from "@/lib/format";
 import { addDaysToDateOnly, dateOnlyInFamilyTimezone, dateOnlyToFamilyMidnightUtc, formatDate, formatTime } from "@/lib/dates";
 import { cn } from "@/lib/utils";
+import { shoppingListHref } from "@/lib/shopping/links";
 import {
   DIAS_VENCIMIENTO,
   datosAhorro,
@@ -385,7 +386,7 @@ async function BloqueLista() {
       modulo="compras"
       title={list.name ?? "Lista abierta"}
       subtitle={list.status === "en_curso" ? "Compra en curso" : "Lista abierta"}
-      href={`/compras/${list.id}`}
+      href={shoppingListHref(list)}
       linkLabel="Abrir"
       className="col-span-4"
     >

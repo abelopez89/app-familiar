@@ -23,7 +23,7 @@ export default async function NuevoGastoPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title="Nuevo gasto" description={bundle.group.name} />
+      <PageHeader title="Cargar gasto" description={bundle.group.name} />
       <ExpenseForm
         groupId={id}
         participants={active.map((p) => ({ id: p.id, display_name: p.display_name, color: p.color, is_active: true }))}

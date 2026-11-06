@@ -1450,6 +1450,52 @@ variables de entorno.
    El `unique(definition_id, due_date)` hace inofensivo el choque con el
    cron. `lib/tasks/schedule.ts` no se tocó.
 
+## Auditoría de flujos: decisiones a respetar
+
+Salió de correr la skill `auditoria-flujos` sobre el código (sin
+recorrido con navegador todavía). Un solo PR a pedido del usuario, sin
+migraciones ni reglas de negocio nuevas.
+
+1. **"Mi lista" en el acceso rápido del inicio (celular).** Con una
+   lista abierta, el acceso "Lista" pasa a "Mi lista" y lleva a esa
+   lista; antes creaba siempre una nueva al lado de la abierta. Sin
+   lista abierta (y mientras carga, como fallback del `Suspense`) sigue
+   siendo "crear lista". No agrega datos al inicio: solo cambia el
+   destino del botón (regla 1 de la Fase Extra). El "+ Lista" del
+   tablero de escritorio sigue creando, a propósito: ahí la lista
+   abierta ya tiene su bloque.
+2. **Una compra en curso abre directo el modo supermercado.**
+   `shoppingListHref` (`lib/shopping/links.ts`) decide el destino:
+   `abierta` → `/compras/[id]`, `en_curso` → `/compras/[id]/comprar`. Lo
+   usan "Mi lista", la tarjeta del resumen del inicio, las listas
+   abiertas de `/compras` y el bloque del tablero. El modo supermercado
+   conserva su flecha para volver a editar (regla 4 de la Fase 1).
+3. **Atajos en los grupos abiertos de `/gastos` (celular)**: "Cargar
+   gasto" y "Balances" debajo de cada tarjeta, un toque menos para cada
+   uno. Los cerrados no los llevan.
+4. **Guardar fijo al pie** (`StickyBottomBar`) en cargar gasto (y
+   editar), cargar combustible y nuevo documento, con un espacio al final
+   del formulario para que la barra no tape el último campo. Con
+   advertencias de combustible, o con páginas de un documento que no
+   subieron, los botones siguen en su tarjeta dentro del formulario.
+   **Pendiente de probar en el iPhone** con el teclado abierto (ver
+   "Teclado abierto al cambiar de pantalla").
+5. **Confirmación antes de borrar** en lo que se borraba con un toque:
+   quitar una página de un documento (borra el archivo), eliminar una
+   categoría de productos y sacar un producto de una plantilla
+   (`window.confirm`, como tarjetas, pagos y promos). Borrar un producto
+   de la lista abierta sigue sin confirmar a propósito: es frecuente,
+   optimista y se vuelve a agregar en un toque.
+6. **Nombres unificados**: "Ajustes" en la pestaña, el título de
+   `/config` y el rótulo del header (antes "Configuración"); "Gastos"
+   como nombre del módulo (`modules.ts`), del título de `/gastos` y de la
+   pestaña (antes "Gastos compartidos" en unos y "Gastos" en otros; el
+   bloque del tablero sigue diciendo "Gastos compartidos" porque describe
+   su contenido); "Cargar gasto" en el botón y en el título de la
+   pantalla (antes "Nuevo gasto"); "Calendario" en el bloque del resumen
+   del inicio (antes "Eventos"). "Nafta" queda como atajo corto del
+   inicio, igual que el comando `/nafta` del bot.
+
 ## Fase 7 — Bot conversacional de Telegram: decisiones a respetar
 
 ### La capa de servicios (`lib/services/`)
