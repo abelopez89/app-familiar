@@ -5,7 +5,7 @@ import { dateOnlyToFamilyMidnightUtc, formatDate } from "@/lib/dates";
  * Ñandutí: el encaje de Itauguá como sello de la app (identidad "Lapacho y
  * tereré"). Es el único adorno de la interfaz y va en un solo lugar por
  * pantalla: el sello con la fecha del inicio (celular y escritorio) y la
- * marca del menú lateral. No lo repitas como decoración en otras pantallas;
+ * marca de la app (menú lateral y pantallas de ingreso). No lo repitas como decoración en otras pantallas;
  * pierde fuerza.
  *
  * SVG puro, sin JS: sirve en Server Components. Toma el color del texto

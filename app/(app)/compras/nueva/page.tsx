@@ -23,7 +23,7 @@ export default async function NuevaListaPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Nueva lista de compras</h1>
+      <h1 className="text-[1.875rem] leading-tight font-bold tracking-tight">Nueva lista de compras</h1>
       <NewListWizard templates={templates ?? []} items={items ?? []} />
     </div>
   );

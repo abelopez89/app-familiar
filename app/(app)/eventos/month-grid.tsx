@@ -100,13 +100,15 @@ export function MonthGrid({
               type="button"
               onClick={() => onSelectDate(dateOnly)}
               className={cn(
-                "flex aspect-square flex-col items-center justify-start gap-1 rounded-lg pt-1.5 text-sm transition-colors",
+                "flex aspect-square flex-col items-center justify-start gap-1 rounded-xl pt-1.5 text-sm transition-colors",
                 !inMonth && "text-muted-foreground/40",
-                isSelected && "bg-primary/10 ring-1 ring-primary",
-                !isSelected && isToday && "bg-muted",
+                // Elegido: hoja verde de la marca; hoy: el número en lapacho,
+                // igual que el "Hoy" del resumen del inicio.
+                isSelected && "bg-accent ring-2 ring-primary",
+                !isSelected && isToday && "bg-card",
               )}
             >
-              <span className={cn(isToday && "font-semibold text-primary")}>
+              <span className={cn(isToday && "font-bold text-warning")}>
                 {Number(dateOnly.slice(8, 10))}
               </span>
               <span className="flex h-2 items-center gap-0.5">

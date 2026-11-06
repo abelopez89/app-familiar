@@ -167,7 +167,7 @@ function GroupPanel({
       <section className="flex flex-col gap-4 hoja p-5">
         <div className="flex flex-col gap-3">
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-semibold">{group.name}</h2>
+            <h2 className="truncate text-2xl font-bold">{group.name}</h2>
             <p className="truncate text-sm text-muted-foreground">
               {[GROUP_KINDS[group.kind].label, dates, group.status === "cerrado" ? "Cerrado" : null]
                 .filter(Boolean)
@@ -217,12 +217,12 @@ function GroupPanel({
           sin lugar entre el nombre y el importe. */}
       <div className="flex flex-col gap-5">
         <section className="flex flex-col gap-3 hoja p-5">
-          <h3 className="text-sm font-semibold">Balances</h3>
+          <h3 className="text-lg font-bold">Balances</h3>
           <BalanceBars bundle={bundle} />
         </section>
 
         <section className="flex min-w-0 flex-col gap-3 hoja p-5">
-          <h3 className="text-sm font-semibold">Gastos</h3>
+          <h3 className="text-lg font-bold">Gastos</h3>
           {bundle.expenses.length === 0 ? (
             <p className="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
               <Receipt className="size-6" />

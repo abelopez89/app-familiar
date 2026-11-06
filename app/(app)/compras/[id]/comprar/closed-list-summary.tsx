@@ -28,7 +28,7 @@ export function ClosedListSummary({
               <ArrowLeft className="size-4" />
             </Link>
           </Button>
-          <h1 className="text-xl font-semibold">{list.name ?? "Lista de compras"}</h1>
+          <h1 className="text-[1.875rem] leading-tight font-bold tracking-tight">{list.name ?? "Lista de compras"}</h1>
         </div>
         <div className="flex items-center">
           <RenameListDialog list={list} />

@@ -166,7 +166,7 @@ async function ListPanel({ familyId, list }: { familyId: string; list: ShoppingL
       <section className="flex flex-col gap-4 hoja p-5">
         <div className="flex flex-col gap-3">
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-semibold">{list.name ?? "Lista de compras"}</h2>
+            <h2 className="truncate text-2xl font-bold">{list.name ?? "Lista de compras"}</h2>
             <p className="truncate text-sm text-muted-foreground">
               {closed
                 ? `Cerrada${list.closed_at ? ` el ${formatDateTime(list.closed_at)}` : ""}`

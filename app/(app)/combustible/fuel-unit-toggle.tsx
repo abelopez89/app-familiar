@@ -12,7 +12,7 @@ export function FuelUnitToggle({ unit }: { unit: FuelUnit }) {
   return (
     <div className="flex items-center justify-between gap-3 px-1">
       <span className="text-xs text-muted-foreground">Rendimiento en</span>
-      <div className="grid grid-cols-2 rounded-lg bg-muted p-0.5 text-xs font-medium" aria-busy={isPending}>
+      <div className="grid grid-cols-2 rounded-full bg-muted p-1 text-xs font-bold" aria-busy={isPending}>
         {(Object.keys(FUEL_UNITS) as FuelUnit[]).map((u) => (
           <button
             key={u}
@@ -21,7 +21,7 @@ export function FuelUnitToggle({ unit }: { unit: FuelUnit }) {
             disabled={isPending}
             onClick={() => startTransition(() => setFuelUnit(u))}
             className={cn(
-              "rounded-md px-3 py-1.5 transition-colors",
+              "rounded-full px-3 py-1.5 transition-colors",
               unit === u ? "bg-card text-foreground" : "text-muted-foreground",
             )}
           >

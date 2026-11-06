@@ -44,7 +44,7 @@ export function AgendaList({
     <div className="flex flex-col gap-4">
       {days.map((day) => (
         <div key={day} className="flex flex-col gap-2">
-          <h2 className="px-1 text-sm font-semibold text-muted-foreground">
+          <h2 className="px-1 text-lg font-bold">
             {day === today
               ? "Hoy"
               : day === tomorrow

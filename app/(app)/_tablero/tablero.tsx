@@ -190,7 +190,7 @@ function Panel({
             <Icon className={cn("size-4", fg)} />
           </span>
           <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold">{title}</h2>
+            <h2 className="truncate text-lg leading-tight font-bold">{title}</h2>
             {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
           </div>
         </div>
@@ -584,7 +584,7 @@ async function BloquePromos() {
                   </span>
                   <span
                     title={beneficio.componentes.map(describirComponente).join(" + ")}
-                    className="line-clamp-2 w-fit max-w-full rounded-md bg-mod-promos-soft px-2 py-0.5 text-xs font-medium text-mod-promos"
+                    className="line-clamp-2 w-fit max-w-full rounded-full bg-mod-promos-soft px-2 py-0.5 text-xs font-medium text-mod-promos"
                   >
                     {beneficio.componentes.map(describirComponente).join(" + ")}
                   </span>

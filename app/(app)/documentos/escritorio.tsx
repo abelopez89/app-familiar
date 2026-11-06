@@ -399,7 +399,7 @@ async function VistaPrevia({
   return (
     <>
       <div className="flex items-start gap-2">
-        <h2 className="min-w-0 flex-1 text-base font-semibold leading-snug">{doc.title}</h2>
+        <h2 className="min-w-0 flex-1 text-lg font-bold leading-snug">{doc.title}</h2>
         {doc.is_pinned && <Pin className="mt-1 size-4 shrink-0 fill-primary text-primary" aria-label="Fijado" />}
       </div>
 

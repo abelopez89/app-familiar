@@ -69,7 +69,7 @@ export function DocumentViewer({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-2">
-        <h1 className="text-xl font-semibold">{document.title}</h1>
+        <h1 className="text-[1.875rem] leading-tight font-bold tracking-tight">{document.title}</h1>
         <Button
           variant="ghost"
           size="icon"

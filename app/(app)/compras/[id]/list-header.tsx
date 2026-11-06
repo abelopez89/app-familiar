@@ -16,7 +16,7 @@ export function ListHeader({ list }: { list: ShoppingList }) {
           </Link>
         </Button>
         <div>
-          <h1 className="text-xl font-semibold">{list.name ?? "Lista de compras"}</h1>
+          <h1 className="text-[1.875rem] leading-tight font-bold tracking-tight">{list.name ?? "Lista de compras"}</h1>
           <p className="text-sm text-muted-foreground">{formatDate(list.shopping_date)}</p>
         </div>
       </div>

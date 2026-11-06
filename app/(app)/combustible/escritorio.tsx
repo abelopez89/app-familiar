@@ -149,7 +149,7 @@ async function VehiclePanel({
       <section className="flex flex-col gap-4 hoja p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-semibold">{vehicle.name}</h2>
+            <h2 className="truncate text-2xl font-bold">{vehicle.name}</h2>
             <p className="truncate text-sm text-muted-foreground">
               {FUEL_TYPES[vehicle.fuel_type].label}
               {vehicle.plate ? ` · ${vehicle.plate}` : ""}
@@ -174,17 +174,17 @@ async function VehiclePanel({
 
       <div className="grid grid-cols-2 gap-5">
         <section className="flex flex-col gap-3 hoja p-5">
-          <h3 className="text-sm font-semibold">Rendimiento por carga</h3>
+          <h3 className="text-lg font-bold">Rendimiento por carga</h3>
           <PerformanceChart intervals={intervals} logDates={logDates} unit={unit} width={480} height={200} showAverage />
         </section>
         <section className="flex flex-col gap-3 hoja p-5">
-          <h3 className="text-sm font-semibold">Precio por litro</h3>
+          <h3 className="text-lg font-bold">Precio por litro</h3>
           <PriceChart logs={logs} width={480} height={200} />
         </section>
       </div>
 
       <section className="overflow-hidden hoja text-sm">
-        <h3 className="px-5 pt-5 pb-3 text-sm font-semibold">Historial de cargas</h3>
+        <h3 className="px-5 pt-5 pb-3 text-lg font-bold">Historial de cargas</h3>
         {history.length === 0 ? (
           <p className="px-5 pb-6 text-muted-foreground">Sin cargas todavía.</p>
         ) : (

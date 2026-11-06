@@ -330,7 +330,7 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   - **Ñandutí** (`components/app-shell/nanduti.tsx`, SVG puro):
     `SelloDelDia` con el día y el mes en el centro, en el encabezado del
     inicio (celular) y del tablero (escritorio), y `Nanduti` como marca
-    del menú. Es el único adorno de la app: no lo sumes a otras
+    del menú y de las pantallas de ingreso (`(auth)/layout.tsx`). Es el único adorno de la app: no lo sumes a otras
     pantallas.
   - **Inicio del celular**: encabezado verde (saludo y fecha, sin datos),
     grilla de módulos de a cuatro con ícono grande (`ModuleTile`; el
@@ -361,6 +361,14 @@ Restricciones deliberadas — no las repliques ni las "mejores":
     radio `xl`, `Stat` con el valor en la tipografía de títulos, y las
     tarjetas de las vistas de escritorio (`rounded-2xl border bg-card`)
     también como `hoja`.
+  - **Pasada final por todas las pantallas** (quinto paso): todos los
+    `h1` con el mismo estilo que `PageHeader` (1.875rem, negrita), los
+    títulos de bloque (`h2`/`h3`) en `text-lg font-bold`, controles
+    segmentados en píldora (vista del calendario, unidad de
+    rendimiento, pestañas de gastos), grilla del calendario con el día
+    elegido en `accent` con aro `primary` y el número de hoy en lapacho
+    (como el "Hoy" del resumen), y chips de descuento de promos en
+    píldora. Una pantalla nueva sigue estas mismas clases.
 - **Modo oscuro automático por `prefers-color-scheme`**, sin script ni
   flash de tema al abrir la PWA. La variante `dark:` de Tailwind está
   redefinida en `globals.css` con un `@custom-variant` que cubre a la
