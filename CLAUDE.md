@@ -1454,7 +1454,8 @@ variables de entorno.
 
 Salió de correr la skill `auditoria-flujos` sobre el código (sin
 recorrido con navegador todavía). Un solo PR a pedido del usuario, sin
-migraciones ni reglas de negocio nuevas.
+migraciones ni reglas de negocio nuevas. **Verificado en producción por
+el usuario desde el celular.**
 
 1. **"Mi lista" en el acceso rápido del inicio (celular).** Con una
    lista abierta, el acceso "Lista" pasa a "Mi lista" y lleva a esa
@@ -1478,8 +1479,8 @@ migraciones ni reglas de negocio nuevas.
    del formulario para que la barra no tape el último campo. Con
    advertencias de combustible, o con páginas de un documento que no
    subieron, los botones siguen en su tarjeta dentro del formulario.
-   **Pendiente de probar en el iPhone** con el teclado abierto (ver
-   "Teclado abierto al cambiar de pantalla").
+   Probado en el iPhone con el teclado abierto: la barra no queda
+   flotando (ver "Teclado abierto al cambiar de pantalla").
 5. **Confirmación antes de borrar** en lo que se borraba con un toque:
    quitar una página de un documento (borra el archivo), eliminar una
    categoría de productos y sacar un producto de una plantilla
