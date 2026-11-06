@@ -354,6 +354,13 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   - **Gastos**: lo que alguien debe va en lapacho (`warning`), no en el
     rojo de error (`balanceTone`, barras de balance): deber plata no es
     un error. `destructive` queda para errores y "no cierra".
+  - **Componentes base** (cuarto paso): botones en píldora y en negrita
+    (`Button`, sin `shadow-xs`; `outline` sobre `card`), campos
+    (`Input`, `Textarea`, `SelectTrigger`) con radio 0.875rem y fondo
+    `card`, diálogos con radio 1.75rem, `Badge` en píldora, menús con
+    radio `xl`, `Stat` con el valor en la tipografía de títulos, y las
+    tarjetas de las vistas de escritorio (`rounded-2xl border bg-card`)
+    también como `hoja`.
 - **Modo oscuro automático por `prefers-color-scheme`**, sin script ni
   flash de tema al abrir la PWA. La variante `dark:` de Tailwind está
   redefinida en `globals.css` con un `@custom-variant` que cubre a la

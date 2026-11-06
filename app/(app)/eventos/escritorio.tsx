@@ -141,7 +141,7 @@ export function CalendarioEscritorio({
 
       <div className="grid grid-cols-[minmax(0,1fr)_19rem] items-start gap-5">
         {/* Grilla mensual */}
-        <div className="overflow-hidden rounded-2xl border bg-card">
+        <div className="overflow-hidden hoja">
           <div className="grid grid-cols-7 border-b bg-muted/60">
             {WEEKDAYS.map((label) => (
               <div key={label} className="px-2 py-2 text-xs font-medium text-muted-foreground">
@@ -210,7 +210,7 @@ export function CalendarioEscritorio({
 
         {/* Agenda del día y feed ICS */}
         <aside className="sticky top-8 flex flex-col gap-4">
-          <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
+          <section className="flex flex-col gap-3 hoja p-4">
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 {selected === today ? "Hoy" : selected === addDaysToDateOnly(today, 1) ? "Mañana" : "Agenda del día"}
@@ -234,7 +234,7 @@ export function CalendarioEscritorio({
 
           <Link
             href="/config/calendario"
-            className="flex items-center gap-3 rounded-2xl border bg-card p-4 text-sm transition-colors hover:border-ring/40"
+            className="flex items-center gap-3 hoja p-4 text-sm transition-colors hover:border-ring/40"
           >
             <Rss className="size-4 shrink-0 text-mod-eventos" />
             <span className="min-w-0">

@@ -65,7 +65,7 @@ export async function ComprasEscritorio({
       />
 
       {!selected ? (
-        <p className="rounded-2xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+        <p className="hoja px-4 py-10 text-center text-sm text-muted-foreground">
           Todavía no hiciste ninguna lista. Armá una a partir de tus plantillas y llevala al súper en el celular.
         </p>
       ) : (
@@ -163,7 +163,7 @@ async function ListPanel({ familyId, list }: { familyId: string; list: ShoppingL
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
-      <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
+      <section className="flex flex-col gap-4 hoja p-5">
         <div className="flex flex-col gap-3">
           <div className="min-w-0">
             <h2 className="truncate text-xl font-semibold">{list.name ?? "Lista de compras"}</h2>
@@ -235,7 +235,7 @@ async function ListPanel({ familyId, list }: { familyId: string; list: ShoppingL
         )}
       </section>
 
-      <section className="rounded-2xl border bg-card p-5">
+      <section className="hoja p-5">
         {items.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">La lista está vacía.</p>
         ) : (

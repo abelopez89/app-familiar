@@ -295,7 +295,7 @@ export async function DocumentosEscritorio({
         </div>
 
         {/* 3. Vista previa */}
-        <aside className="sticky top-8 flex flex-col gap-4 rounded-2xl border bg-card p-4">
+        <aside className="sticky top-8 flex flex-col gap-4 hoja p-4">
           {selected ? (
             <VistaPrevia
               doc={selected}
