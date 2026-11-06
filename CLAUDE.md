@@ -330,7 +330,12 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   - **Ñandutí** (`components/app-shell/nanduti.tsx`, SVG puro):
     `SelloDelDia` con el día y el mes en el centro, en el encabezado del
     inicio (celular) y del tablero (escritorio), y `Nanduti` como marca
-    del menú y de las pantallas de ingreso (`(auth)/layout.tsx`). Es el único adorno de la app: no lo sumes a otras
+    del menú y de las pantallas de ingreso (`(auth)/layout.tsx`). Los
+    íconos de la app (`app/icon.png`, `public/apple-touch-icon.png` y
+    `public/icons/*`) son el mismo ñandutí sin la trama en zigzag (a
+    tamaño de ícono se empasta), en verde claro sobre yerba y con el
+    centro en lapacho; el maskable deja el rosetón dentro de la zona
+    segura y el de Apple va sin esquinas redondeadas (iOS las pone). Es el único adorno de la app: no lo sumes a otras
     pantallas.
   - **Inicio del celular**: encabezado verde (saludo y fecha, sin datos),
     grilla de módulos de a cuatro con ícono grande (`ModuleTile`; el
