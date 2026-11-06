@@ -67,7 +67,7 @@ acá primero):
   llegan los toques de botón), y menú registrado con `setMyCommands`:
   `menu`, `hoy`, `semana`, `compra`, `gasto`, `nafta`, `evento`,
   `cancelar`. Si se agrega un comando, hay que volver a registrar la
-  lista completa.
+  lista completa y sumarlo a `COMANDOS` en `/config/telegram`.
 
 ## Estado del proyecto
 
@@ -1496,6 +1496,42 @@ el usuario desde el celular.**
    pantalla (antes "Nuevo gasto"); "Calendario" en el bloque del resumen
    del inicio (antes "Eventos"). "Nafta" queda como atajo corto del
    inicio, igual que el comando `/nafta` del bot.
+
+### Segunda ronda (recorrido con navegador)
+
+Recorrido con Playwright contra producción con un usuario de prueba
+(celular 390×844 con user-agent de iPhone y escritorio 1440×900), que
+confirmó lo de la primera ronda. Las siete propuestas van en **un solo
+PR, a pedido del usuario** (excepción a "una mejora por PR"), sin
+migraciones ni reglas de negocio nuevas.
+
+7. **Cerrar la compra vuelve al resumen de esa compra**
+   (`/compras/[id]/comprar`), no a `/compras`: ahí está "¿Pagaste con una
+   promo de tarjeta?", que sirve justo en la caja. Antes había que
+   encontrar la compra en el historial (5 toques, ahora 3).
+8. **El diálogo de evento tiene el pie fijo** (`sticky bottom-0` en el
+   `DialogFooter` de `event-form-dialog.tsx`): con todos los campos pasaba
+   del alto de la pantalla y Guardar quedaba fuera de vista. Los botones
+   "+" sin texto llevan `aria-label` (evento, activo, vehículo).
+9. **Después de guardar una carga de combustible, la barra fija dice
+   "Listo"** y lleva al vehículo; vuelve a "Guardar carga" apenas se toca
+   un campo (`dirtyAfterSave` en `fuel-log-form.tsx`). Antes ofrecía
+   "Guardar carga" sobre el formulario vacío.
+10. **Los días del bloque "Esta semana" del tablero de escritorio son
+    links** a `/eventos?mes=…&dia=…` (el calendario de escritorio abre en
+    ese día con su agenda).
+11. **`/promos` en celular: los accesos van en una fila debajo del
+    título** (Ahorros, Todas, Tarjetas, Cargar promo). Al costado cortaban
+    el título ("Prom…") en 390px, y Ahorros y Cargar promo estaban al
+    final, debajo de todas las promos. "Actualizar Itaú" queda abajo, con
+    el estado de la ingesta.
+12. **Más confirmaciones** (`window.confirm`): eliminar una categoría de
+    documentos o de gastos (dice que lo que la usaba queda sin categoría)
+    y quitar a un participante de un grupo.
+13. **`/config/telegram` lista los comandos del bot** (`COMANDOS` en la
+    página), porque varias tareas son más rápidas por chat. Es la misma
+    lista que `setMyCommands`: si se agrega un comando, va en los dos
+    lados.
 
 ## Fase 7 — Bot conversacional de Telegram: decisiones a respetar
 

@@ -104,7 +104,8 @@ export function CategoriesList({ categories }: { categories: DocumentCategory[] 
   const [items, setItems] = useState(categories);
   const [isPending, startTransition] = useTransition();
 
-  function handleDelete(id: string) {
+  function handleDelete(id: string, name: string) {
+    if (!window.confirm(`¿Eliminar la categoría "${name}"? Los documentos que la usaban quedan sin categoría.`)) return;
     startTransition(async () => {
       const result = await deleteDocumentCategory(id);
       if (result.error) {
@@ -144,7 +145,7 @@ export function CategoriesList({ categories }: { categories: DocumentCategory[] 
                   <DropdownMenuItem
                     variant="destructive"
                     disabled={isPending}
-                    onClick={() => handleDelete(category.id)}
+                    onClick={() => handleDelete(category.id, category.name)}
                   >
                     Eliminar
                   </DropdownMenuItem>

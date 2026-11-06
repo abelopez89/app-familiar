@@ -69,5 +69,7 @@ export async function closeShoppingList(
 
   revalidatePath("/compras");
   revalidatePath("/");
-  redirect("/compras");
+  // Al resumen de esta compra, no al listado: ahí está "¿Pagaste con una
+  // promo de tarjeta?", que sirve justo en la caja (auditoría de flujos).
+  redirect(`/compras/${listId}/comprar`);
 }

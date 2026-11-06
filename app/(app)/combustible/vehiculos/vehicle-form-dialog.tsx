@@ -57,7 +57,7 @@ export function VehicleFormDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button size="icon" className="size-14 rounded-full shadow-lg">
+          <Button size="icon" className="size-14 rounded-full shadow-lg" aria-label="Nuevo vehículo">
             <Plus className="size-6" />
           </Button>
         )}
