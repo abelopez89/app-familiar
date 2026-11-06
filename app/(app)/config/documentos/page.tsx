@@ -18,7 +18,7 @@ export default async function ConfigDocumentosPage() {
     <div className="flex flex-col gap-4">
       <PageHeader title="Documentos" description="Categorías y espacio usado" />
 
-      <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm">
+      <div className="flex flex-col gap-2 rounded-xl border bg-card p-4">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">Espacio usado</span>
           <span className="text-muted-foreground tabular-nums">

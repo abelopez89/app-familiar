@@ -119,7 +119,7 @@ function GroupCard({ summary, shortcuts = false }: { summary: GroupSummary; shor
       className={
         shortcuts
           ? "flex items-center gap-3 p-4 transition-colors active:bg-muted/50"
-          : "flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-transform duration-150 active:scale-[0.99]"
+          : "flex items-center gap-3 rounded-xl border bg-card p-4 transition-transform duration-150 active:scale-[0.99]"
       }
     >
       <div className="min-w-0 flex-1">
@@ -152,7 +152,7 @@ function GroupCard({ summary, shortcuts = false }: { summary: GroupSummary; shor
   if (!shortcuts) return card;
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-xl border bg-card">
       {card}
       <div className="grid grid-cols-2 border-t">
         <Link

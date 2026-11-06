@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionTitle } from "@/components/app-shell/page-header";
 import { ModuleTile } from "@/components/app-shell/module-tile";
+import { SelloDelDia } from "@/components/app-shell/nanduti";
 import { LAUNCHER_MODULES, MODULES_BY_KEY, type ModuleKey } from "@/components/app-shell/modules";
 import { FEATURES } from "@/lib/features";
 import { getCurrentFamilyContext } from "@/lib/family";
@@ -58,7 +59,9 @@ export default async function InicioPage() {
   const saludo = hour < 6 ? "Buenas noches" : hour < 12 ? "Buen día" : hour < 19 ? "Buenas tardes" : "Buenas noches";
   const nombre = context?.member.display_name?.split(" ")[0];
 
-  const lanzador = <Lanzador saludo={saludo} nombre={nombre} familyName={context?.family.name} />;
+  const lanzador = (
+    <Lanzador saludo={saludo} nombre={nombre} familyName={context?.family.name} today={todayInFamilyTimezone()} />
+  );
 
   // Panel web (escritorio): el tablero solo se arma si el pedido no viene
   // de un teléfono, así el celular no paga sus consultas ni su HTML. En
@@ -77,26 +80,49 @@ export default async function InicioPage() {
 }
 
 /** El inicio del celular (y de cualquier ventana angosta): el lanzador de siempre. */
-function Lanzador({ saludo, nombre, familyName }: { saludo: string; nombre?: string; familyName?: string }) {
+function Lanzador({
+  saludo,
+  nombre,
+  familyName,
+  today,
+}: {
+  saludo: string;
+  nombre?: string;
+  familyName?: string;
+  today: string;
+}) {
   return (
-    <div className="flex flex-col gap-7">
-      <div>
-        <p className="text-sm text-muted-foreground">{saludo}</p>
-        <h1 className="text-[1.75rem] font-semibold tracking-tight">
-          {nombre ? nombre : (familyName ?? "Tu familia")}
+    <div className="flex flex-col gap-6">
+      {/*
+       * Encabezado de marca: el bloque verde con el sello de ñandutí es lo
+       * único llamativo de la app (identidad "Lapacho y tereré"); todo lo
+       * de abajo queda tranquilo. Es solo saludo y fecha: sin datos, para
+       * no volver a convertir el inicio en un tablero (Fase Extra).
+       */}
+      <header className="relative overflow-hidden rounded-[1.75rem] bg-brand px-6 pt-6 pb-7 text-brand-foreground">
+        <SelloDelDia
+          today={today}
+          className="absolute -top-3 -right-10 size-44 text-brand-line"
+          discClassName="size-20 text-[2.5rem]"
+        />
+        <p className="text-sm text-brand-muted">{familyName ?? "Tu familia"}</p>
+        <h1 className="mt-1.5 max-w-[58%] text-[2.25rem] leading-none font-bold tracking-tight">
+          {nombre ? `${saludo}, ${nombre}` : saludo}
         </h1>
-      </div>
+        <p className="mt-3 text-sm text-brand-muted first-letter:uppercase">
+          {formatDate(dateOnlyToFamilyMidnightUtc(today), "EEEE d 'de' MMMM")}
+        </p>
+      </header>
+
+      <nav aria-label="Módulos">
+        <Suspense fallback={<ModuleGrid />}>
+          <ModuleGridWithBadges />
+        </Suspense>
+      </nav>
 
       <Suspense fallback={<QuickActions />}>
         <QuickActionsWithList />
       </Suspense>
-
-      <section className="flex flex-col gap-3">
-        <SectionTitle>Todo lo de la casa</SectionTitle>
-        <Suspense fallback={<ModuleGrid />}>
-          <ModuleGridWithBadges />
-        </Suspense>
-      </section>
 
       <Suspense fallback={<ResumenSkeleton />}>
         <Resumen />
@@ -138,15 +164,15 @@ function QuickActions({ openList }: { openList?: Pick<ShoppingList, "id" | "stat
       : action,
   );
   return (
-    <section className="grid grid-cols-4 gap-2">
+    <section aria-label="Acciones rápidas" className="grid grid-cols-2 gap-2">
       {actions.map(({ href, label, icon: Icon }) => (
         <Link
           key={label}
           href={href}
-          className="flex flex-col items-center gap-1.5 rounded-xl border bg-card px-1 py-3 shadow-sm transition-transform duration-150 active:scale-[0.96]"
+          className="flex min-h-12 items-center gap-2.5 rounded-2xl bg-card px-4 text-sm font-bold transition-transform duration-150 active:scale-[0.97]"
         >
-          <Icon className="size-5 text-primary" />
-          <span className="truncate text-[0.6875rem] font-medium">{label}</span>
+          <Icon className="size-5 shrink-0 text-primary" />
+          <span className="truncate">{label}</span>
         </Link>
       ))}
     </section>
@@ -156,7 +182,7 @@ function QuickActions({ openList }: { openList?: Pick<ShoppingList, "id" | "stat
 /** Grilla sin contadores: es también el fallback mientras cargan. */
 function ModuleGrid({ badges }: { badges?: Partial<Record<ModuleKey, { count: number; tone: "default" | "alert"; hint?: string }>> }) {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-4 gap-x-2 gap-y-4">
       {LAUNCHER_MODULES.map((module) => {
         const badge = badges?.[module.key];
         return (
@@ -287,7 +313,7 @@ async function Resumen() {
       {openList && (
         <Link
           href={shoppingListHref(openList)}
-          className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-transform duration-150 active:scale-[0.99]"
+          className="flex items-center gap-3 rounded-[1.375rem] bg-card p-4 transition-transform duration-150 active:scale-[0.99]"
         >
           <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${MODULES_BY_KEY.compras.bg}`}>
             <ShoppingCart className={`size-5 ${MODULES_BY_KEY.compras.fg}`} />
@@ -321,7 +347,11 @@ async function Resumen() {
                * evento de varios días que empezó antes cuenta como "Hoy".
                */}
               <span className="w-16 shrink-0 pt-0.5 text-xs tabular-nums">
-                <span className="block font-semibold">{dayLabel(event.starts_at, today)}</span>
+                <span
+                  className={`block font-bold ${dayLabel(event.starts_at, today) === "Hoy" ? "text-warning" : ""}`}
+                >
+                  {dayLabel(event.starts_at, today)}
+                </span>
                 <span className="block font-medium text-muted-foreground">
                   {event.all_day ? "Todo el día" : formatTime(event.starts_at)}
                 </span>
@@ -444,13 +474,13 @@ function ResumenBloque({
   const { fg, bg } = MODULES_BY_KEY[modulo];
 
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm">
+    <div className="rounded-[1.375rem] bg-card p-5">
       <div className="flex items-center gap-3">
-        <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${bg}`}>
+        <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${bg}`}>
           <Icon className={`size-4.5 ${fg}`} />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold">{titulo}</p>
+          <h3 className="text-lg leading-tight font-bold">{titulo}</h3>
           <p className="text-xs text-muted-foreground">{subtitulo}</p>
         </div>
       </div>

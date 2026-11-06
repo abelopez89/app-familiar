@@ -22,7 +22,7 @@ export function FuelUnitToggle({ unit }: { unit: FuelUnit }) {
             onClick={() => startTransition(() => setFuelUnit(u))}
             className={cn(
               "rounded-md px-3 py-1.5 transition-colors",
-              unit === u ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+              unit === u ? "bg-card text-foreground" : "text-muted-foreground",
             )}
           >
             {FUEL_UNITS[u].short}

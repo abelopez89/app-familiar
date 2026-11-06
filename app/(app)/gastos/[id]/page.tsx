@@ -53,7 +53,7 @@ export default async function GrupoPage({ params }: { params: Promise<{ id: stri
         [...byDay.entries()].map(([day, expenses]) => (
           <section key={day} className="flex flex-col gap-2">
             <SectionTitle>{formatDate(day, "EEEE d 'de' MMMM")}</SectionTitle>
-            <div className="flex flex-col divide-y rounded-xl border bg-card shadow-sm">
+            <div className="flex flex-col divide-y rounded-xl border bg-card">
               {expenses.map((e) => {
                 const category = e.category_id ? categoriesById.get(e.category_id) : undefined;
                 const Icon = categoryIcon(category?.icon);

@@ -101,7 +101,7 @@ export function DocumentsBrowser({
               <Link
                 key={doc.id}
                 href={`/documentos/${doc.id}`}
-                className="overflow-hidden rounded-xl border bg-card shadow-sm transition-transform duration-150 active:scale-[0.97]"
+                className="overflow-hidden rounded-xl border bg-card transition-transform duration-150 active:scale-[0.97]"
               >
                 <div className="flex aspect-square items-center justify-center bg-muted">
                   {thumbnails[doc.id] ? (
@@ -151,7 +151,7 @@ export function DocumentsBrowser({
             }
           />
         ) : (
-          <div className="divide-y divide-border overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div className="divide-y divide-border overflow-hidden rounded-xl border bg-card">
               {recent.map((doc) => (
                 <Link
                   key={doc.id}

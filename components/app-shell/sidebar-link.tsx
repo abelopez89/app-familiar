@@ -32,10 +32,11 @@ export function SidebarLink({
       href={href}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
+        "group flex h-10 items-center gap-3 rounded-xl px-3 text-sm transition-colors",
+        // Sobre el verde de la marca: el activo es una "hoja" blanca.
         isActive
-          ? "bg-card text-foreground shadow-sm"
-          : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
+          ? "bg-card font-bold text-foreground"
+          : "text-brand-foreground hover:bg-brand-foreground/10",
       )}
     >
       {children}
