@@ -116,7 +116,7 @@ const ACCESOS: { href: string; label: string; icon: typeof Fuel; modulo: ModuleK
 // ============ Piezas comunes ============
 
 function Esqueleto({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-2xl border bg-card/60", className)} />;
+  return <div className={cn("animate-pulse hoja opacity-60", className)} />;
 }
 
 function Indicador({
@@ -141,7 +141,7 @@ function Indicador({
   return (
     <Link
       href={href}
-      className="flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-4 transition-colors hover:border-ring/40"
+      className="flex min-w-0 flex-col gap-2 hoja p-4 transition-colors hover:border-ring/40"
     >
       <span className="flex items-center gap-2">
         <span className={cn("flex size-7 items-center justify-center rounded-lg", bg)}>
@@ -183,7 +183,7 @@ function Panel({
 }) {
   const { icon: Icon, fg, bg } = MODULES_BY_KEY[modulo];
   return (
-    <section className={cn("flex min-w-0 flex-col gap-4 rounded-2xl border bg-card p-5", className)}>
+    <section className={cn("flex min-w-0 flex-col gap-4 hoja p-5", className)}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", bg)}>

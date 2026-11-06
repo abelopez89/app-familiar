@@ -71,7 +71,7 @@ export async function GastosEscritorio({
       />
 
       {summaries.length === 0 ? (
-        <p className="rounded-2xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+        <p className="hoja px-4 py-10 text-center text-sm text-muted-foreground">
           Todavía no hay grupos. Un viaje, una cena con amigos: creá un grupo, cargá lo que paga cada uno y la app te
           dice quién le debe a quién.
         </p>
@@ -164,7 +164,7 @@ function GroupPanel({
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
-      <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
+      <section className="flex flex-col gap-4 hoja p-5">
         <div className="flex flex-col gap-3">
           <div className="min-w-0">
             <h2 className="truncate text-xl font-semibold">{group.name}</h2>
@@ -216,12 +216,12 @@ function GroupPanel({
       {/* Uno debajo del otro: lado a lado, las barras divergentes quedaban
           sin lugar entre el nombre y el importe. */}
       <div className="flex flex-col gap-5">
-        <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
+        <section className="flex flex-col gap-3 hoja p-5">
           <h3 className="text-sm font-semibold">Balances</h3>
           <BalanceBars bundle={bundle} />
         </section>
 
-        <section className="flex min-w-0 flex-col gap-3 rounded-2xl border bg-card p-5">
+        <section className="flex min-w-0 flex-col gap-3 hoja p-5">
           <h3 className="text-sm font-semibold">Gastos</h3>
           {bundle.expenses.length === 0 ? (
             <p className="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
