@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, ChevronRight, HandCoins, Plus, Zap } from "lucide-react";
+import { AlertTriangle, ChevronRight, HandCoins, Plus, Scale, Zap } from "lucide-react";
 import { getCurrentFamilyContext } from "@/lib/family";
 import { listGroupSummaries, type GroupSummary } from "@/lib/expenses/queries";
 import { GROUP_KINDS, balanceTone, describeBalance } from "@/lib/expenses/constants";
@@ -31,7 +31,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
 
   const mobile = (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Gastos compartidos" icon={HandCoins} iconFg={fg} iconBg={bg} />
+      <PageHeader title="Gastos" icon={HandCoins} iconFg={fg} iconBg={bg} />
 
       <div className="grid grid-cols-2 gap-2">
         <Button asChild variant="outline" className="h-12 gap-2">
@@ -61,7 +61,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
               <SectionTitle>Abiertos</SectionTitle>
               <div className="flex flex-col gap-2">
                 {open.map((s) => (
-                  <GroupCard key={s.group.id} summary={s} />
+                  <GroupCard key={s.group.id} summary={s} shortcuts />
                 ))}
               </div>
             </section>
@@ -99,7 +99,12 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
   );
 }
 
-function GroupCard({ summary }: { summary: GroupSummary }) {
+/**
+ * Tarjeta de un grupo. Los abiertos llevan dos atajos abajo ("Cargar
+ * gasto" y "Balances"): son las dos cosas que se hacen con un grupo, y
+ * antes cada una costaba un toque más (entrar al grupo primero).
+ */
+function GroupCard({ summary, shortcuts = false }: { summary: GroupSummary; shortcuts?: boolean }) {
   const { group, totalPyg, expenseCount, participantCount, myBalance, isConsistent } = summary;
   const dates =
     group.starts_on && group.ends_on
@@ -108,10 +113,14 @@ function GroupCard({ summary }: { summary: GroupSummary }) {
         ? formatDate(group.starts_on, "d MMM yyyy")
         : null;
 
-  return (
+  const card = (
     <Link
       href={`/gastos/${group.id}`}
-      className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-transform duration-150 active:scale-[0.99]"
+      className={
+        shortcuts
+          ? "flex items-center gap-3 p-4 transition-colors active:bg-muted/50"
+          : "flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-transform duration-150 active:scale-[0.99]"
+      }
     >
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">{group.name}</p>
@@ -138,5 +147,29 @@ function GroupCard({ summary }: { summary: GroupSummary }) {
       </div>
       <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
     </Link>
+  );
+
+  if (!shortcuts) return card;
+
+  return (
+    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      {card}
+      <div className="grid grid-cols-2 border-t">
+        <Link
+          href={`/gastos/${group.id}/nuevo`}
+          className="tap-target flex items-center justify-center gap-1.5 text-sm font-medium text-primary transition-colors active:bg-muted/50"
+        >
+          <Plus className="size-4" />
+          Cargar gasto
+        </Link>
+        <Link
+          href={`/gastos/${group.id}/balances`}
+          className="tap-target flex items-center justify-center gap-1.5 border-l text-sm font-medium transition-colors active:bg-muted/50"
+        >
+          <Scale className="size-4" />
+          Balances
+        </Link>
+      </div>
+    </div>
   );
 }

@@ -11,6 +11,7 @@ import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatGuaranies } from "@/lib/format";
 import { isPhoneRequest } from "@/lib/device";
 import { ComprasEscritorio } from "./escritorio";
+import { shoppingListHref } from "@/lib/shopping/links";
 
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<{ lista?: string }> }) {
   const [context, isPhone] = await Promise.all([getCurrentFamilyContext(), isPhoneRequest()]);
@@ -66,7 +67,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
             {abiertas.map((list) => (
               <Link
                 key={list.id}
-                href={`/compras/${list.id}`}
+                href={shoppingListHref(list)}
                 className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-transform duration-150 active:scale-[0.99]"
               >
                 <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${bg}`}>

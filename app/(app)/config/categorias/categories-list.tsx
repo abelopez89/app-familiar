@@ -28,6 +28,8 @@ export function CategoriesList({ categories }: { categories: ProductCategory[] }
   }
 
   function handleDelete(id: string) {
+    const name = items.find((i) => i.id === id)?.name;
+    if (!window.confirm(`¿Eliminar la categoría${name ? ` "${name}"` : ""}?`)) return;
     startTransition(async () => {
       const result = await deleteCategory(id);
       if (result.error) {

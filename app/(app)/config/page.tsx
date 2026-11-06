@@ -145,7 +145,7 @@ export default async function ConfigPage() {
 
   return (
     <div className="flex flex-col gap-7">
-      <PageHeader title="Configuración" description={context.family.name} />
+      <PageHeader title="Ajustes" description={context.family.name} />
 
       {GRUPOS.map((grupo) => (
         <section key={grupo.titulo} className="flex flex-col gap-2">

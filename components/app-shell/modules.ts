@@ -74,7 +74,7 @@ export const MODULES: ModuleDef[] = [
   {
     key: "gastos",
     href: "/gastos",
-    label: "Gastos compartidos",
+    label: "Gastos",
     tagline: "Quién le debe a quién",
     icon: HandCoins,
     fg: "text-mod-gastos",
@@ -138,8 +138,8 @@ export const MODULES_BY_KEY = Object.fromEntries(
  */
 const SECTION_LABELS: Array<[prefix: string, label: string]> = [
   // Con Tareas apagado, los activos se abren desde `/config` (catálogos).
-  ["/tareas/activos", FEATURES.tareas ? "Tareas" : "Configuración"],
-  ["/config", "Configuración"],
+  ["/tareas/activos", FEATURES.tareas ? "Tareas" : "Ajustes"],
+  ["/config", "Ajustes"],
   ["/compras", "Compras"],
   ["/eventos", "Calendario"],
   ["/tareas", "Tareas"],

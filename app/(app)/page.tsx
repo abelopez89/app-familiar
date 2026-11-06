@@ -20,6 +20,8 @@ import { getCurrentFamilyContext } from "@/lib/family";
 import { isPhoneRequest } from "@/lib/device";
 import { Tablero } from "./_tablero/tablero";
 import { getOpenShoppingList } from "@/lib/shopping/queries";
+import { shoppingListHref } from "@/lib/shopping/links";
+import type { ShoppingList } from "@/lib/supabase/types";
 import { listEventsWithDetails } from "@/lib/events/queries";
 import { listActiveMembers } from "@/lib/members";
 import { buildDisplayEvents } from "@/lib/events/view-model";
@@ -85,7 +87,9 @@ function Lanzador({ saludo, nombre, familyName }: { saludo: string; nombre?: str
         </h1>
       </div>
 
-      <QuickActions />
+      <Suspense fallback={<QuickActions />}>
+        <QuickActionsWithList />
+      </Suspense>
 
       <section className="flex flex-col gap-3">
         <SectionTitle>Todo lo de la casa</SectionTitle>
@@ -102,7 +106,7 @@ function Lanzador({ saludo, nombre, familyName }: { saludo: string; nombre?: str
 }
 
 /*
- * Acciones rápidas: crear, no navegar. Las cuatro cosas que uno abre la
+ * Acciones rápidas: crear, no navegar (salvo "Mi lista", ver abajo). Las cuatro cosas que uno abre la
  * app para hacer de parado — la lista del súper, un evento, la carga de
  * nafta en la estación y la foto de un documento. "Cargar combustible"
  * está acá y no como dato en el resumen a propósito: cargar nafta no
@@ -115,12 +119,29 @@ const QUICK_ACTIONS = [
   { href: "/documentos/nuevo", label: "Documento", icon: FilePlus2 },
 ];
 
-function QuickActions() {
+/*
+ * Con una lista abierta, "Lista" lleva a esa lista (al modo supermercado si
+ * la compra ya está en curso) en vez de crear otra: agregar un producto y
+ * tildar en el súper son las tareas más frecuentes, y antes este botón
+ * armaba una lista nueva al lado de la abierta. Crear otra sigue a un toque
+ * desde Compras. Sin lista abierta (o mientras carga) es "crear lista".
+ */
+async function QuickActionsWithList() {
+  const openList = await getOpenShoppingList();
+  return <QuickActions openList={openList} />;
+}
+
+function QuickActions({ openList }: { openList?: Pick<ShoppingList, "id" | "status"> | null }) {
+  const actions = QUICK_ACTIONS.map((action) =>
+    openList && action.href === "/compras/nueva"
+      ? { ...action, href: shoppingListHref(openList), label: "Mi lista" }
+      : action,
+  );
   return (
     <section className="grid grid-cols-4 gap-2">
-      {QUICK_ACTIONS.map(({ href, label, icon: Icon }) => (
+      {actions.map(({ href, label, icon: Icon }) => (
         <Link
-          key={href}
+          key={label}
           href={href}
           className="flex flex-col items-center gap-1.5 rounded-xl border bg-card px-1 py-3 shadow-sm transition-transform duration-150 active:scale-[0.96]"
         >
@@ -265,7 +286,7 @@ async function Resumen() {
 
       {openList && (
         <Link
-          href={`/compras/${openList.id}`}
+          href={shoppingListHref(openList)}
           className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-transform duration-150 active:scale-[0.99]"
         >
           <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${MODULES_BY_KEY.compras.bg}`}>
@@ -287,7 +308,7 @@ async function Resumen() {
         <ResumenBloque
           modulo="eventos"
           icon={CalendarDays}
-          titulo="Eventos"
+          titulo="Calendario"
           subtitulo="Hoy y mañana"
           href="/eventos"
           verMas="Ver calendario"

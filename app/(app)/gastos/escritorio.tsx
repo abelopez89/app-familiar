@@ -48,7 +48,7 @@ export async function GastosEscritorio({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Gastos compartidos"
+        title="Gastos"
         icon={HandCoins}
         iconFg={fg}
         iconBg={bg}

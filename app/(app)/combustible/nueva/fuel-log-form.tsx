@@ -10,6 +10,7 @@ import { formatGuaranies } from "@/lib/format";
 import { formatEfficiency, type FuelUnit } from "@/lib/fuel/efficiency";
 import type { Vehicle } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
+import { StickyBottomBar } from "@/components/app-shell/floating-action";
 import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
@@ -327,10 +328,19 @@ export function FuelLogForm({
           </Card>
         )}
 
+        {/*
+         * Fijo al pie, para guardar sin bajar con el teclado abierto en la
+         * estación. Con advertencias o sin confirmación, los botones van en
+         * su tarjeta, en el lugar del formulario.
+         */}
         {!unconfirmed && !warnings && (
-          <Button type="submit" disabled={isPending} className="h-12 text-base">
-            {isPending ? "Guardando…" : "Guardar carga"}
-          </Button>
+          <>
+            <StickyBottomBar>
+              <Button type="submit" disabled={isPending} className="h-12 w-full text-base">
+                {isPending ? "Guardando…" : "Guardar carga"}
+              </Button>
+            </StickyBottomBar>
+          </>
         )}
       </form>
 
@@ -368,6 +378,10 @@ export function FuelLogForm({
           </CardContent>
         </Card>
       )}
+
+      {/* Lugar para la barra fija: sin esto tapa el final de la pantalla
+          (incluido el resultado del guardado). */}
+      {!unconfirmed && !warnings && <div aria-hidden className="h-16" />}
     </div>
   );
 }

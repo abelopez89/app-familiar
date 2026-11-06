@@ -130,6 +130,9 @@ export function ManageFiles({
   }
 
   function handleRemove(fileId: string) {
+    // Borra la página y su archivo para siempre: un toque sin querer en la X
+    // no puede alcanzar (mismo criterio que eliminar el documento entero).
+    if (!window.confirm("¿Quitar esta página? El archivo se borra y no se puede recuperar.")) return;
     startTransition(async () => {
       const result = await removeDocumentFile(fileId, documentId);
       if (result.error) toast.error(result.error);
