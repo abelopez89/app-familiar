@@ -92,20 +92,20 @@ export function CalendarView({
     <div className="flex flex-col gap-4 pb-20">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-mod-eventos-soft">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-mod-eventos-soft">
             <CalendarDays className="size-5.5 text-mod-eventos" />
           </span>
-          <h1 className="truncate text-[1.75rem] font-semibold tracking-tight">Calendario</h1>
+          <h1 className="truncate text-[1.875rem] leading-tight font-bold tracking-tight">Calendario</h1>
         </div>
         {/* Segmented control al estilo iOS: la pastilla se mueve al
             seleccionado en vez de cambiarle el fondo a un botón suelto. */}
-        <div className="flex shrink-0 rounded-lg bg-muted p-0.5">
+        <div className="flex shrink-0 rounded-full bg-muted p-1">
           <button
             type="button"
             onClick={() => changeView("grilla")}
             aria-pressed={view === "grilla"}
             className={cn(
-              "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors",
               view === "grilla" ? "bg-card" : "text-muted-foreground",
             )}
           >
@@ -117,7 +117,7 @@ export function CalendarView({
             onClick={() => changeView("agenda")}
             aria-pressed={view === "agenda"}
             className={cn(
-              "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors",
               view === "agenda" ? "bg-card" : "text-muted-foreground",
             )}
           >

@@ -63,7 +63,7 @@ export default async function VehicleDetailPage({
   return (
     <div className="flex flex-col gap-4 pb-8">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="min-w-0 truncate text-xl font-semibold">{vehicle.name}</h1>
+        <h1 className="min-w-0 truncate text-[1.875rem] leading-tight font-bold tracking-tight">{vehicle.name}</h1>
         <div className="flex shrink-0 gap-2">
           <VehicleFormDialog
             vehicle={vehicle}

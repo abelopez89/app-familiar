@@ -185,7 +185,7 @@ export async function PromosEscritorio({
                     </div>
                     <ul className="flex flex-wrap gap-1.5">
                       {beneficio.componentes.map((c, i) => (
-                        <li key={i} className="rounded-md bg-mod-promos-soft px-2 py-0.5 text-sm font-medium text-mod-promos">
+                        <li key={i} className="rounded-full bg-mod-promos-soft px-2.5 py-0.5 text-sm font-bold text-mod-promos">
                           {describirComponente(c)}
                         </li>
                       ))}
@@ -224,7 +224,7 @@ export async function PromosEscritorio({
         <aside className="flex flex-col gap-4">
           <Ahorros familyId={familyId} hoy={hoy} />
           <section className="flex flex-col gap-2 hoja p-4 text-xs text-muted-foreground">
-            <h2 className="text-sm font-semibold text-foreground">Actualización</h2>
+            <h2 className="text-lg font-bold text-foreground">Actualización</h2>
             {BANCOS_CON_ESTADO.map((banco) => {
               const estado = ingestas.find((e) => e.banco === banco);
               return (
@@ -269,7 +269,7 @@ async function Ahorros({ familyId, hoy }: { familyId: string; hoy: string }) {
   return (
     <section className="flex flex-col gap-3 hoja p-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
+        <h2 className="flex items-center gap-2 text-lg font-bold">
           <PiggyBank className="size-4 text-mod-promos" />
           Ahorros de {formatDate(dateOnlyToFamilyMidnightUtc(ventana.desde), "MMMM")}
         </h2>

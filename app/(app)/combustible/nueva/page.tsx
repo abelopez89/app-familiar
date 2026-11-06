@@ -37,7 +37,7 @@ export default async function NuevaCargaPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Cargar combustible</h1>
+      <h1 className="text-[1.875rem] leading-tight font-bold tracking-tight">Cargar combustible</h1>
       <FuelLogForm
         vehicles={vehicles}
         defaultVehicleId={defaultVehicleId}

@@ -43,7 +43,7 @@ export function TemplateHeader({ template }: { template: ShoppingTemplate }) {
             <ArrowLeft className="size-4" />
           </Link>
         </Button>
-        <h1 className="text-xl font-semibold">{template.name}</h1>
+        <h1 className="text-[1.875rem] leading-tight font-bold tracking-tight">{template.name}</h1>
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>

@@ -107,7 +107,7 @@ export function CalendarioEscritorio({
           <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", bg)}>
             <CalendarDays className={cn("size-5.5", fg)} />
           </span>
-          <h1 className="truncate text-[1.75rem] font-semibold tracking-tight first-letter:uppercase">
+          <h1 className="truncate text-[1.875rem] leading-tight font-bold tracking-tight first-letter:uppercase">
             {formatDate(dateOnlyToFamilyMidnightUtc(monthStart), "MMMM yyyy")}
           </h1>
         </div>
@@ -215,7 +215,7 @@ export function CalendarioEscritorio({
               <p className="text-xs font-medium text-muted-foreground">
                 {selected === today ? "Hoy" : selected === addDaysToDateOnly(today, 1) ? "Mañana" : "Agenda del día"}
               </p>
-              <h2 className="text-base font-semibold first-letter:uppercase">
+              <h2 className="text-lg font-bold first-letter:uppercase">
                 {formatDate(dateOnlyToFamilyMidnightUtc(selected), "EEEE d 'de' MMMM")}
               </h2>
             </div>

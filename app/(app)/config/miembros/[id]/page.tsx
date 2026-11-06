@@ -146,7 +146,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
             <>
               {[...documentsByCategory.entries()].map(([categoryId, docs]) => (
                 <div key={categoryId} className="flex flex-col gap-1">
-                  <h3 className="text-xs font-semibold text-muted-foreground">
+                  <h3 className="text-sm font-bold text-muted-foreground">
                     {categoriesById.get(categoryId)?.name ?? "Categoría"}
                   </h3>
                   <div className="flex flex-col divide-y rounded-lg border">
@@ -160,7 +160,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
               ))}
               {uncategorized.length > 0 && (
                 <div className="flex flex-col gap-1">
-                  <h3 className="text-xs font-semibold text-muted-foreground">Sin categoría</h3>
+                  <h3 className="text-sm font-bold text-muted-foreground">Sin categoría</h3>
                   <div className="flex flex-col divide-y rounded-lg border">
                     {uncategorized.map((doc) => (
                       <Link key={doc.id} href={`/documentos/${doc.id}`} className="px-3 py-2 text-sm">

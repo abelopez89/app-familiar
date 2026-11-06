@@ -147,7 +147,7 @@ export default async function PromosPage({ searchParams }: { searchParams: Promi
                       {beneficio.componentes.map((c, i) => (
                         <li
                           key={i}
-                          className="rounded-md bg-mod-promos-soft px-2 py-0.5 text-sm font-medium text-mod-promos"
+                          className="rounded-full bg-mod-promos-soft px-2.5 py-0.5 text-sm font-bold text-mod-promos"
                         >
                           {describirComponente(c)}
                         </li>
