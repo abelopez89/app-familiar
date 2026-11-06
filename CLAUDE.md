@@ -311,6 +311,17 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   tokens en los tres bloques de color (`:root`, la media query oscura y
   `.dark`) y su entrada en `MODULES` — no inventes un color suelto en la
   pantalla.
+- **Identidad "Lapacho y tereré"** (reemplazó al índigo con neutros
+  cálidos, a pedido del usuario, a partir de un prototipo aprobado):
+  verde yerba como `primary`/`ring`/`success`, rosa lapacho como
+  `warning` (lo que pide atención: vencimientos, puntajes bajos), fondo
+  "papel" apenas verdoso y texto "tinta" verde oscuro. Tipografías con
+  `next/font` en `app/layout.tsx`: **Atkinson Hyperlegible** para el
+  texto (`--font-body`, solo 400/700: `font-semibold` cae en 700) y
+  **Bricolage Grotesque** para `h1`/`h2`/`h3` y la clase `.font-heading`
+  (`--font-display`). Los rediseños de pantalla del prototipo (sello de
+  ñandutí en el inicio, encabezado verde, menú lateral verde) todavía
+  **no** están aplicados: este cambio fue solo de tokens.
 - **Modo oscuro automático por `prefers-color-scheme`**, sin script ni
   flash de tema al abrir la PWA. La variante `dark:` de Tailwind está
   redefinida en `globals.css` con un `@custom-variant` que cubre a la
