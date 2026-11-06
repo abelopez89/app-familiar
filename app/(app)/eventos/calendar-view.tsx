@@ -149,11 +149,11 @@ export function CalendarView({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <h2 className="px-1 text-lg font-bold">
               {selectedDayEvents.length === 0 ? "Sin eventos este día" : "Eventos del día"}
             </h2>
             {selectedDayEvents.length > 0 && (
-              <div className="flex flex-col divide-y overflow-hidden rounded-xl border bg-card">
+              <div className="flex flex-col divide-y overflow-hidden hoja">
                 {selectedDayEvents.map((event) => (
                   <EventRow key={event.id} display={event} members={members} />
                 ))}

@@ -74,7 +74,7 @@ export default async function CombustiblePage({ searchParams }: { searchParams: 
       ) : (
         <div className="flex flex-col gap-3">
           {summaries.map(({ vehicle, last, average, lastLog }) => (
-            <div key={vehicle.id} className="rounded-xl border bg-card p-4">
+            <div key={vehicle.id} className="hoja p-4">
               <Link href={`/combustible/${vehicle.id}`} className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${bg}`}>

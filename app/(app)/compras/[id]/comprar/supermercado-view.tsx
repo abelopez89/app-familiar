@@ -243,7 +243,7 @@ export function SupermercadoView({
               <ArrowLeft className="size-5" />
             </Link>
           </Button>
-          <span className="text-lg font-semibold tabular-nums">
+          <span className="font-heading text-xl font-bold tabular-nums">
             {checkedCount} <span className="text-muted-foreground">de {totalCount}</span>
           </span>
           <span className="ml-auto text-sm font-medium text-muted-foreground tabular-nums">
@@ -260,7 +260,7 @@ export function SupermercadoView({
             {hideChecked ? `Mostrar (${checkedCount})` : "Ocultar marcados"}
           </Button>
         </div>
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-mod-compras-soft">
           <div
             className="h-full rounded-full bg-mod-compras transition-[width] duration-300"
             style={{ width: `${progressPercent}%` }}
@@ -291,14 +291,12 @@ export function SupermercadoView({
         return (
           <div key={key} className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between px-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {categoryLabel}
-              </p>
-              <p className="text-xs text-muted-foreground tabular-nums">
+              <h2 className="text-lg font-bold">{categoryLabel}</h2>
+              <p className="text-sm text-muted-foreground tabular-nums">
                 {groupChecked}/{all.length}
               </p>
             </div>
-            <div className="overflow-hidden rounded-xl border">
+            <div className="hoja overflow-hidden">
               {groupItems.map((item) => (
                   <button
                     key={item.id}
@@ -306,15 +304,14 @@ export function SupermercadoView({
                     onClick={() => handleToggle(item)}
                     aria-pressed={item.is_checked}
                     className={cn(
-                      "flex min-h-16 w-full items-center gap-3 border-b bg-card px-4 py-3 text-left transition-colors duration-150 last:border-b-0 active:bg-muted",
-                      item.is_checked && "bg-muted/60",
+                      "flex min-h-16 w-full items-center gap-3 border-b border-border/70 px-4 py-3 text-left transition-colors duration-150 last:border-b-0 active:bg-muted",
                     )}
                   >
                     <span
                       className={cn(
                         "flex size-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-150",
                         item.is_checked
-                          ? "border-primary bg-primary text-primary-foreground"
+                          ? "border-mod-compras bg-mod-compras text-card"
                           : "border-muted-foreground/40",
                       )}
                     >
@@ -323,8 +320,8 @@ export function SupermercadoView({
                     <span className="flex-1">
                       <span
                         className={cn(
-                          "block text-lg font-medium",
-                          item.is_checked && "text-muted-foreground line-through",
+                          "block text-lg",
+                          item.is_checked ? "text-muted-foreground line-through" : "font-bold",
                         )}
                       >
                         {item.name}

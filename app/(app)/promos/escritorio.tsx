@@ -328,7 +328,7 @@ async function Ahorros({ familyId, hoy }: { familyId: string; hoy: string }) {
 function Grupo({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <p className="px-2.5 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">{titulo}</p>
+      <p className="px-2.5 pb-1 text-sm font-bold text-muted-foreground">{titulo}</p>
       {children}
     </div>
   );

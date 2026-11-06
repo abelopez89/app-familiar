@@ -68,7 +68,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
               <Link
                 key={list.id}
                 href={shoppingListHref(list)}
-                className="flex items-center gap-3 rounded-xl border bg-card p-4 transition-transform duration-150 active:scale-[0.99]"
+                className="flex items-center gap-3 hoja p-4 transition-transform duration-150 active:scale-[0.99]"
               >
                 <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${bg}`}>
                   <ShoppingCart className={`size-5 ${fg}`} />
@@ -99,7 +99,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
       {cerradas.length > 0 && (
         <section className="flex flex-col gap-2">
           <SectionTitle>Historial</SectionTitle>
-          <div className="divide-y divide-border overflow-hidden rounded-xl border bg-card">
+          <div className="divide-y divide-border overflow-hidden hoja">
             {cerradas.map((list) => (
               <Link
                 key={list.id}

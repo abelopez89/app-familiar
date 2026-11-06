@@ -242,7 +242,7 @@ async function ListPanel({ familyId, list }: { familyId: string; list: ShoppingL
           <div className="columns-1 gap-8 xl:columns-2">
             {groups.map((group) => (
               <div key={group.key} className="mb-5 break-inside-avoid">
-                <p className="mb-1.5 flex justify-between text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                <p className="mb-1.5 flex justify-between text-sm font-bold text-muted-foreground">
                   <span>{group.name}</span>
                   <span className="tabular-nums">
                     {group.items.filter((i) => i.is_checked).length}/{group.items.length}

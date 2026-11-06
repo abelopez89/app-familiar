@@ -30,7 +30,7 @@ export function GroupHeader({
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="truncate text-[1.75rem] font-semibold tracking-tight">{group.name}</h1>
+          <h1 className="truncate text-[2rem] leading-tight font-bold tracking-tight">{group.name}</h1>
           {group.status === "cerrado" && (
             <Badge variant="outline" className="mt-1">
               Cerrado
@@ -40,29 +40,29 @@ export function GroupHeader({
         <GroupMenu group={group} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4">
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">Total del grupo</p>
-          <p className="truncate text-lg font-semibold tabular-nums">{formatGuaranies(totalPyg)}</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="hoja min-w-0 px-4 py-3.5">
+          <p className="text-sm text-muted-foreground">Total del grupo</p>
+          <p className="font-heading truncate text-xl font-bold tabular-nums">{formatGuaranies(totalPyg)}</p>
         </div>
-        <div className="min-w-0 text-right">
-          <p className="text-xs text-muted-foreground">Tu balance</p>
+        <div className="hoja min-w-0 px-4 py-3.5">
+          <p className="text-sm text-muted-foreground">Tu balance</p>
           {!balances.isConsistent ? (
-            <p className="flex items-center justify-end gap-1 text-sm font-medium text-destructive">
+            <p className="flex items-center gap-1 text-sm font-bold text-destructive">
               <AlertTriangle className="size-4" />
               No cierra
             </p>
           ) : myBalance === null ? (
             <p className="text-sm text-muted-foreground">No participás</p>
           ) : (
-            <p className={cn("truncate text-lg font-semibold tabular-nums", balanceTone(myBalance))}>
+            <p className={cn("font-heading text-lg leading-tight font-bold tabular-nums", balanceTone(myBalance))}>
               {describeBalance(myBalance, formatGuaranies)}
             </p>
           )}
         </div>
       </div>
 
-      <nav className="grid grid-cols-2 rounded-xl bg-muted p-1 text-sm font-medium">
+      <nav className="grid grid-cols-2 rounded-full bg-muted p-1 text-sm font-bold">
         {(
           [
             { key: "gastos", label: "Gastos", href: `/gastos/${group.id}` },
@@ -74,7 +74,7 @@ export function GroupHeader({
             href={tab.href}
             aria-current={active === tab.key ? "page" : undefined}
             className={cn(
-              "tap-target flex items-center justify-center rounded-lg px-3 py-2 transition-colors",
+              "tap-target flex items-center justify-center rounded-full px-3 py-2 transition-colors",
               active === tab.key ? "bg-card text-foreground" : "text-muted-foreground",
             )}
           >

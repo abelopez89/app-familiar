@@ -38,7 +38,7 @@ export function NavRow({
       {Icon && (
         <span
           className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-lg",
+            "flex size-9 shrink-0 items-center justify-center rounded-xl",
             iconBg ?? "bg-muted",
           )}
         >
@@ -46,7 +46,7 @@ export function NavRow({
         </span>
       )}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{label}</span>
+        <span className="block truncate text-[0.9375rem] font-bold">{label}</span>
         {description && (
           <span className="block truncate text-xs text-muted-foreground">{description}</span>
         )}
@@ -68,7 +68,7 @@ export function NavGroup({
   return (
     <div
       className={cn(
-        "divide-y divide-border overflow-hidden rounded-xl border bg-card",
+        "divide-y divide-border overflow-hidden hoja",
         className,
       )}
     >

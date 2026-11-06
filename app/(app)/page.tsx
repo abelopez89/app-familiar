@@ -254,7 +254,7 @@ function ResumenSkeleton() {
   return (
     <section className="flex flex-col gap-3">
       <SectionTitle>Resumen de hoy</SectionTitle>
-      <div className="h-32 animate-pulse rounded-xl border bg-card/60" />
+      <div className="h-32 animate-pulse hoja opacity-60" />
     </section>
   );
 }
