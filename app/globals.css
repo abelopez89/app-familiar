@@ -42,36 +42,42 @@
      este ancho a la derecha para centrarse en el contenido. */
   --sidebar-width: 14.5rem;
 
-  /* --- Superficies y texto (neutros cálidos, no grises puros) --- */
-  --background: oklch(0.977 0.005 85);
-  --foreground: oklch(0.22 0.014 60);
+  /* Identidad "Lapacho y tereré": verde yerba como marca y acción
+     principal, rosa lapacho para lo que pide atención (`warning`:
+     vencimientos, puntajes bajos), fondo "papel" apenas verdoso y texto
+     "tinta" verde muy oscuro. El prototipo con las pantallas está en el
+     PR que introdujo esta paleta. */
+
+  /* --- Superficies y texto (neutros con un toque de yerba) --- */
+  --background: oklch(0.964 0.008 122);
+  --foreground: oklch(0.269 0.024 159);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.014 60);
+  --card-foreground: oklch(0.269 0.024 159);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.014 60);
+  --popover-foreground: oklch(0.269 0.024 159);
   --surface: oklch(1 0 0);
 
   /* --- Marca --- */
-  --primary: oklch(0.545 0.175 277);
-  --primary-foreground: oklch(0.99 0.004 277);
-  --secondary: oklch(0.955 0.006 85);
-  --secondary-foreground: oklch(0.28 0.014 60);
-  --muted: oklch(0.958 0.005 85);
-  --muted-foreground: oklch(0.545 0.016 70);
-  --accent: oklch(0.955 0.022 277);
-  --accent-foreground: oklch(0.37 0.12 277);
+  --primary: oklch(0.475 0.08 159);
+  --primary-foreground: oklch(0.99 0.004 159);
+  --secondary: oklch(0.938 0.013 126);
+  --secondary-foreground: oklch(0.3 0.024 159);
+  --muted: oklch(0.938 0.013 126);
+  --muted-foreground: oklch(0.514 0.021 155);
+  --accent: oklch(0.942 0.023 162);
+  --accent-foreground: oklch(0.372 0.06 161);
 
   /* --- Estados --- */
   --destructive: oklch(0.585 0.2 25);
   --destructive-foreground: oklch(0.99 0.005 25);
-  --success: oklch(0.55 0.13 155);
-  --success-foreground: oklch(0.99 0.005 155);
-  --warning: oklch(0.63 0.15 65);
-  --warning-foreground: oklch(0.99 0.005 65);
+  --success: oklch(0.475 0.08 159);
+  --success-foreground: oklch(0.99 0.004 159);
+  --warning: oklch(0.553 0.188 359);
+  --warning-foreground: oklch(0.99 0.005 359);
 
-  --border: oklch(0.912 0.006 85);
-  --input: oklch(0.9 0.007 85);
-  --ring: oklch(0.545 0.175 277);
+  --border: oklch(0.903 0.016 127);
+  --input: oklch(0.877 0.019 127);
+  --ring: oklch(0.475 0.08 159);
 
   /*
    * Color por módulo. Cada funcionalidad tiene un acento propio que se
@@ -81,22 +87,22 @@
    * "fondo tintado detrás del ícono", y ambos están calculados para
    * mantener contraste AA en los dos temas.
    */
-  --mod-compras: oklch(0.55 0.15 55);
-  --mod-compras-soft: oklch(0.955 0.035 70);
-  --mod-eventos: oklch(0.545 0.175 277);
-  --mod-eventos-soft: oklch(0.955 0.03 285);
-  --mod-tareas: oklch(0.5 0.13 160);
-  --mod-tareas-soft: oklch(0.955 0.035 165);
-  --mod-combustible: oklch(0.53 0.14 240);
-  --mod-combustible-soft: oklch(0.955 0.03 240);
-  --mod-documentos: oklch(0.555 0.17 12);
-  --mod-documentos-soft: oklch(0.96 0.025 15);
-  --mod-familia: oklch(0.52 0.1 200);
-  --mod-familia-soft: oklch(0.955 0.03 200);
-  --mod-gastos: oklch(0.52 0.14 135);
-  --mod-gastos-soft: oklch(0.955 0.04 130);
-  --mod-promos: oklch(0.55 0.17 330);
-  --mod-promos-soft: oklch(0.96 0.03 330);
+  --mod-compras: oklch(0.555 0.146 47);
+  --mod-compras-soft: oklch(0.949 0.026 64);
+  --mod-eventos: oklch(0.491 0.173 276);
+  --mod-eventos-soft: oklch(0.941 0.023 283);
+  --mod-tareas: oklch(0.531 0.095 162);
+  --mod-tareas-soft: oklch(0.942 0.023 162);
+  --mod-combustible: oklch(0.51 0.115 245);
+  --mod-combustible-soft: oklch(0.939 0.021 241);
+  --mod-documentos: oklch(0.513 0.162 16);
+  --mod-documentos-soft: oklch(0.937 0.023 8);
+  --mod-familia: oklch(0.521 0.081 207);
+  --mod-familia-soft: oklch(0.942 0.02 204);
+  --mod-gastos: oklch(0.532 0.132 128);
+  --mod-gastos-soft: oklch(0.949 0.033 122);
+  --mod-promos: oklch(0.533 0.191 320);
+  --mod-promos-soft: oklch(0.936 0.029 317);
 }
 
 /* Valores del tema oscuro. Van duplicados a propósito en dos selectores:
@@ -106,33 +112,33 @@
    ahorra. Si tocás uno, tocá el otro. */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: oklch(0.165 0.012 275);
-    --foreground: oklch(0.955 0.004 85);
-    --card: oklch(0.215 0.013 275);
-    --card-foreground: oklch(0.955 0.004 85);
-    --popover: oklch(0.235 0.013 275);
-    --popover-foreground: oklch(0.955 0.004 85);
-    --surface: oklch(0.2 0.013 275);
+    --background: oklch(0.208 0.015 157);
+    --foreground: oklch(0.94 0.011 137);
+    --card: oklch(0.252 0.018 165);
+    --card-foreground: oklch(0.94 0.011 137);
+    --popover: oklch(0.276 0.02 163);
+    --popover-foreground: oklch(0.94 0.011 137);
+    --surface: oklch(0.236 0.017 163);
 
-    --primary: oklch(0.7 0.15 277);
-    --primary-foreground: oklch(0.18 0.03 277);
-    --secondary: oklch(0.27 0.014 275);
-    --secondary-foreground: oklch(0.955 0.004 85);
-    --muted: oklch(0.27 0.014 275);
-    --muted-foreground: oklch(0.72 0.013 80);
-    --accent: oklch(0.31 0.045 277);
-    --accent-foreground: oklch(0.92 0.04 277);
+    --primary: oklch(0.741 0.102 159);
+    --primary-foreground: oklch(0.2 0.03 159);
+    --secondary: oklch(0.303 0.022 161);
+    --secondary-foreground: oklch(0.94 0.011 137);
+    --muted: oklch(0.303 0.022 161);
+    --muted-foreground: oklch(0.718 0.02 158);
+    --accent: oklch(0.344 0.046 156);
+    --accent-foreground: oklch(0.904 0.032 157);
 
     --destructive: oklch(0.6 0.2 25);
     --destructive-foreground: oklch(0.99 0.005 25);
-    --success: oklch(0.62 0.14 155);
-    --success-foreground: oklch(0.99 0.005 155);
-    --warning: oklch(0.68 0.14 70);
-    --warning-foreground: oklch(0.16 0.03 70);
+    --success: oklch(0.741 0.102 159);
+    --success-foreground: oklch(0.2 0.03 159);
+    --warning: oklch(0.732 0.158 353);
+    --warning-foreground: oklch(0.2 0.04 353);
 
     --border: oklch(1 0 0 / 12%);
     --input: oklch(1 0 0 / 16%);
-    --ring: oklch(0.7 0.15 277);
+    --ring: oklch(0.741 0.102 159);
 
     --mod-compras: oklch(0.78 0.13 65);
     --mod-compras-soft: oklch(0.32 0.055 60);
@@ -154,33 +160,33 @@
 }
 
 .dark {
-  --background: oklch(0.165 0.012 275);
-  --foreground: oklch(0.955 0.004 85);
-  --card: oklch(0.215 0.013 275);
-  --card-foreground: oklch(0.955 0.004 85);
-  --popover: oklch(0.235 0.013 275);
-  --popover-foreground: oklch(0.955 0.004 85);
-  --surface: oklch(0.2 0.013 275);
+  --background: oklch(0.208 0.015 157);
+  --foreground: oklch(0.94 0.011 137);
+  --card: oklch(0.252 0.018 165);
+  --card-foreground: oklch(0.94 0.011 137);
+  --popover: oklch(0.276 0.02 163);
+  --popover-foreground: oklch(0.94 0.011 137);
+  --surface: oklch(0.236 0.017 163);
 
-  --primary: oklch(0.7 0.15 277);
-  --primary-foreground: oklch(0.18 0.03 277);
-  --secondary: oklch(0.27 0.014 275);
-  --secondary-foreground: oklch(0.955 0.004 85);
-  --muted: oklch(0.27 0.014 275);
-  --muted-foreground: oklch(0.72 0.013 80);
-  --accent: oklch(0.31 0.045 277);
-  --accent-foreground: oklch(0.92 0.04 277);
+  --primary: oklch(0.741 0.102 159);
+  --primary-foreground: oklch(0.2 0.03 159);
+  --secondary: oklch(0.303 0.022 161);
+  --secondary-foreground: oklch(0.94 0.011 137);
+  --muted: oklch(0.303 0.022 161);
+  --muted-foreground: oklch(0.718 0.02 158);
+  --accent: oklch(0.344 0.046 156);
+  --accent-foreground: oklch(0.904 0.032 157);
 
   --destructive: oklch(0.6 0.2 25);
   --destructive-foreground: oklch(0.99 0.005 25);
-  --success: oklch(0.62 0.14 155);
-  --success-foreground: oklch(0.99 0.005 155);
-  --warning: oklch(0.68 0.14 70);
-  --warning-foreground: oklch(0.16 0.03 70);
+  --success: oklch(0.741 0.102 159);
+  --success-foreground: oklch(0.2 0.03 159);
+  --warning: oklch(0.732 0.158 353);
+  --warning-foreground: oklch(0.2 0.04 353);
 
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.7 0.15 277);
+  --ring: oklch(0.741 0.102 159);
 
   --mod-compras: oklch(0.78 0.13 65);
   --mod-compras-soft: oklch(0.32 0.055 60);
@@ -203,7 +209,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-display);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -265,12 +272,23 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body), system-ui, sans-serif;
     /* El destello gris de iOS al tocar un <a> delata que esto es una web
        dentro de una PWA; el feedback táctil lo damos con `active:`. */
     -webkit-tap-highlight-color: transparent;
     /* Evita el rebote de la página entera detrás del contenido en iOS,
        sin matar el scroll interno de listas ni diálogos. */
     overscroll-behavior-y: none;
+  }
+
+  /* Títulos y números grandes con la tipografía de marca (Bricolage
+     Grotesque); el texto corrido sigue con Atkinson Hyperlegible, que
+     se lee bien en el celular con mala luz. */
+  h1,
+  h2,
+  h3,
+  .font-heading {
+    font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
   }
 
   /* Los contenedores que scrollean solos (modo supermercado, visor de

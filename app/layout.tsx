@@ -1,11 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Atkinson_Hyperlegible, Bricolage_Grotesque } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { RegisterServiceWorker } from "@/components/register-service-worker";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Texto corrido: pensada para leerse bien en pantallas chicas y con mala
+// luz (en el súper, en la estación). Solo tiene 400 y 700.
+const bodyFont = Atkinson_Hyperlegible({
+  variable: "--font-body",
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  display: "swap",
+});
+
+// Títulos y números grandes (ver `h1, h2, h3` en globals.css).
+const displayFont = Bricolage_Grotesque({
+  variable: "--font-display",
   subsets: ["latin"],
   display: "swap",
 });
@@ -35,7 +45,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#1b1a24" },
+    { media: "(prefers-color-scheme: dark)", color: "#17211c" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -48,7 +58,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="es" className={`${bodyFont.variable} ${displayFont.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background">
         {children}
         <Toaster position="top-center" richColors closeButton />
