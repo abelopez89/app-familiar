@@ -176,7 +176,15 @@ export function ExpenseCategoriesList({ categories }: { categories: ExpenseCateg
                     <DropdownMenuItem
                       variant="destructive"
                       disabled={isPending}
-                      onClick={() => run(() => deleteExpenseCategory(category.id), "Categoría eliminada.")}
+                      onClick={() => {
+                        if (
+                          !window.confirm(
+                            `¿Eliminar la categoría "${category.name}"? Los gastos que la usaban quedan sin categoría.`,
+                          )
+                        )
+                          return;
+                        run(() => deleteExpenseCategory(category.id), "Categoría eliminada.");
+                      }}
                     >
                       Eliminar
                     </DropdownMenuItem>

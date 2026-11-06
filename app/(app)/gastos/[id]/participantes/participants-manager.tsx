@@ -63,15 +63,21 @@ export function ParticipantsManager({
                   variant="ghost"
                   size="sm"
                   disabled={isPending}
-                  onClick={() =>
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        `¿Quitar a ${p.display_name} del grupo? Si ya tiene gastos o pagos, queda inactivo y sigue contando en los balances.`,
+                      )
+                    )
+                      return;
                     run(
                       () => removeGroupParticipant(p.id),
                       (r) =>
                         r.deactivated
                           ? `${p.display_name} tiene movimientos: se desactivó y sigue contando en los balances.`
                           : `${p.display_name} salió del grupo.`,
-                    )
-                  }
+                    );
+                  }}
                 >
                   Quitar
                 </Button>

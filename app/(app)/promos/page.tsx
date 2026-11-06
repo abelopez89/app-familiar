@@ -68,23 +68,37 @@ export default async function PromosPage({ searchParams }: { searchParams: Promi
         icon={modulo.icon}
         iconFg={modulo.fg}
         iconBg={modulo.bg}
-        actions={
-          <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm" className="gap-2">
-              <Link href="/promos/todas">
-                <List className="size-4" />
-                Todas
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="gap-2">
-              <Link href="/config/tarjetas">
-                <CreditCard className="size-4" />
-                Tarjetas
-              </Link>
-            </Button>
-          </div>
-        }
       />
+
+      {/* Accesos en una fila debajo del título: al costado le cortaban el
+          título ("Prom…") en 390px, y Ahorros y Cargar promo quedaban al
+          final, debajo de todas las promos (auditoría de flujos). */}
+      <div className="-mt-2 flex flex-wrap gap-2">
+        <Button asChild variant="outline" size="sm" className="gap-2">
+          <Link href="/promos/ahorros">
+            <PiggyBank className="size-4" />
+            Ahorros
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm" className="gap-2">
+          <Link href="/promos/todas">
+            <List className="size-4" />
+            Todas
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm" className="gap-2">
+          <Link href="/config/tarjetas">
+            <CreditCard className="size-4" />
+            Tarjetas
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm" className="gap-2">
+          <Link href="/promos/cargar">
+            <FileUp className="size-4" />
+            Cargar promo
+          </Link>
+        </Button>
+      </div>
 
       {tarjetas.length === 0 ? (
         <EmptyState
@@ -173,18 +187,6 @@ export default async function PromosPage({ searchParams }: { searchParams: Promi
       <section className="flex flex-col gap-1 px-1 text-xs text-muted-foreground">
         <div className="flex flex-wrap gap-2">
           <ActualizarButton enCurso={estadoPorBanco.get("itau")?.enCurso ?? false} />
-          <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link href="/promos/ahorros">
-              <PiggyBank className="size-4" />
-              Ahorros
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link href="/promos/cargar">
-              <FileUp className="size-4" />
-              Cargar promo
-            </Link>
-          </Button>
         </div>
         {BANCOS_CON_ESTADO.map((banco) => {
           const estado = estadoPorBanco.get(banco);

@@ -325,11 +325,14 @@ async function BloqueSemana() {
           const events = byDay.get(day) ?? [];
           const isToday = day === today;
           return (
-            <div
+            // Cada día abre el calendario de escritorio en ese día (con su
+            // agenda), en vez de obligar a ir a Calendario y elegirlo.
+            <Link
               key={day}
+              href={`/eventos?mes=${day.slice(0, 7)}&dia=${day}`}
               className={cn(
-                "flex min-h-40 min-w-0 flex-col gap-1.5 rounded-xl p-2",
-                isToday ? "bg-accent ring-1 ring-primary/30" : "bg-muted/60",
+                "flex min-h-40 min-w-0 flex-col gap-1.5 rounded-xl p-2 transition-colors",
+                isToday ? "bg-accent ring-1 ring-primary/30 hover:bg-accent/80" : "bg-muted/60 hover:bg-muted",
               )}
             >
               <p
@@ -356,7 +359,7 @@ async function BloqueSemana() {
               {events.length > 4 && (
                 <span className="px-1 text-[11px] text-muted-foreground">+{events.length - 4} más</span>
               )}
-            </div>
+            </Link>
           );
         })}
       </div>

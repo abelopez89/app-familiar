@@ -54,6 +54,11 @@ export function FuelLogForm({
   // Carga enviada cuya respuesta no llegó (corte de señal): puede estar
   // guardada o no, y se ofrece reintentar con los mismos datos.
   const [unconfirmed, setUnconfirmed] = useState<FormData | null>(null);
+  // Después de guardar, el formulario queda vacío y la acción principal
+  // pasa a ser "Listo" (al vehículo) hasta que se empieza otra carga: si no,
+  // la barra fija seguía ofreciendo "Guardar carga" sobre campos vacíos.
+  const [dirtyAfterSave, setDirtyAfterSave] = useState(false);
+  const justSaved = Boolean(result?.success) && !dirtyAfterSave;
 
   // La acción ya no revalida (ver actions.ts): el resultado se ve apenas
   // la carga queda escrita, y recién después se refresca en segundo plano
@@ -80,6 +85,7 @@ export function FuelLogForm({
     setWarnings(null);
     setPendingFormData(null);
     setResult(res);
+    setDirtyAfterSave(false);
     toast.success("Carga guardada.");
     formRef.current?.reset();
     setLiters("");
@@ -182,11 +188,22 @@ export function FuelLogForm({
 
   return (
     <div className="flex flex-col gap-4">
-      <form ref={formRef} action={handleSubmit} className="flex flex-col gap-4">
+      <form
+        ref={formRef}
+        action={handleSubmit}
+        onInput={() => setDirtyAfterSave(true)}
+        className="flex flex-col gap-4"
+      >
         {vehicles.length > 1 ? (
           <div className="flex flex-col gap-2">
             <Label>Vehículo</Label>
-            <Select value={vehicleId} onValueChange={setVehicleId}>
+            <Select
+              value={vehicleId}
+              onValueChange={(v) => {
+                setVehicleId(v);
+                setDirtyAfterSave(true);
+              }}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -336,9 +353,15 @@ export function FuelLogForm({
         {!unconfirmed && !warnings && (
           <>
             <StickyBottomBar>
-              <Button type="submit" disabled={isPending} className="h-12 w-full text-base">
-                {isPending ? "Guardando…" : "Guardar carga"}
-              </Button>
+              {justSaved ? (
+                <Button asChild className="h-12 w-full text-base">
+                  <Link href={`/combustible/${vehicleId}`}>Listo</Link>
+                </Button>
+              ) : (
+                <Button type="submit" disabled={isPending} className="h-12 w-full text-base">
+                  {isPending ? "Guardando…" : "Guardar carga"}
+                </Button>
+              )}
             </StickyBottomBar>
           </>
         )}

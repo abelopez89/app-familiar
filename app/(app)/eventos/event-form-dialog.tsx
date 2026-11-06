@@ -74,7 +74,7 @@ export function EventFormDialog({ members, event, defaultDate, trigger, defaultO
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button size="icon" className="size-14 rounded-full shadow-lg">
+          <Button size="icon" className="size-14 rounded-full shadow-lg" aria-label="Nuevo evento">
             <Plus className="size-6" />
           </Button>
         )}
@@ -240,7 +240,9 @@ export function EventFormDialog({ members, event, defaultDate, trigger, defaultO
             <Switch id="telegram_toggle" checked={telegram} onCheckedChange={setTelegram} />
           </div>
 
-          <DialogFooter className="flex-row items-center justify-between sm:justify-between">
+          {/* Pie fijo: con todos los campos el diálogo pasa del alto de la
+              pantalla y Guardar quedaba fuera de vista (auditoría de flujos). */}
+          <DialogFooter className="sticky bottom-0 -mx-6 -mb-6 flex-row items-center justify-between border-t bg-background px-6 py-3 sm:justify-between">
             {event ? (
               <DeleteEventButton eventId={event.id} onDeleted={() => setOpen(false)} />
             ) : (
