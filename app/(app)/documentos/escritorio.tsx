@@ -184,7 +184,7 @@ export async function DocumentosEscritorio({
                     href={hrefWith(params, { doc: doc.id })}
                     scroll={false}
                     className={cn(
-                      "overflow-hidden rounded-xl border bg-card shadow-sm transition-colors hover:border-ring/40",
+                      "overflow-hidden rounded-xl border bg-card transition-colors hover:border-ring/40",
                       selected?.id === doc.id && "ring-2 ring-primary",
                     )}
                   >
@@ -218,7 +218,7 @@ export async function DocumentosEscritorio({
                   : "No hay documentos que coincidan con los filtros."}
               </p>
             ) : (
-              <div className="overflow-hidden rounded-xl border bg-card text-sm shadow-sm" role="table">
+              <div className="overflow-hidden rounded-xl border bg-card text-sm" role="table">
                 <div
                   role="row"
                   className="grid grid-cols-[minmax(0,1fr)_6rem_5.5rem_2.5rem] 2xl:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_5.5rem_2.5rem] gap-3 border-b bg-muted/60 px-4 py-2 text-xs font-medium text-muted-foreground"
@@ -295,7 +295,7 @@ export async function DocumentosEscritorio({
         </div>
 
         {/* 3. Vista previa */}
-        <aside className="sticky top-8 flex flex-col gap-4 rounded-2xl border bg-card p-4 shadow-sm">
+        <aside className="sticky top-8 flex flex-col gap-4 rounded-2xl border bg-card p-4">
           {selected ? (
             <VistaPrevia
               doc={selected}
@@ -345,7 +345,7 @@ function Filtro({
       aria-current={active ? "true" : undefined}
       className={cn(
         "flex h-8 items-center gap-2 rounded-lg px-2.5 transition-colors",
-        active ? "bg-card font-medium text-foreground shadow-sm" : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
+        active ? "bg-card font-medium text-foreground" : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
       )}
     >
       {color && <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />}

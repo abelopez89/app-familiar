@@ -79,6 +79,16 @@
   --input: oklch(0.877 0.019 127);
   --ring: oklch(0.475 0.08 159);
 
+  /* Bloque de marca (Lapacho y tereré): el encabezado verde del inicio y
+     el menú lateral de escritorio. Va aparte de `primary` porque en
+     oscuro `primary` se aclara para los botones, y un bloque grande de
+     verde claro encandila: acá se mantiene un verde profundo. `line` es
+     el trazo del ñandutí (`Nanduti`). */
+  --brand: oklch(0.475 0.08 159);
+  --brand-foreground: oklch(0.99 0.004 159);
+  --brand-muted: oklch(0.904 0.032 157);
+  --brand-line: oklch(0.752 0.061 161);
+
   /*
    * Color por módulo. Cada funcionalidad tiene un acento propio que se
    * repite en su tile del inicio, en el ícono de su encabezado y en sus
@@ -140,6 +150,11 @@
     --input: oklch(1 0 0 / 16%);
     --ring: oklch(0.741 0.102 159);
 
+    --brand: oklch(0.3 0.05 159);
+    --brand-foreground: oklch(0.95 0.01 140);
+    --brand-muted: oklch(0.82 0.035 157);
+    --brand-line: oklch(0.5 0.06 159);
+
     --mod-compras: oklch(0.78 0.13 65);
     --mod-compras-soft: oklch(0.32 0.055 60);
     --mod-eventos: oklch(0.76 0.13 280);
@@ -188,6 +203,11 @@
   --input: oklch(1 0 0 / 16%);
   --ring: oklch(0.741 0.102 159);
 
+  --brand: oklch(0.3 0.05 159);
+  --brand-foreground: oklch(0.95 0.01 140);
+  --brand-muted: oklch(0.82 0.035 157);
+  --brand-line: oklch(0.5 0.06 159);
+
   --mod-compras: oklch(0.78 0.13 65);
   --mod-compras-soft: oklch(0.32 0.055 60);
   --mod-eventos: oklch(0.76 0.13 280);
@@ -233,6 +253,11 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-line: var(--brand-line);
 
   --color-mod-compras: var(--mod-compras);
   --color-mod-compras-soft: var(--mod-compras-soft);
@@ -286,8 +311,7 @@
      se lee bien en el celular con mala luz. */
   h1,
   h2,
-  h3,
-  .font-heading {
+  h3 {
     font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
   }
 

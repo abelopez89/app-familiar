@@ -68,7 +68,7 @@ export function NavGroup({
   return (
     <div
       className={cn(
-        "divide-y divide-border overflow-hidden rounded-xl border bg-card shadow-sm",
+        "divide-y divide-border overflow-hidden rounded-xl border bg-card",
         className,
       )}
     >

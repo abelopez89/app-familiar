@@ -319,9 +319,28 @@ Restricciones deliberadas — no las repliques ni las "mejores":
   `next/font` en `app/layout.tsx`: **Atkinson Hyperlegible** para el
   texto (`--font-body`, solo 400/700: `font-semibold` cae en 700) y
   **Bricolage Grotesque** para `h1`/`h2`/`h3` y la clase `.font-heading`
-  (`--font-display`). Los rediseños de pantalla del prototipo (sello de
-  ñandutí en el inicio, encabezado verde, menú lateral verde) todavía
-  **no** están aplicados: este cambio fue solo de tokens.
+  (`--font-display`). Segundo paso, las pantallas del prototipo:
+  - **Bloque de marca** con tokens propios `--brand`,
+    `--brand-foreground`, `--brand-muted` y `--brand-line` (en los tres
+    bloques de color): en oscuro `primary` se aclara para los botones, y
+    un bloque grande de verde claro encandila, así que el bloque sigue en
+    un verde profundo. Lo usan el encabezado del inicio del celular y el
+    menú lateral de escritorio (el activo es una "hoja" `card`, con el
+    ícono en el color de su módulo).
+  - **Ñandutí** (`components/app-shell/nanduti.tsx`, SVG puro):
+    `SelloDelDia` con el día y el mes en el centro, en el encabezado del
+    inicio (celular) y del tablero (escritorio), y `Nanduti` como marca
+    del menú. Es el único adorno de la app: no lo sumes a otras
+    pantallas.
+  - **Inicio del celular**: encabezado verde (saludo y fecha, sin datos),
+    grilla de módulos de a cuatro con ícono grande (`ModuleTile`; el
+    `hint` quedó solo para lector de pantalla) y debajo las acciones
+    rápidas en dos columnas. El contador de alerta va en `warning`
+    (lapacho).
+  - **Sin sombras grises**: se sacaron los `shadow-sm` de tarjetas y
+    filas; la separación sale del contraste entre `background` y `card`.
+    `SectionTitle` dejó de ser un rótulo en mayúsculas: es un título
+    chico con la tipografía de títulos.
 - **Modo oscuro automático por `prefers-color-scheme`**, sin script ni
   flash de tema al abrir la PWA. La variante `dark:` de Tailwind está
   redefinida en `globals.css` con un `@custom-variant` que cubre a la

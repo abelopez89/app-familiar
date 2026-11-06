@@ -50,7 +50,7 @@ export function ParticipantsManager({
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-2">
         <SectionTitle>En el grupo</SectionTitle>
-        <div className="flex flex-col divide-y rounded-xl border bg-card shadow-sm">
+        <div className="flex flex-col divide-y rounded-xl border bg-card">
           {participants.map((p) => (
             <div key={p.id} className="flex items-center gap-3 px-4 py-3">
               <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: p.color ?? undefined }} />

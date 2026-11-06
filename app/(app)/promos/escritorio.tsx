@@ -168,7 +168,7 @@ export async function PromosEscritorio({
                 const duenio = nombreMiembro.get(tarjeta.member_id);
                 const rubro = RUBROS[promo.rubro as Rubro];
                 return (
-                  <article key={promo.id} className="flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-4 shadow-sm">
+                  <article key={promo.id} className="flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-xs text-muted-foreground">
@@ -223,7 +223,7 @@ export async function PromosEscritorio({
         {/* Ahorros, topes e ingestas */}
         <aside className="flex flex-col gap-4">
           <Ahorros familyId={familyId} hoy={hoy} />
-          <section className="flex flex-col gap-2 rounded-2xl border bg-card p-4 text-xs text-muted-foreground shadow-sm">
+          <section className="flex flex-col gap-2 rounded-2xl border bg-card p-4 text-xs text-muted-foreground">
             <h2 className="text-sm font-semibold text-foreground">Actualización</h2>
             {BANCOS_CON_ESTADO.map((banco) => {
               const estado = ingestas.find((e) => e.banco === banco);
@@ -267,7 +267,7 @@ async function Ahorros({ familyId, hoy }: { familyId: string; hoy: string }) {
   const porAcreditar = pendientes.reduce((s, u) => s + u.reintegro, 0);
 
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm">
+    <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
           <PiggyBank className="size-4 text-mod-promos" />
@@ -342,7 +342,7 @@ function Filtro({ href, active, label, count }: { href: string; active: boolean;
       aria-current={active ? "true" : undefined}
       className={cn(
         "flex h-8 items-center gap-2 rounded-lg px-2.5 transition-colors",
-        active ? "bg-card font-medium text-foreground shadow-sm" : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
+        active ? "bg-card font-medium text-foreground" : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
       )}
     >
       <span className="min-w-0 flex-1 truncate">{label}</span>

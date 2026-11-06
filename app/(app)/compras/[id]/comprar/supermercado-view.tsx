@@ -298,7 +298,7 @@ export function SupermercadoView({
                 {groupChecked}/{all.length}
               </p>
             </div>
-            <div className="overflow-hidden rounded-xl border shadow-sm">
+            <div className="overflow-hidden rounded-xl border">
               {groupItems.map((item) => (
                   <button
                     key={item.id}

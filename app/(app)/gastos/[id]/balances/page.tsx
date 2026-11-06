@@ -66,7 +66,7 @@ export default async function BalancesPage({ params }: { params: Promise<{ id: s
 
       <section className="flex flex-col gap-2">
         <SectionTitle>Balance de cada uno</SectionTitle>
-        <div className="flex flex-col divide-y rounded-xl border bg-card shadow-sm">
+        <div className="flex flex-col divide-y rounded-xl border bg-card">
           {sorted.map((b) => {
             const p = participantsById.get(b.participantId);
             return (
@@ -95,12 +95,12 @@ export default async function BalancesPage({ params }: { params: Promise<{ id: s
         <section className="flex flex-col gap-2">
           <SectionTitle>Para saldar</SectionTitle>
           {transfers.length === 0 ? (
-            <div className="flex items-center gap-3 rounded-xl border bg-card p-4 text-sm shadow-sm">
+            <div className="flex items-center gap-3 rounded-xl border bg-card p-4 text-sm">
               <CheckCircle2 className="size-5 text-success" />
               Nadie le debe nada a nadie.
             </div>
           ) : (
-            <div className="flex flex-col divide-y rounded-xl border bg-card shadow-sm">
+            <div className="flex flex-col divide-y rounded-xl border bg-card">
               {transfers.map((t) => (
                 <div key={`${t.from}-${t.to}`} className="flex flex-col gap-2 px-4 py-3">
                   <div className="flex items-center gap-2 text-sm">
@@ -131,7 +131,7 @@ export default async function BalancesPage({ params }: { params: Promise<{ id: s
         {bundle.settlements.length === 0 ? (
           <p className="px-1 text-sm text-muted-foreground">Todavía no se registró ningún pago.</p>
         ) : (
-          <div className="flex flex-col divide-y rounded-xl border bg-card shadow-sm">
+          <div className="flex flex-col divide-y rounded-xl border bg-card">
             {bundle.settlements.map((s) => (
               <div key={s.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="min-w-0 flex-1">

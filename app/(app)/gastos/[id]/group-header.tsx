@@ -40,7 +40,7 @@ export function GroupHeader({
         <GroupMenu group={group} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 shadow-sm">
+      <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Total del grupo</p>
           <p className="truncate text-lg font-semibold tabular-nums">{formatGuaranies(totalPyg)}</p>
@@ -75,7 +75,7 @@ export function GroupHeader({
             aria-current={active === tab.key ? "page" : undefined}
             className={cn(
               "tap-target flex items-center justify-center rounded-lg px-3 py-2 transition-colors",
-              active === tab.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+              active === tab.key ? "bg-card text-foreground" : "text-muted-foreground",
             )}
           >
             {tab.label}

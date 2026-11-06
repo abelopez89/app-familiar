@@ -104,7 +104,7 @@ function ListItemLink({ list, active }: { list: ShoppingList; active: boolean })
       aria-current={active ? "true" : undefined}
       className={cn(
         "flex items-center gap-3 rounded-xl border p-3 transition-colors",
-        active ? "border-ring/40 bg-card shadow-sm" : "bg-card/60 hover:bg-card",
+        active ? "border-ring/40 bg-card" : "bg-card/60 hover:bg-card",
       )}
     >
       {closed ? (
@@ -163,7 +163,7 @@ async function ListPanel({ familyId, list }: { familyId: string; list: ShoppingL
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
-      <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-sm">
+      <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
         <div className="flex flex-col gap-3">
           <div className="min-w-0">
             <h2 className="truncate text-xl font-semibold">{list.name ?? "Lista de compras"}</h2>
@@ -235,7 +235,7 @@ async function ListPanel({ familyId, list }: { familyId: string; list: ShoppingL
         )}
       </section>
 
-      <section className="rounded-2xl border bg-card p-5 shadow-sm">
+      <section className="rounded-2xl border bg-card p-5">
         {items.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">La lista está vacía.</p>
         ) : (

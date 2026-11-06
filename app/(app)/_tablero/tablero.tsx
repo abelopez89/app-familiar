@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { SelloDelDia } from "@/components/app-shell/nanduti";
 import { CalendarPlus, FilePlus2, Fuel, ShoppingCart } from "lucide-react";
 import { MODULES_BY_KEY, type ModuleKey } from "@/components/app-shell/modules";
 import { EVENT_CATEGORY_CHIP } from "@/components/app-shell/event-chips";
@@ -36,14 +37,18 @@ import {
 export function Tablero({ saludo, nombre, today }: { saludo: string; nombre: string; today: string }) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-end justify-between gap-6">
-        <div>
-          <p className="text-sm text-muted-foreground first-letter:uppercase">
-            {formatDate(dateOnlyToFamilyMidnightUtc(today), "EEEE d 'de' MMMM")}
-          </p>
-          <h1 className="text-[1.75rem] font-semibold tracking-tight">
-            {saludo}, {nombre}
-          </h1>
+      <div className="flex items-center justify-between gap-6">
+        <div className="flex min-w-0 items-center gap-5">
+          {/* El sello de ñandutí: el único adorno de la pantalla. */}
+          <SelloDelDia today={today} className="size-28 text-brand-line" discClassName="size-15 text-[1.75rem]" />
+          <div className="min-w-0">
+            <h1 className="text-[2.5rem] leading-none font-bold tracking-tight">
+              {saludo}, {nombre}
+            </h1>
+            <p className="mt-2 text-base text-muted-foreground first-letter:uppercase">
+              {formatDate(dateOnlyToFamilyMidnightUtc(today), "EEEE d 'de' MMMM")}
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           {ACCESOS.map(({ href, label, icon: Icon, modulo }) => (
@@ -136,7 +141,7 @@ function Indicador({
   return (
     <Link
       href={href}
-      className="flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-4 shadow-sm transition-colors hover:border-ring/40"
+      className="flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-4 transition-colors hover:border-ring/40"
     >
       <span className="flex items-center gap-2">
         <span className={cn("flex size-7 items-center justify-center rounded-lg", bg)}>
@@ -178,7 +183,7 @@ function Panel({
 }) {
   const { icon: Icon, fg, bg } = MODULES_BY_KEY[modulo];
   return (
-    <section className={cn("flex min-w-0 flex-col gap-4 rounded-2xl border bg-card p-5 shadow-sm", className)}>
+    <section className={cn("flex min-w-0 flex-col gap-4 rounded-2xl border bg-card p-5", className)}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", bg)}>

@@ -32,7 +32,7 @@ export function PageHeader({
         {Icon && (
           <span
             className={cn(
-              "flex size-11 shrink-0 items-center justify-center rounded-xl",
+              "flex size-11 shrink-0 items-center justify-center rounded-2xl",
               iconBg ?? "bg-accent",
             )}
           >
@@ -40,7 +40,7 @@ export function PageHeader({
           </span>
         )}
         <div className="min-w-0">
-          <h1 className="truncate text-[1.75rem] font-semibold tracking-tight">{title}</h1>
+          <h1 className="truncate text-[1.875rem] leading-tight font-bold tracking-tight">{title}</h1>
           {description && (
             <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
           )}
@@ -63,7 +63,7 @@ export function SectionTitle({
 }) {
   return (
     <div className={cn("flex items-center justify-between px-1", className)}>
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <h2 className="text-lg leading-tight font-bold">
         {children}
       </h2>
       {action}

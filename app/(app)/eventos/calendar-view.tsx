@@ -106,7 +106,7 @@ export function CalendarView({
             aria-pressed={view === "grilla"}
             className={cn(
               "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-              view === "grilla" ? "bg-card shadow-sm" : "text-muted-foreground",
+              view === "grilla" ? "bg-card" : "text-muted-foreground",
             )}
           >
             <LayoutGrid className="size-3.5" />
@@ -118,7 +118,7 @@ export function CalendarView({
             aria-pressed={view === "agenda"}
             className={cn(
               "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-              view === "agenda" ? "bg-card shadow-sm" : "text-muted-foreground",
+              view === "agenda" ? "bg-card" : "text-muted-foreground",
             )}
           >
             <List className="size-3.5" />
@@ -153,7 +153,7 @@ export function CalendarView({
               {selectedDayEvents.length === 0 ? "Sin eventos este día" : "Eventos del día"}
             </h2>
             {selectedDayEvents.length > 0 && (
-              <div className="flex flex-col divide-y overflow-hidden rounded-xl border bg-card shadow-sm">
+              <div className="flex flex-col divide-y overflow-hidden rounded-xl border bg-card">
                 {selectedDayEvents.map((event) => (
                   <EventRow key={event.id} display={event} members={members} />
                 ))}

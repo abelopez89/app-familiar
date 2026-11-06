@@ -107,7 +107,7 @@ export function TasksList({
             type="button"
             onClick={() => setShowUpcoming((v) => !v)}
             aria-expanded={showUpcoming}
-            className="tap-target flex items-center justify-between rounded-xl border bg-card px-4 text-sm font-medium shadow-sm active:bg-muted"
+            className="tap-target flex items-center justify-between rounded-xl border bg-card px-4 text-sm font-medium active:bg-muted"
           >
             <span>Próximas ({upcoming.length})</span>
             <ChevronDown
@@ -175,7 +175,7 @@ function TaskGroup({
       {instances.length === 0 ? (
         <p className="px-1 text-sm text-muted-foreground">{emptyLabel}</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+        <div className="overflow-hidden rounded-xl border bg-card">
           {instances.map((instance) => (
             <TaskRow
               key={instance.id}
