@@ -1503,7 +1503,8 @@ Recorrido con Playwright contra producción con un usuario de prueba
 (celular 390×844 con user-agent de iPhone y escritorio 1440×900), que
 confirmó lo de la primera ronda. Las siete propuestas van en **un solo
 PR, a pedido del usuario** (excepción a "una mejora por PR"), sin
-migraciones ni reglas de negocio nuevas.
+migraciones ni reglas de negocio nuevas. **Verificado por el usuario
+desde el celular** en el deploy de preview, antes del merge a `main`.
 
 7. **Cerrar la compra vuelve al resumen de esa compra**
    (`/compras/[id]/comprar`), no a `/compras`: ahí está "¿Pagaste con una
