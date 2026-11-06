@@ -128,7 +128,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
       {documents.some((d) => d.doc_type === "calificaciones") && (
         <Link
           href={`/documentos/calificaciones?miembro=${member.id}`}
-          className="tap-target flex items-center justify-between rounded-xl border bg-card px-4 py-3 text-sm font-medium"
+          className="tap-target flex items-center justify-between hoja px-4 py-3 text-sm font-medium"
         >
           Calificaciones del colegio
           <span className="text-muted-foreground">›</span>

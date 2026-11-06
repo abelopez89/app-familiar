@@ -184,7 +184,7 @@ export async function DocumentosEscritorio({
                     href={hrefWith(params, { doc: doc.id })}
                     scroll={false}
                     className={cn(
-                      "overflow-hidden rounded-xl border bg-card transition-colors hover:border-ring/40",
+                      "overflow-hidden hoja transition-colors hover:border-ring/40",
                       selected?.id === doc.id && "ring-2 ring-primary",
                     )}
                   >
@@ -212,13 +212,13 @@ export async function DocumentosEscritorio({
           <section className="flex flex-col gap-2">
             <SectionTitle>{pinned.length > 0 ? "Los demás" : "Todos"}</SectionTitle>
             {rest.length === 0 ? (
-              <p className="rounded-xl border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+              <p className="hoja px-4 py-8 text-center text-sm text-muted-foreground">
                 {documents.length === 0
                   ? "Todavía no cargaste ningún documento."
                   : "No hay documentos que coincidan con los filtros."}
               </p>
             ) : (
-              <div className="overflow-hidden rounded-xl border bg-card text-sm" role="table">
+              <div className="overflow-hidden hoja text-sm" role="table">
                 <div
                   role="row"
                   className="grid grid-cols-[minmax(0,1fr)_6rem_5.5rem_2.5rem] 2xl:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_5.5rem_2.5rem] gap-3 border-b bg-muted/60 px-4 py-2 text-xs font-medium text-muted-foreground"
@@ -320,7 +320,7 @@ export async function DocumentosEscritorio({
 function FiltroGrupo({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <p className="px-2.5 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">{titulo}</p>
+      <p className="px-2.5 pb-1 text-sm font-bold text-muted-foreground">{titulo}</p>
       {children}
     </div>
   );

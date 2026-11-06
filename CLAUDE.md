@@ -341,6 +341,19 @@ Restricciones deliberadas — no las repliques ni las "mejores":
     filas; la separación sale del contraste entre `background` y `card`.
     `SectionTitle` dejó de ser un rótulo en mayúsculas: es un título
     chico con la tipografía de títulos.
+  - **Hojas** (tercer paso, resto de las pantallas): la utilidad `hoja`
+    de `globals.css` (radio 1.375rem, fondo `card`, borde
+    `--sheet-border`: transparente en claro y el borde de siempre en
+    oscuro) reemplaza a `rounded-xl border bg-card` y es la base de
+    `Card`. Superficies nuevas, con `hoja`. Ningún rótulo de sección va
+    en mayúsculas.
+  - **Modo supermercado**: tildado en el color de Compras, nombre en
+    negrita mientras falta, barra de avance sobre `mod-compras-soft` y
+    categorías como títulos. No cambió nada de la lógica (regla 4 de la
+    Fase 1).
+  - **Gastos**: lo que alguien debe va en lapacho (`warning`), no en el
+    rojo de error (`balanceTone`, barras de balance): deber plata no es
+    un error. `destructive` queda para errores y "no cierra".
 - **Modo oscuro automático por `prefers-color-scheme`**, sin script ni
   flash de tema al abrir la PWA. La variante `dark:` de Tailwind está
   redefinida en `globals.css` con un `@custom-variant` que cubre a la

@@ -35,7 +35,7 @@ export function BalanceBars({ bundle }: { bundle: GroupBundle }) {
               <span className="truncate">{names.get(b.participantId) ?? "—"}</span>
               <span className="grid h-2.5 grid-cols-2">
                 <span className="flex justify-end border-r border-border">
-                  {b.balance < 0 && <span className="h-full rounded-l-full bg-destructive" style={{ width }} />}
+                  {b.balance < 0 && <span className="h-full rounded-l-full bg-warning" style={{ width }} />}
                 </span>
                 <span className="flex">
                   {b.balance > 0 && <span className="h-full rounded-r-full bg-success" style={{ width }} />}

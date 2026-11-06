@@ -118,6 +118,7 @@ export function describeBalance(balance: number, formatter: (n: number) => strin
 
 export function balanceTone(balance: number): string {
   if (balance > 0) return "text-success";
-  if (balance < 0) return "text-destructive";
+  // Lapacho (`warning`), no el rojo de error: deber plata no es un error.
+  if (balance < 0) return "text-warning";
   return "text-muted-foreground";
 }

@@ -76,6 +76,10 @@
   --warning-foreground: oklch(0.99 0.005 359);
 
   --border: oklch(0.903 0.016 127);
+  /* Borde de una "hoja" (utilidad `hoja`): en claro no hace falta, la
+     hoja blanca ya se separa del papel; en oscuro el contraste entre
+     `card` y `background` es poco y lleva el borde de siempre. */
+  --sheet-border: transparent;
   --input: oklch(0.877 0.019 127);
   --ring: oklch(0.475 0.08 159);
 
@@ -147,6 +151,7 @@
     --warning-foreground: oklch(0.2 0.04 353);
 
     --border: oklch(1 0 0 / 12%);
+    --sheet-border: oklch(1 0 0 / 12%);
     --input: oklch(1 0 0 / 16%);
     --ring: oklch(0.741 0.102 159);
 
@@ -200,6 +205,7 @@
   --warning-foreground: oklch(0.2 0.04 353);
 
   --border: oklch(1 0 0 / 12%);
+  --sheet-border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
   --ring: oklch(0.741 0.102 159);
 
@@ -329,6 +335,17 @@
   :root {
     --nav-total: var(--safe-bottom);
   }
+}
+
+/* "Hoja": la superficie de la identidad Lapacho y tereré. Radio grande,
+   sin sombra y sin borde en claro (ver `--sheet-border`). Reemplaza al
+   `hoja` de antes en listas y tarjetas. */
+@utility hoja {
+  border-radius: 1.375rem;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--sheet-border);
+  background-color: var(--card);
 }
 
 @layer utilities {
