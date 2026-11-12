@@ -2265,6 +2265,14 @@ global, subir varios, vista semana: etapa 2).
     llevan a sus pantallas de siempre (`/compras/[id]` es optimista y el
     modo supermercado tiene realtime y wake lock; duplicar eso acá sería
     una segunda versión de las reglas de la Fase 1). Sin JS nuevo.
+    **Links a los súper online** (a pedido del usuario, que arma el
+    carrito desde la computadora): en una lista no cerrada, cada producto
+    sin tildar lleva "Real" y "Salemma", que abren la búsqueda de esa
+    tienda en otra pestaña (`lib/shopping/tiendas.ts`, Real primero
+    porque es la que más usa). **La app no toca el carrito**: vive en la
+    sesión de la persona en la web del súper, y Salemma responde 403 a
+    los pedidos desde servidores (mismo criterio que GNB: no se esquiva).
+    Si una tienda cambia la URL de búsqueda, se cambia ahí.
 12. **Combustible de escritorio (`app/(app)/combustible/escritorio.tsx`)**:
     mismo corte por user-agent. Vehículos arriba como tarjetas (último
     rendimiento y última carga) y el elegido (`?vehiculo=<id>`; sin
