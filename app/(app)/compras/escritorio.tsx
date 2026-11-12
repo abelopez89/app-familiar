@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { BadgePercent, Check, ClipboardList, Pencil, Plus, Receipt, ShoppingCart } from "lucide-react";
+import { BadgePercent, Check, ClipboardList, Pencil, Plus, Receipt, ShoppingCart, Store } from "lucide-react";
 import type { ShoppingList, ShoppingListItem } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/server";
 import { listItems, listProductCategories } from "@/lib/services/compras";
 import { usosPorReferencia } from "@/lib/promos/usos";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatGuaranies, formatQuantity } from "@/lib/format";
+import { TIENDAS_ONLINE, urlBusquedaTienda } from "@/lib/shopping/tiendas";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PageHeader, SectionTitle } from "@/components/app-shell/page-header";
@@ -23,6 +24,11 @@ const SIN_CATEGORIA = "__sin_categoria__";
  * comprar, cerrar la compra o cargar la promo siguen en sus pantallas de
  * siempre (la edición es optimista y el modo supermercado tiene realtime;
  * no se duplica nada de eso acá).
+ *
+ * En una lista no cerrada, cada producto sin tildar tiene links "Real" y
+ * "Salemma" que abren la búsqueda de esa tienda online en otra pestaña
+ * (`lib/shopping/tiendas.ts`), para armar el carrito del súper desde la
+ * lista sin tipear.
  */
 export async function ComprasEscritorio({
   familyId,
@@ -48,6 +54,12 @@ export async function ComprasEscritorio({
         iconBg={bg}
         actions={
           <>
+            <Button asChild variant="outline">
+              <Link href="/compras/real">
+                <Store className="size-4" />
+                Productos de Real
+              </Link>
+            </Button>
             <Button asChild variant="outline">
               <Link href="/compras/plantillas">
                 <ClipboardList className="size-4" />
@@ -265,6 +277,23 @@ async function ListPanel({ familyId, list }: { familyId: string; list: ShoppingL
                       <span className="shrink-0 text-xs text-muted-foreground">
                         {formatQuantity(item.quantity, item.unit)}
                       </span>
+                      {!closed && !item.is_checked && (
+                        <span className="flex shrink-0 gap-1">
+                          {TIENDAS_ONLINE.map((tienda) => (
+                            <a
+                              key={tienda.key}
+                              href={urlBusquedaTienda(tienda, item.name)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Buscar ${item.name} en ${tienda.nombreCompleto}`}
+                              title={`Buscar en ${tienda.nombreCompleto}`}
+                              className="rounded-full bg-mod-compras-soft px-2 py-0.5 text-xs font-bold text-mod-compras hover:underline"
+                            >
+                              {tienda.nombre}
+                            </a>
+                          ))}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
