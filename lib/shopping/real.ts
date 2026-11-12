@@ -42,3 +42,27 @@ export function decodificarPaquete(texto: string): unknown {
     return null;
   }
 }
+
+/**
+ * Lo que copia "Copiar para Real" (vista de escritorio de una lista) y
+ * pega la persona en el marcador, dentro de la página de Real: los
+ * productos que faltan de la lista, con el producto de Real ya elegido si
+ * lo hay. `volver` es la pantalla de la app adonde el marcador manda lo
+ * que se eligió nuevo (`/compras/real/guardar`).
+ */
+export type ProductoParaReal = {
+  nombre: string;
+  cantidad: number;
+  unidad: string;
+  referencia?: string;
+  nombreTienda?: string;
+  unidadTienda?: string;
+};
+
+export type ListaParaReal = {
+  app: "app-familiar";
+  v: 1;
+  lista: string;
+  volver: string;
+  productos: ProductoParaReal[];
+};

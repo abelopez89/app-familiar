@@ -6,6 +6,9 @@ import { PageHeader } from "@/components/app-shell/page-header";
 import { ShoppingBasket } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QuitarProducto } from "./quitar-producto";
+import { InstalarMarcador } from "./instalar-marcador";
+import { SectionTitle } from "@/components/app-shell/page-header";
+import { hrefMarcadorReal } from "@/lib/shopping/marcador-real";
 
 /**
  * Productos de Real: qué producto exacto de Real es cada producto de las
@@ -26,6 +29,30 @@ export default async function ProductosRealPage() {
         title="Productos de Real"
         description="Qué producto de Real Online es cada producto de tus listas"
       />
+      <section className="hoja flex flex-col gap-3 p-4">
+        <SectionTitle>Llenar el carrito de Real desde tu lista</SectionTitle>
+        <ol className="list-decimal space-y-1 pl-5 text-sm">
+          <li>
+            Una sola vez: arrastrá el botón <strong>Llenar carrito Real</strong> a la barra de marcadores de tu
+            navegador (en la computadora).
+          </li>
+          <li>
+            En Compras, en tu lista abierta, tocá <strong>Copiar para Real</strong>.
+          </li>
+          <li>
+            Abrí realonline.com.py con tu sesión iniciada y tocá el marcador. Pegá la lista, elegí el producto de
+            Real de lo que todavía no tiene, y se agrega todo al carrito.
+          </li>
+          <li>Al final, “Guardar lo elegido en la app” te trae acá para que la próxima vez vaya directo.</li>
+        </ol>
+        <InstalarMarcador href={hrefMarcadorReal()} />
+        <p className="text-xs text-muted-foreground">
+          El marcador corre en la página de Real con tu sesión: la app nunca entra a tu cuenta de Real ni guarda tu
+          contraseña. Revisá el carrito antes de confirmar.
+        </p>
+      </section>
+
+      <SectionTitle>Productos elegidos</SectionTitle>
       {productos.length === 0 ? (
         <EmptyState
           icon={ShoppingBasket}

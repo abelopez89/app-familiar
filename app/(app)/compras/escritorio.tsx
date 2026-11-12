@@ -7,6 +7,9 @@ import { usosPorReferencia } from "@/lib/promos/usos";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatGuaranies, formatQuantity } from "@/lib/format";
 import { TIENDAS_ONLINE, urlBusquedaTienda } from "@/lib/shopping/tiendas";
+import { listarProductosTienda } from "@/lib/shopping/productos-tienda";
+import { productosParaReal } from "@/lib/shopping/lista-para-real";
+import { CopiarParaReal } from "./copiar-para-real";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PageHeader, SectionTitle } from "@/components/app-shell/page-header";
@@ -144,10 +147,11 @@ function ListItemLink({ list, active }: { list: ShoppingList; active: boolean })
 async function ListPanel({ familyId, list }: { familyId: string; list: ShoppingList }) {
   const supabase = await createClient();
   const closed = list.status === "cerrada";
-  const [items, categories, usos] = await Promise.all([
+  const [items, categories, usos, vinculadosReal] = await Promise.all([
     listItems(supabase, familyId, list.id),
     listProductCategories(supabase, familyId),
     closed ? usosPorReferencia(familyId, "shopping_list_id", [list.id]) : Promise.resolve(new Map()),
+    closed ? Promise.resolve([]) : listarProductosTienda(supabase, familyId, "real"),
   ]);
   const uso = usos.get(list.id);
 
@@ -216,6 +220,10 @@ async function ListPanel({ familyId, list }: { familyId: string; list: ShoppingL
                     Ir a comprar
                   </Link>
                 </Button>
+                <CopiarParaReal
+                  lista={list.name ?? "Lista de compras"}
+                  productos={productosParaReal(items, vinculadosReal)}
+                />
               </>
             )}
           </div>
