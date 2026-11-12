@@ -45,9 +45,9 @@ acá primero):
 
 - **Vercel**: variables de entorno (ver "Variables de entorno") y deploy
   automático de `main`.
-- **Supabase**: migraciones `001`–`016` aplicadas y bucket privado
-  `documentos` creado. La `014` (promociones), la `015` (uso de promos)
-  y la `016` (calificaciones) las aplicó Claude con
+- **Supabase**: migraciones `001`–`017` aplicadas y bucket privado
+  `documentos` creado. La `014` (promociones), la `015` (uso de promos),
+  la `016` (calificaciones) y la `017` (productos de Real) las aplicó Claude con
   `execute_sql` del MCP de Supabase, en una transacción y con
   autorización explícita del usuario para cada una (sin
   `apply_migration`, para no escribir el historial de migraciones del
@@ -237,9 +237,9 @@ acá primero):
   incluye: eventos que se repiten por chat, subir documentos por foto,
   divisiones de gastos por pesos o importes exactos por chat, ni chats
   de grupo.
-- Migraciones `001` a `016` aplicadas y confirmadas en la base
+- Migraciones `001` a `017` aplicadas y confirmadas en la base
   compartida. Antes de escribir la
-  migración `017`, mirá `supabase/migrations/` para confirmar el próximo
+  migración `018`, mirá `supabase/migrations/` para confirmar el próximo
   número — no lo asumas.
 - **Lecciones de la puesta en producción** (relevantes para cualquier
   módulo nuevo, no solo compras): ver la regla 10 de la sección
@@ -561,7 +561,7 @@ Estas reglas no son opcionales:
 
 ### Migraciones (referencia rápida)
 
-`001` a `016` corridas en Supabase y confirmadas funcionando —
+`001` a `017` corridas en Supabase y confirmadas funcionando —
 incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 
 | Archivo | Contenido |
@@ -582,7 +582,7 @@ incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 | `014_promos.sql` | Promos globales (`promociones`, `promo_comercios`, `promo_beneficios`, `promo_beneficio_componentes`, `promo_beneficio_tarjetas`, `promo_descartadas`, `promo_ingestas`: solo lectura para `authenticated`, escritura solo `service_role`) y por familia (`tarjetas_familia`, `comercios_favoritos`, RLS estándar). Ver "Promociones de tarjetas". |
 | `015_promo_usos.sql` | `promo_beneficio_componentes.tope_tipo` (`compra`/`descuento`, null = sin definir) y `promo_usos` (por familia, RLS estándar): la promo y la tarjeta usadas en una compra o una carga de combustible, con el cálculo copiado en `detalle`. Ver punto 25 de "Promociones de tarjetas". |
 | `016_calificaciones.sql` | `school_reports` (un informe por hijo y mes, con grado, asistencia y el documento PDF) y `school_report_scores` (puntos/máximo/observación por materia), por familia, RLS estándar. Ver "Calificaciones del colegio". |
-| `017_productos_tienda.sql` | `productos_tienda`: qué producto de un súper online (hoy solo Real) es cada producto de las listas, con su código y unidad en la tienda. Por familia, RLS estándar, `unique(family_id, tienda, producto_clave)`. Ver "Compras de escritorio" (regla 11 del panel web). **Pendiente de aplicar.** |
+| `017_productos_tienda.sql` | `productos_tienda`: qué producto de un súper online (hoy solo Real) es cada producto de las listas, con su código y unidad en la tienda. Por familia, RLS estándar, `unique(family_id, tienda, producto_clave)`. Ver "Compras de escritorio" (regla 11 del panel web). |
 
 La próxima migración de cualquier fase nueva es `018_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
