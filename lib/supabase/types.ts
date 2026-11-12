@@ -1413,6 +1413,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      productos_tienda: {
+        Row: {
+          id: string;
+          family_id: string;
+          tienda: TiendaProducto;
+          producto_clave: string;
+          producto_nombre: string;
+          referencia: string;
+          nombre_tienda: string;
+          unidad: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          tienda: TiendaProducto;
+          producto_clave: string;
+          producto_nombre: string;
+          referencia: string;
+          nombre_tienda: string;
+          unidad: string;
+          created_by?: string | null;
+        };
+        Update: {
+          producto_nombre?: string;
+          referencia?: string;
+          nombre_tienda?: string;
+          unidad?: string;
+        };
+        Relationships: [];
+      };
       school_reports: {
         Row: {
           id: string;
@@ -1587,5 +1620,8 @@ export type Promocion = Database["hogar"]["Tables"]["promociones"]["Row"];
 export type PromoIngesta = Database["hogar"]["Tables"]["promo_ingestas"]["Row"];
 
 export type PromoUso = Database["hogar"]["Tables"]["promo_usos"]["Row"];
+/** Tiendas online con productos vinculados (migración 017). */
+export type TiendaProducto = "real";
+export type ProductoTienda = Database["hogar"]["Tables"]["productos_tienda"]["Row"];
 export type SchoolReport = Database["hogar"]["Tables"]["school_reports"]["Row"];
 export type SchoolReportScore = Database["hogar"]["Tables"]["school_report_scores"]["Row"];

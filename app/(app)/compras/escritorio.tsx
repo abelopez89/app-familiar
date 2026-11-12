@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BadgePercent, Check, ClipboardList, Pencil, Plus, Receipt, ShoppingCart } from "lucide-react";
+import { BadgePercent, Check, ClipboardList, Pencil, Plus, Receipt, ShoppingCart, Store } from "lucide-react";
 import type { ShoppingList, ShoppingListItem } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/server";
 import { listItems, listProductCategories } from "@/lib/services/compras";
@@ -54,6 +54,12 @@ export async function ComprasEscritorio({
         iconBg={bg}
         actions={
           <>
+            <Button asChild variant="outline">
+              <Link href="/compras/real">
+                <Store className="size-4" />
+                Productos de Real
+              </Link>
+            </Button>
             <Button asChild variant="outline">
               <Link href="/compras/plantillas">
                 <ClipboardList className="size-4" />

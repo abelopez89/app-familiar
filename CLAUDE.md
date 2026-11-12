@@ -30,9 +30,8 @@ Cómo trabajar una mejora mínima:
 3. **Lógica de negocio en `lib/services/`** cuando el bot también la usa
    (Fase 7): un cambio de regla se hace una vez y lo ven la app y el
    bot. Toda consulta con el admin client filtra por `family_id`.
-4. **Migraciones**: la próxima es la `017` (confirmalo mirando
-   `supabase/migrations/`; la `016` es de las calificaciones del
-   colegio). Se escribe el archivo y la aplica el usuario
+4. **Migraciones**: la próxima es la `018` (confirmalo mirando
+   `supabase/migrations/`; la `017` es de los productos de Real). Se escribe el archivo y la aplica el usuario
    desde el SQL Editor; no avanzar con el código que depende de ella
    hasta que confirme.
 5. **Antes de cada PR**: `npm run build` y `npm run lint` sin errores, y
@@ -583,8 +582,9 @@ incluye el bucket privado `documentos` en Storage (Fase 5), ya creado.
 | `014_promos.sql` | Promos globales (`promociones`, `promo_comercios`, `promo_beneficios`, `promo_beneficio_componentes`, `promo_beneficio_tarjetas`, `promo_descartadas`, `promo_ingestas`: solo lectura para `authenticated`, escritura solo `service_role`) y por familia (`tarjetas_familia`, `comercios_favoritos`, RLS estándar). Ver "Promociones de tarjetas". |
 | `015_promo_usos.sql` | `promo_beneficio_componentes.tope_tipo` (`compra`/`descuento`, null = sin definir) y `promo_usos` (por familia, RLS estándar): la promo y la tarjeta usadas en una compra o una carga de combustible, con el cálculo copiado en `detalle`. Ver punto 25 de "Promociones de tarjetas". |
 | `016_calificaciones.sql` | `school_reports` (un informe por hijo y mes, con grado, asistencia y el documento PDF) y `school_report_scores` (puntos/máximo/observación por materia), por familia, RLS estándar. Ver "Calificaciones del colegio". |
+| `017_productos_tienda.sql` | `productos_tienda`: qué producto de un súper online (hoy solo Real) es cada producto de las listas, con su código y unidad en la tienda. Por familia, RLS estándar, `unique(family_id, tienda, producto_clave)`. Ver "Compras de escritorio" (regla 11 del panel web). **Pendiente de aplicar.** |
 
-La próxima migración de cualquier fase nueva es `017_*.sql`. Confirmá el
+La próxima migración de cualquier fase nueva es `018_*.sql`. Confirmá el
 número real mirando la carpeta antes de crearla, por si esto queda
 desactualizado.
 
@@ -667,6 +667,9 @@ Tres clientes separados, no los mezcles:
     Agrupa familia, catálogos, avisos y sesión.
   - `/compras`, `/compras/nueva`, `/compras/[id]`, `/compras/[id]/comprar`,
     `/compras/plantillas`, `/compras/plantillas/[id]`
+  - `/compras/real` — productos de Real elegidos para cada producto de
+    las listas (ver y quitar). `/compras/real/guardar#<datos>` — adonde
+    vuelve el marcador "Llenar carrito Real" con lo elegido.
   - `/eventos` — calendario (grilla mensual + agenda), Fase 2.
   - `/config/familia`, `/config/miembros`, `/config/categorias`
   - `/mas` — redirect permanente a `/config`. La pestaña "Más" dejó de
@@ -2273,6 +2276,27 @@ global, subir varios, vista semana: etapa 2).
     sesión de la persona en la web del súper, y Salemma responde 403 a
     los pedidos desde servidores (mismo criterio que GNB: no se esquiva).
     Si una tienda cambia la URL de búsqueda, se cambia ahí.
+    **Carrito de Real (en dos PRs, a pedido del usuario).** Real está
+    hecho sobre Instaleap (`nextgentheadless.instaleap.io/api/v3`,
+    GraphQL, cliente `CADENA_REAL`); el carrito es de la cuenta
+    (`LOGGED_CART`) y está atado a una sucursal. Un marcador del
+    navegador ("Llenar carrito Real", PR 2) corre **dentro de la página
+    de Real, con la sesión de la persona** (encabezado `token` y la
+    `dpl-api-key` pública de la página, los dos leídos de la propia
+    página) y agrega los productos con la API de Real. **La app nunca le
+    habla a Real** ni guarda la sesión: el servidor no hace pedidos a la
+    tienda (sería esquivar el bloqueo a servidores, mismo criterio que
+    GNB). PR 1: la migración `017` (`productos_tienda`, qué producto de
+    Real es cada producto de la lista: código, nombre y unidad, con la
+    clave = `normalizeProductName`, que se recalcula en el servidor),
+    `/compras/real` (ver y quitar; quitar hace que el marcador lo vuelva
+    a preguntar) y `/compras/real/guardar`, adonde vuelve el marcador con
+    lo elegido **en el fragmento de la URL** (`#…`, JSON en base64url,
+    formato en `lib/shopping/real.ts`): el fragmento no llega al servidor
+    ni a los logs; la página lo muestra y **se guarda con un toque, nunca
+    solo** (cualquiera puede armar ese link), y `guardarProductosReal`
+    lo valida entero con Zod (`productosElegidosSchema`). Consultas en
+    `lib/shopping/productos-tienda.ts`, filtrando por `family_id`.
 12. **Combustible de escritorio (`app/(app)/combustible/escritorio.tsx`)**:
     mismo corte por user-agent. Vehículos arriba como tarjetas (último
     rendimiento y última carga) y el elegido (`?vehiculo=<id>`; sin
